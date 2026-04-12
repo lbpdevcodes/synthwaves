@@ -143,7 +143,7 @@ RSpec.describe MusicBrainzEnricherService do
       end
     end
 
-    context "when match confidence is high and artist differs" do
+    context "when MusicBrainz suggests a different artist and album" do
       let(:wrong_artist) { create(:artist, user: track.user, name: "Wrong Artist") }
       let(:wrong_album) { create(:album, artist: wrong_artist, user: track.user, title: "Wrong Album") }
 
@@ -165,29 +165,30 @@ RSpec.describe MusicBrainzEnricherService do
         allow(MusicBrainzMatcherService).to receive(:call).with(track).and_return(reassign_match)
       end
 
-      it "reassigns track to the correct artist" do
+      it "keeps the track on the original artist" do
         described_class.call(track)
         track.reload
 
-        expect(track.artist.name).to eq("Depeche Mode")
+        expect(track.artist).to eq(wrong_artist)
         expect(track.artist.musicbrainz_artist_id).to eq("dm-mbid-456")
       end
 
-      it "reassigns track to the correct album" do
+      it "keeps the track on the original album" do
         described_class.call(track)
         track.reload
 
-        expect(track.album.title).to eq("Violator")
+        expect(track.album).to eq(wrong_album)
+        expect(track.album.musicbrainz_release_id).to eq("rel-789")
       end
 
-      it "cleans up empty artist and album" do
+      it "does not clean up the original artist and album" do
         described_class.call(track)
 
-        expect(Artist.find_by(id: wrong_artist.id)).to be_nil
-        expect(Album.find_by(id: wrong_album.id)).to be_nil
+        expect(Artist.find_by(id: wrong_artist.id)).to eq(wrong_artist)
+        expect(Album.find_by(id: wrong_album.id)).to eq(wrong_album)
       end
 
-      it "does not reassign when confidence is below threshold" do
+      it "still keeps the original artist when confidence is below threshold" do
         low_match = reassign_match.merge(confidence: 0.7)
         allow(MusicBrainzMatcherService).to receive(:call).with(track).and_return(low_match)
 
@@ -197,7 +198,7 @@ RSpec.describe MusicBrainzEnricherService do
         expect(track.artist.name).to eq("Wrong Artist")
       end
 
-      it "does not reassign when artist name matches" do
+      it "still keeps the original artist when artist name matches" do
         same_match = reassign_match.merge(artist_name: wrong_artist.name)
         allow(MusicBrainzMatcherService).to receive(:call).with(track).and_return(same_match)
 
