@@ -299,6 +299,3 @@ Admin panel at `/admin`. Job dashboard at `/jobs`.
 
 [MIT License](LICENSE.md)
 
----
-
-Built with Rails 8, Hotwire, Tailwind CSS, and ViewComponent.
