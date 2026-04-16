@@ -51,15 +51,15 @@ class RadioStation < ApplicationRecord
   end
 
   def broadcast_status
-    RadioStationBroadcaster.status(self)
+    nil
   end
 
   def broadcast_now_playing
-    RadioStationBroadcaster.now_playing(self)
+    nil
   end
 
   def broadcast_queue
-    RadioStationBroadcaster.queue(self)
+    nil
   end
 
   def upcoming_tracks(limit = 3)

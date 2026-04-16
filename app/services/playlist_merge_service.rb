@@ -12,7 +12,6 @@ class PlaylistMergeService
 
   def call
     raise Error, "Cannot merge a playlist into itself." if @target.id == @source.id
-    raise Error, "Cannot merge: source playlist has an active radio station. Stop it first." if @source.radio_station&.active?
 
     ActiveRecord::Base.transaction do
       existing_ids = @target.playlist_tracks.pluck(:track_id).to_set

@@ -49,16 +49,7 @@ Rails.application.routes.draw do
     resources :tracks, controller: "playlist_tracks", only: [:create, :destroy], as: :tracks
   end
   resources :podcasts, only: [:show]
-  get "radio", to: "public_radio_stations#index", as: :public_radio_stations
-  get "radio/:slug", to: "public_radio_stations#show", as: :public_radio_station
   get "tv-guide", to: "public_tv_guide#index", as: :public_tv_guide
-  resources :radio_stations, only: [:index, :show, :create, :edit, :update, :destroy] do
-    member do
-      post :start
-      post :stop
-      post :skip
-    end
-  end
   resources :external_streams, only: [:index, :new, :create, :destroy] do
     resource :stream, only: [:show], controller: "external_stream_proxy"
   end
@@ -124,13 +115,6 @@ Rails.application.routes.draw do
 
       resources :favorites, only: [:index, :create, :destroy]
       resources :play_histories, only: [:index, :create]
-
-      resources :radio, controller: "public_radio_stations", only: [:index, :show], param: :slug
-
-      resources :radio_stations, only: [:index, :show, :create, :update, :destroy] do
-        resource :control, controller: "radio_station_controls", only: [:create]
-      end
-
       resources :tags, only: [:index]
       resources :taggings, only: [:create, :destroy]
 
@@ -138,17 +122,6 @@ Rails.application.routes.draw do
       resource :stats, only: [:show]
 
       get :search, to: "search#index"
-    end
-    namespace :internal do
-      resources :radio_stations, only: [] do
-        member do
-          get :next_track
-          post :notify
-        end
-        collection do
-          get :active
-        end
-      end
     end
     namespace :import do
       resources :tracks, only: [:create]

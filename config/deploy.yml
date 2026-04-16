@@ -44,7 +44,6 @@ registry:
 env:
   secret:
     - RAILS_MASTER_KEY
-    - LIQUIDSOAP_API_TOKEN
   clear:
     # SSL settings (explicit for Kamal deploy; defaults are off for self-hosters)
     ASSUME_SSL: true
@@ -52,13 +51,6 @@ env:
     APP_HOST: synthwaves.fm
     APP_PROTOCOL: https
     STORAGE_SERVICE: linode
-
-    # Icecast streaming (public URLs + internal Docker access)
-    ICECAST_HOST: radio.synthwaves.fm
-    ICECAST_PROTOCOL: https
-    ICECAST_INTERNAL_HOST: synthwaves_fm-icecast
-    ICECAST_INTERNAL_PORT: "8000"
-    ICECAST_PORT: "443"
 
     # Queue workers are configured in config/queue.yml (3 workers: conversion, imports, default)
 
@@ -107,30 +99,3 @@ builder:
 # Use a different ssh user than root
 # ssh:
 #   user: app
-
-# Use accessory services (secrets come from .kamal/secrets).
-accessories:
-  icecast:
-    image: moul/icecast
-    host: <%= ENV["DEPLOY_HOST"] %>
-    port: "8000:8000"
-    env:
-      secret:
-        - ICECAST_SOURCE_PASSWORD
-        - ICECAST_ADMIN_PASSWORD
-
-  liquidsoap:
-    image: savonet/liquidsoap:v2.3.2
-    host: <%= ENV["DEPLOY_HOST"] %>
-    env:
-      secret:
-        - LIQUIDSOAP_API_TOKEN
-        - ICECAST_SOURCE_PASSWORD
-      clear:
-        RAILS_HOST: synthwaves.fm
-        RAILS_PROTOCOL: https
-        ICECAST_INTERNAL_HOST: synthwaves_fm-icecast
-        ICECAST_INTERNAL_PORT: "8000"
-    volumes:
-      - "groovy_tunes_storage:/rails/storage:ro"
-    cmd: liquidsoap /rails/storage/liquidsoap/radio.liq

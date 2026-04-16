@@ -296,17 +296,6 @@ RSpec.describe "Playlists", type: :request do
       follow_redirect!
       expect(response.body).to include("Cannot merge a playlist into itself")
     end
-
-    it "redirects with alert when source has an active radio station" do
-      create(:radio_station, playlist: source, user: user, status: "active")
-
-      post merge_playlist_path(target), params: {source_playlist_id: source.id}
-
-      expect(response).to redirect_to(playlist_path(target))
-      follow_redirect!
-      expect(response.body).to include("active radio station")
-    end
-
     it "redirects with alert when source playlist does not exist" do
       post merge_playlist_path(target), params: {source_playlist_id: 0}
 

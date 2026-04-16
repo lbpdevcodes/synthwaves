@@ -17,8 +17,6 @@ RSpec.describe "Queue assignments" do
     EPGCleanupJob => "default",
     EPGSyncJob => "default",
     IPTVChannelSyncJob => "default",
-    StationControlJob => "default",
-    StationListenerSyncJob => "default",
     AppleMusicEnrichmentJob => "default",
     DatabaseBackupJob => "default",
     DownloadZipJob => "default"
