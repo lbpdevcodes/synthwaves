@@ -3,7 +3,8 @@ set -euo pipefail
 
 APP_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 PLATFORM="${PLATFORM:-linux/amd64}"
-REGISTRY_IMAGE="${REGISTRY_IMAGE:-forge.lbp.dev/lbp/synthwaves.fm}"
+REGISTRY_IMAGE="${REGISTRY_IMAGE:-100.108.65.56:80/lbp/synthwaves.fm}"
+REGISTRY="${REGISTRY_IMAGE%%/*}"
 
 usage() {
   printf 'Usage: %s VERSION --forgejo\n' "${0##*/}"
@@ -53,11 +54,23 @@ fi
 
 cd "$APP_ROOT"
 
-docker buildx build \
+PUSH_ARGS=(--push)
+if [ "${REGISTRY##*:}" = "80" ]; then
+  PUSH_ARGS=(--output type=image,push=true,registry.insecure=true)
+fi
+
+if ! docker buildx build \
   --platform "$PLATFORM" \
   --provenance=false \
   --sbom=false \
   -t "$REGISTRY_IMAGE:$VERSION" \
   -t "$REGISTRY_IMAGE:latest" \
-  --push \
-  .
+  "${PUSH_ARGS[@]}" \
+  .; then
+  printf '\nPublish failed while pushing %s.\n' "$REGISTRY_IMAGE" >&2
+  printf 'Make sure Docker is logged in and your Forgejo user/token can write packages:\n' >&2
+  printf '  docker login %s\n' "$REGISTRY" >&2
+  printf '\n' >&2
+  printf 'If this is a new package, verify package creation is allowed for this owner/org.\n' >&2
+  exit 1
+fi
