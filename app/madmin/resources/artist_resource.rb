@@ -1,6 +1,7 @@
 class ArtistResource < Madmin::Resource
   attribute :id, form: false
   attribute :name
+  attribute :user
   attribute :category
   attribute :created_at, form: false
   attribute :updated_at, form: false
