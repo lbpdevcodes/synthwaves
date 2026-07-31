@@ -255,5 +255,16 @@ RSpec.describe Track, type: :model do
 
       expect { track.save! }.not_to have_enqueued_job(AudioConversionJob)
     end
+
+    it "does not enqueue AudioConversionJob for flac files" do
+      track = build(:track, file_format: "flac")
+      track.audio_file.attach(
+        io: StringIO.new("fake audio"),
+        filename: "test.flac",
+        content_type: "audio/flac"
+      )
+
+      expect { track.save! }.not_to have_enqueued_job(AudioConversionJob)
+    end
   end
 end

@@ -1,7 +1,7 @@
 class AudioConversionJob < ApplicationJob
   queue_as :conversion
 
-  CONVERTIBLE_FORMATS = %w[webm ogg wav flac aac wma].freeze
+  CONVERTIBLE_FORMATS = %w[webm ogg wav aac wma].freeze
 
   def perform(track_id)
     track = Track.find(track_id)
@@ -47,7 +47,7 @@ class AudioConversionJob < ApplicationJob
   def convert_to_mp3(input_path, output_path)
     success = system(
       "ffmpeg", "-y", "-i", input_path,
-      "-codec:a", "libmp3lame", "-b:a", "192k",
+      "-codec:a", "libmp3lame", "-q:a", "0",
       output_path,
       out: File::NULL, err: File::NULL
     )
