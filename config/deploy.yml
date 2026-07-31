@@ -7,14 +7,14 @@ image: synthwaves_fm
 # Deploy to these servers.
 servers:
   web:
-    - <%= ENV["DEPLOY_HOST"] %>
+    - 172.233.175.240
   job:
     hosts:
-      - <%= ENV["DEPLOY_HOST"] %>
+      - 172.233.175.240
     cmd: bin/jobs
-    options:
-      group-add: "988"
-      volume: "/var/run/docker.sock:/var/run/docker.sock"
+    # options:
+    #   group-add: "988"
+    #   volume: "/var/run/docker.sock:/var/run/docker.sock"
 
 # Enable SSL auto certification via Let's Encrypt and allow for multiple apps on a single web server.
 # If used with Cloudflare, set encryption mode in SSL/TLS setting to "Full" to enable CF-to-app encryption.
@@ -23,10 +23,10 @@ servers:
 #
 # Don't use this when deploying to multiple web servers (then you have to terminate SSL at your load balancer).
 #
-# proxy:
-#   ssl: false
-#   hosts:
-#     - synthwaves.fm
+proxy:
+  ssl: true
+  hosts:
+    - synthwaves.fm
 
 # Where you keep your container images.
 registry:
