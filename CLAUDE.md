@@ -134,6 +134,15 @@ song_row_controller  -->  queue_controller  -->  player_controller
 - **Queue persistence**: localStorage keys `playerQueue` and `playerQueueIndex`
 - **MediaSession API**: Enables native OS media controls (lock screen, etc.)
 
+### Loudness Normalization
+
+Per-track playback gain, ReplayGain-style (analysis only, applied at playback):
+
+- `LoudnessAnalyzer` runs `ffmpeg -af loudnorm` (analysis pass) and computes gain toward −14 LUFS, clamped to a −1 dBTP true-peak ceiling
+- `LoudnessAnalysisJob` (conversion queue) stores `loudness_lufs` / `loudness_gain_db` on the track; enqueued at track create (formats needing no conversion), at the end of `AudioConversionJob`, and after `MediaDownloadJob`
+- `Maintenance::LoudnessBackfillTask` backfills existing tracks
+- Gain reaches the web player via `data-song-row-gain-db-value` → `track_builder.js` → queue → `player_controller`, which applies slider × gain as effective volume (attenuate-only unless the EQ graph is active)
+
 ### ViewComponents
 
 `TrackRow::Component` renders a track in list views with configurable options: `link_title`, `link_subtitle`, `show_album`, `hide_artist_if`, `show_duration`, `number`.
