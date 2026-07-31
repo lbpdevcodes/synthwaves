@@ -6,8 +6,8 @@ Music streaming web application built with Rails 8.
 
 ```bash
 bin/dev                  # Start dev server (Rails + Tailwind watcher)
-bin/rspec                # Run full test suite
-bin/rspec spec/models/   # Run model specs only
+bundle exec rspec        # Run full test suite
+bundle exec rspec spec/models/   # Run model specs only
 bin/rails db:migrate     # Run migrations
 bin/rails db:seed        # Seed database
 bin/setup                # Install deps, prepare DB, start server
@@ -241,8 +241,23 @@ bin/kamal app exec -r job --interactive 'bin/rails runner "RadioStation.find(ID)
 - `GET /search`, `GET /search/dropdown` - Search
 - `/rest/*`, `/api/rest/*` - Subsonic-compatible API (22 endpoints)
 - `/api/v1/*` - JWT-authenticated REST API
+- `POST /api/v1/youtube_imports` - Synchronous playlist import (metadata only, no audio downloads)
+- `POST /api/v1/tracks/:id/audio` - Attach audio to an existing track (no-op if already attached)
 - `/admin` - Madmin admin panel
 - `/jobs` - Mission Control Jobs dashboard
+
+## Local Audio Import (YouTube bot-check workaround)
+
+The production server's datacenter IP is bot-checked by YouTube ("Sign in to confirm you're not a bot"), so `MediaDownloadJob` audio downloads fail there. Workaround: `bin/import_audio` runs yt-dlp on a local (residential-IP) machine, pushes files to prod via the API, and deletes them after each successful push.
+
+```bash
+export SYNTHWAVES_CLIENT_ID=bc_...    # create a key at /api_keys
+export SYNTHWAVES_SECRET_KEY=...
+bin/import_audio "<youtube playlist URL>" [--category C] [--playlist ID | --new-playlist NAME]
+bin/import_audio --album 42 [--limit N]  # push audio for an existing album only
+```
+
+The CLI is idempotent — it only pushes tracks missing audio, so re-running resumes after transient YouTube 403/429 failures. Known local dev gotcha: JWT API auth is broken in development unless development credentials contain `secret_key_base`.
 
 ## Git Workflow
 

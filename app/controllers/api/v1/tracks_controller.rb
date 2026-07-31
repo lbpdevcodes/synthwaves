@@ -1,5 +1,5 @@
 class API::V1::TracksController < API::V1::BaseController
-  before_action :set_track, only: [:show, :update, :destroy, :stream]
+  before_action :set_track, only: [:show, :update, :destroy, :stream, :audio]
 
   def index
     scope = current_user.tracks.includes(:artist, :album)
@@ -58,6 +58,21 @@ class API::V1::TracksController < API::V1::BaseController
       content_type: @track.audio_file.content_type,
       file_size: @track.audio_file.byte_size
     }
+  end
+
+  def audio
+    uploaded_file = params[:audio_file]
+    return render_error("audio_file is required") if uploaded_file.blank?
+
+    unless @track.audio_file.attached?
+      TrackAudioAttachmentService.call(
+        track: @track,
+        file_path: uploaded_file.tempfile.path,
+        filename: uploaded_file.original_filename
+      )
+    end
+
+    render json: API::V1::TrackSerializer.render_as_hash(@track, view: :full)
   end
 
   private
