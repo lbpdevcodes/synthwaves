@@ -30,6 +30,9 @@ export function buildTrackFromElement(el) {
   if (d.songRowStreamUrlValue) {
     track.streamUrl = d.songRowStreamUrlValue
   }
+  if (d.songRowGainDbValue) {
+    track.gainDb = parseFloat(d.songRowGainDbValue)
+  }
   if (d.songRowYoutubeVideoIdValue) {
     track.youtubeVideoId = d.songRowYoutubeVideoIdValue
   }

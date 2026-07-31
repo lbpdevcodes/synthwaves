@@ -12,6 +12,9 @@
      <% end %>
      data-song-row-album-title-value="<%= track.album.title %>"
      data-song-row-duration-value="<%= (track.duration || 0).to_i %>"
+     <% if track.loudness_gain_db %>
+     data-song-row-gain-db-value="<%= track.loudness_gain_db %>"
+     <% end %>
      <% if track.audio_file.attached? %>
      data-song-row-stream-url-value="<%= stream_track_path(track) %>"
      <% end %>

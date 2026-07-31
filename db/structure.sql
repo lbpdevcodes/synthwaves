@@ -197,6 +197,11 @@ CREATE VIRTUAL TABLE tracks_search USING fts5(
   tokenize='unicode61 remove_diacritics 2'
 )
 /* tracks_search(track_title,artist_name,album_title,track_id) */;
+CREATE TABLE IF NOT EXISTS 'tracks_search_data'(id INTEGER PRIMARY KEY, block BLOB);
+CREATE TABLE IF NOT EXISTS 'tracks_search_idx'(segid, term, pgno, PRIMARY KEY(segid, term)) WITHOUT ROWID;
+CREATE TABLE IF NOT EXISTS 'tracks_search_content'(id INTEGER PRIMARY KEY, c0, c1, c2, c3);
+CREATE TABLE IF NOT EXISTS 'tracks_search_docsize'(id INTEGER PRIMARY KEY, sz BLOB);
+CREATE TABLE IF NOT EXISTS 'tracks_search_config'(k PRIMARY KEY, v) WITHOUT ROWID;
 CREATE TABLE IF NOT EXISTS "artists" ("id" integer PRIMARY KEY AUTOINCREMENT NOT NULL, "name" varchar NOT NULL, "image_url" varchar, "created_at" datetime(6) NOT NULL, "updated_at" datetime(6) NOT NULL, "category" varchar DEFAULT 'music' NOT NULL, "user_id" integer NOT NULL, "apple_music_storefront" varchar /*application='SynthWaves'*/, "musicbrainz_artist_id" varchar /*application='SynthWaves'*/);
 CREATE INDEX "index_artists_on_category" ON "artists" ("category") /*application='SynthWaves'*/;
 CREATE TABLE IF NOT EXISTS "albums" ("id" integer PRIMARY KEY AUTOINCREMENT NOT NULL, "title" varchar NOT NULL, "artist_id" integer NOT NULL, "year" integer, "genre" varchar, "created_at" datetime(6) NOT NULL, "updated_at" datetime(6) NOT NULL, "youtube_playlist_url" varchar, "user_id" integer NOT NULL, "musicbrainz_release_id" varchar /*application='SynthWaves'*/, CONSTRAINT "fk_rails_124a79559a"
@@ -205,7 +210,7 @@ FOREIGN KEY ("artist_id")
 );
 CREATE INDEX "index_albums_on_artist_id" ON "albums" ("artist_id") /*application='SynthWaves'*/;
 CREATE UNIQUE INDEX "index_albums_on_artist_id_and_title" ON "albums" ("artist_id", "title") /*application='SynthWaves'*/;
-CREATE TABLE IF NOT EXISTS "tracks" ("id" integer PRIMARY KEY AUTOINCREMENT NOT NULL, "title" varchar NOT NULL, "album_id" integer NOT NULL, "artist_id" integer NOT NULL, "track_number" integer, "disc_number" integer DEFAULT 1, "duration" float, "file_format" varchar, "file_size" integer, "bitrate" integer, "created_at" datetime(6) NOT NULL, "updated_at" datetime(6) NOT NULL, "youtube_video_id" varchar, "lyrics" text, "download_status" varchar, "download_error" varchar, "user_id" integer NOT NULL, "apple_music_id" varchar /*application='SynthWaves'*/, "isrc" varchar /*application='SynthWaves'*/, "content_rating" varchar /*application='SynthWaves'*/, "language" varchar /*application='SynthWaves'*/, "release_year" integer /*application='SynthWaves'*/, "enrichment_status" varchar /*application='SynthWaves'*/, "enriched_at" datetime(6) /*application='SynthWaves'*/, "musicbrainz_recording_id" varchar /*application='SynthWaves'*/, "musicbrainz_enrichment_status" varchar /*application='SynthWaves'*/, "musicbrainz_enriched_at" datetime(6) /*application='SynthWaves'*/, CONSTRAINT "fk_rails_d99a0cbd74"
+CREATE TABLE IF NOT EXISTS "tracks" ("id" integer PRIMARY KEY AUTOINCREMENT NOT NULL, "title" varchar NOT NULL, "album_id" integer NOT NULL, "artist_id" integer NOT NULL, "track_number" integer, "disc_number" integer DEFAULT 1, "duration" float, "file_format" varchar, "file_size" integer, "bitrate" integer, "created_at" datetime(6) NOT NULL, "updated_at" datetime(6) NOT NULL, "youtube_video_id" varchar, "lyrics" text, "download_status" varchar, "download_error" varchar, "user_id" integer NOT NULL, "apple_music_id" varchar /*application='SynthWaves'*/, "isrc" varchar /*application='SynthWaves'*/, "content_rating" varchar /*application='SynthWaves'*/, "language" varchar /*application='SynthWaves'*/, "release_year" integer /*application='SynthWaves'*/, "enrichment_status" varchar /*application='SynthWaves'*/, "enriched_at" datetime(6) /*application='SynthWaves'*/, "musicbrainz_recording_id" varchar /*application='SynthWaves'*/, "musicbrainz_enrichment_status" varchar /*application='SynthWaves'*/, "musicbrainz_enriched_at" datetime(6) /*application='SynthWaves'*/, "loudness_lufs" float, "loudness_gain_db" float, CONSTRAINT "fk_rails_d99a0cbd74"
 FOREIGN KEY ("artist_id")
   REFERENCES "artists" ("id")
 , CONSTRAINT "fk_rails_7c47d80164"
@@ -270,6 +275,7 @@ CREATE INDEX "index_tracks_on_musicbrainz_enrichment_status" ON "tracks" ("music
 CREATE INDEX "index_albums_on_musicbrainz_release_id" ON "albums" ("musicbrainz_release_id") /*application='SynthWaves'*/;
 CREATE INDEX "index_artists_on_musicbrainz_artist_id" ON "artists" ("musicbrainz_artist_id") /*application='SynthWaves'*/;
 INSERT INTO "schema_migrations" (version) VALUES
+('20260731111258'),
 ('20260404002732'),
 ('20260402210631'),
 ('20260329203941'),

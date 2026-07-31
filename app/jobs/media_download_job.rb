@@ -39,6 +39,7 @@ class MediaDownloadJob < ApplicationJob
     metadata = extract_metadata(file_path)
     apply_metadata(track, metadata, file_path)
     enrich_from_embedded_metadata(track, metadata) if track.youtube_video_id.present?
+    LoudnessAnalysisJob.perform_later(track.id)
 
     broadcast_download_status(track, user_id, type: "track")
   rescue MediaDownloadService::RateLimitError

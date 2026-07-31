@@ -84,6 +84,11 @@ RSpec.describe AudioConversionJob, type: :job do
         temp_files = Dir.glob(File.join(Dir.tmpdir, "audio_conversion_*"))
         expect(temp_files).to be_empty
       end
+
+      it "enqueues loudness analysis for the converted file" do
+        expect { described_class.perform_now(track.id) }
+          .to have_enqueued_job(LoudnessAnalysisJob).with(track.id)
+      end
     end
 
     context "ffmpeg invocation" do

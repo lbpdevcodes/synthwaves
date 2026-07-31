@@ -2,7 +2,7 @@ import { Controller } from "@hotwired/stimulus"
 import { buildTrackFromElement } from "helpers/track_builder"
 
 export default class extends Controller {
-  static values = { trackId: Number, title: String, artist: String, streamUrl: String, youtubeVideoId: String, isLive: Boolean, coverUrl: String, isPodcast: Boolean, albumTitle: String, duration: Number, nativeStreamUrl: String, nativeCoverArtUrl: String }
+  static values = { trackId: Number, title: String, artist: String, streamUrl: String, youtubeVideoId: String, isLive: Boolean, coverUrl: String, isPodcast: Boolean, albumTitle: String, duration: Number, nativeStreamUrl: String, nativeCoverArtUrl: String, gainDb: Number }
 
   play(event) {
     event.preventDefault()
@@ -56,6 +56,9 @@ export default class extends Controller {
 
     if (this.streamUrlValue) {
       track.streamUrl = this.streamUrlValue
+    }
+    if (this.hasGainDbValue) {
+      track.gainDb = this.gainDbValue
     }
     if (this.youtubeVideoIdValue) {
       track.youtubeVideoId = this.youtubeVideoIdValue
