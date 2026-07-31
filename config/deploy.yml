@@ -23,10 +23,10 @@ servers:
 #
 # Don't use this when deploying to multiple web servers (then you have to terminate SSL at your load balancer).
 #
-# proxy:
-#   ssl: false
-#   hosts:
-#     - synthwaves.fm
+proxy:
+  ssl: true
+  hosts:
+    - synthwaves.fm
 
 # Where you keep your container images.
 registry:
