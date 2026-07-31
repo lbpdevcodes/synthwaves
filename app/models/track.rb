@@ -72,6 +72,7 @@ class Track < ApplicationRecord
   }
 
   after_create_commit :convert_audio_if_needed
+  after_create_commit :analyze_loudness_if_ready
   after_create_commit :add_to_search_index
   after_create_commit :queue_enrichment
   after_update_commit :update_search_index, if: -> {
@@ -90,6 +91,15 @@ class Track < ApplicationRecord
     return unless AudioConversionJob::CONVERTIBLE_FORMATS.include?(file_format)
 
     AudioConversionJob.perform_later(id)
+  end
+
+  # Converted formats are analyzed at the end of AudioConversionJob instead —
+  # the converted file is what will actually stream.
+  def analyze_loudness_if_ready
+    return unless audio_file.attached?
+    return if AudioConversionJob::CONVERTIBLE_FORMATS.include?(file_format)
+
+    LoudnessAnalysisJob.perform_later(id)
   end
 
   def add_to_search_index

@@ -79,6 +79,19 @@ RSpec.describe TrackRow::Component, type: :component do
       expect(row["data-song-row-duration-value"]).to eq("245")
     end
 
+    it "sets gain data attribute when the track has loudness analysis" do
+      track.update!(loudness_lufs: -20.5, loudness_gain_db: 6.5)
+      html = render_component
+      row = html.at_css("[data-controller]")
+      expect(row["data-song-row-gain-db-value"]).to eq("6.5")
+    end
+
+    it "omits gain data attribute when the track has not been analyzed" do
+      html = render_component
+      row = html.at_css("[data-controller]")
+      expect(row["data-song-row-gain-db-value"]).to be_nil
+    end
+
     it "omits native URL attributes when not in turbo native context" do
       html = render_component
       row = html.at_css("[data-controller]")

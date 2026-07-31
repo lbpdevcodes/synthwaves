@@ -169,6 +169,8 @@ export default class extends Controller {
       const track = JSON.parse(savedTrack)
       this.currentTrackId = track.trackId
       this.currentCoverUrl = track.coverUrl || null
+      this.currentGainDb = track.gainDb || 0
+      this._applyEffectiveVolume()
       this.titleTarget.textContent = track.title || "Not playing"
       this.artistTarget.textContent = track.artist || ""
       this.currentIsLive = track.isLive || false
@@ -266,7 +268,7 @@ export default class extends Controller {
 
   // Playback
 
-  playTrack({ trackId, title, artist, streamUrl, isLive, coverUrl, isPodcast, youtubeVideoId }) {
+  playTrack({ trackId, title, artist, streamUrl, isLive, coverUrl, isPodcast, youtubeVideoId, gainDb }) {
     if (this.youtubeActive) {
       document.dispatchEvent(new CustomEvent("youtube:stop"))
       this.youtubeActive = false
@@ -277,6 +279,7 @@ export default class extends Controller {
     this.currentIsPodcast = isPodcast || false
     this.currentTrackId = trackId
     this.currentCoverUrl = coverUrl || null
+    this.currentGainDb = gainDb || 0
     this._currentYouTubeVideoId = null
     this.titleTarget.textContent = title
     this.artistTarget.textContent = isLive ? "Live" : artist
@@ -288,7 +291,7 @@ export default class extends Controller {
       this.showNormalMode()
     }
 
-    this.saveCurrentTrack({ trackId, title, artist, streamUrl, isLive: isLive || false, coverUrl: coverUrl || null, isPodcast: isPodcast || false, youtubeVideoId: youtubeVideoId || null })
+    this.saveCurrentTrack({ trackId, title, artist, streamUrl, isLive: isLive || false, coverUrl: coverUrl || null, isPodcast: isPodcast || false, youtubeVideoId: youtubeVideoId || null, gainDb: this.currentGainDb })
     this.dispatchNowPlaying({ trackId, title, artist, coverUrl, youtubeVideoId })
     this._applyPlaybackRate()
 
@@ -311,6 +314,7 @@ export default class extends Controller {
       this._resolveAndPlay(streamUrl)
     }
 
+    this._applyEffectiveVolume()
     this.startPositionSave()
 
     if ("mediaSession" in navigator) {
@@ -400,22 +404,41 @@ export default class extends Controller {
   }
 
   setVolume() {
-    this.audio.volume = this.volumeTarget.value
+    this._applyEffectiveVolume()
     localStorage.setItem("playerVolume", this.volumeTarget.value)
   }
 
   volumeUp() {
-    const newVol = Math.min(this.audio.volume + 0.05, 1)
-    this.audio.volume = newVol
+    const newVol = Math.min(this._userVolume() + 0.05, 1)
     this.volumeTarget.value = newVol
+    this._applyEffectiveVolume()
     localStorage.setItem("playerVolume", newVol.toString())
   }
 
   volumeDown() {
-    const newVol = Math.max(this.audio.volume - 0.05, 0)
-    this.audio.volume = newVol
+    const newVol = Math.max(this._userVolume() - 0.05, 0)
     this.volumeTarget.value = newVol
+    this._applyEffectiveVolume()
     localStorage.setItem("playerVolume", newVol.toString())
+  }
+
+  // Loudness normalization: the slider is the user's volume; the element
+  // gets slider × track gain. Attenuate-only (no boost) until there is a
+  // Web Audio gain node in the chain.
+  _applyEffectiveVolume() {
+    this.audio.volume = this._userVolume() * this._gainFactor()
+  }
+
+  _userVolume() {
+    return parseFloat(this.volumeTarget.value)
+  }
+
+  _gainFactor() {
+    return this._gainFactorFor(this.currentGainDb)
+  }
+
+  _gainFactorFor(gainDb) {
+    return Math.pow(10, Math.min(gainDb || 0, 0) / 20)
   }
 
   toggleMute() {
@@ -747,7 +770,8 @@ export default class extends Controller {
     const preload = this._ensurePreloadAudio()
     const cfDuration = this.crossfadeDuration * 1000 // ms
     const oldAudio = this.audio
-    const targetVolume = oldAudio.volume
+    const oldStartVolume = oldAudio.volume
+    const newTargetVolume = this._userVolume() * this._gainFactorFor(this._pendingPreload.gainDb)
 
     preload.volume = 0
     preload.play()
@@ -756,15 +780,15 @@ export default class extends Controller {
     const fade = () => {
       const elapsed = performance.now() - startTime
       const progress = Math.min(elapsed / cfDuration, 1)
-      oldAudio.volume = targetVolume * (1 - progress)
-      preload.volume = targetVolume * progress
+      oldAudio.volume = oldStartVolume * (1 - progress)
+      preload.volume = newTargetVolume * progress
       if (progress < 1) {
         requestAnimationFrame(fade)
       } else {
         // Swap complete
         oldAudio.pause()
         oldAudio.removeAttribute("src")
-        oldAudio.volume = targetVolume
+        oldAudio.volume = oldStartVolume
 
         // Swap IDs so this.audio points to the new playing element
         oldAudio.id = "persistent-audio-preload"

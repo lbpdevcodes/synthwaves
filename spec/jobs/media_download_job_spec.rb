@@ -27,6 +27,14 @@ RSpec.describe MediaDownloadJob, type: :job do
       expect(track.file_format).to eq("mp3")
     end
 
+    it "enqueues loudness analysis for the downloaded audio" do
+      allow(MediaDownloadService).to receive(:download_audio).and_return(temp_mp3.path)
+      allow(MetadataExtractor).to receive(:call).and_return({duration: 200.0, bitrate: 192})
+
+      expect { described_class.perform_now(track.id, url, user_id: user.id) }
+        .to have_enqueued_job(LoudnessAnalysisJob).with(track.id)
+    end
+
     it "skips if audio file is already attached" do
       track.audio_file.attach(io: StringIO.new("existing"), filename: "existing.mp3", content_type: "audio/mpeg")
 

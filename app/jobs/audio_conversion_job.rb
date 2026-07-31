@@ -37,6 +37,7 @@ class AudioConversionJob < ApplicationJob
       )
 
       update_album_metadata(track, metadata)
+      LoudnessAnalysisJob.perform_later(track.id)
     ensure
       FileUtils.rm_f(output_path) if output_path
     end

@@ -255,5 +255,33 @@ RSpec.describe Track, type: :model do
 
       expect { track.save! }.not_to have_enqueued_job(AudioConversionJob)
     end
+
+    it "enqueues LoudnessAnalysisJob for files that need no conversion" do
+      track = build(:track, file_format: "mp3")
+      track.audio_file.attach(
+        io: StringIO.new("fake audio"),
+        filename: "test.mp3",
+        content_type: "audio/mpeg"
+      )
+
+      expect { track.save! }.to have_enqueued_job(LoudnessAnalysisJob).with(track.id)
+    end
+
+    it "does not enqueue LoudnessAnalysisJob when conversion will run first" do
+      track = build(:track, file_format: "webm")
+      track.audio_file.attach(
+        io: StringIO.new("fake audio"),
+        filename: "test.webm",
+        content_type: "audio/webm"
+      )
+
+      expect { track.save! }.not_to have_enqueued_job(LoudnessAnalysisJob)
+    end
+
+    it "does not enqueue LoudnessAnalysisJob without an audio file" do
+      track = build(:track, :youtube)
+
+      expect { track.save! }.not_to have_enqueued_job(LoudnessAnalysisJob)
+    end
   end
 end
