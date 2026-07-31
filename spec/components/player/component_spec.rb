@@ -58,5 +58,22 @@ RSpec.describe Player::Component, type: :component do
       player_bar = rendered.at_css("#player-bar")
       expect(player_bar["data-player-play-history-url-value"]).to eq("/play_histories")
     end
+
+    it "renders the equalizer button and menu" do
+      html = rendered
+      expect(html.at_css("button[data-action='player#toggleEqMenu'][data-player-target='eqButton']")).to be_present
+      expect(html.at_css("[data-player-target='eqMenu']")).to be_present
+      expect(html.at_css("button[data-action='player#toggleEqEnabled'][data-player-target='eqToggle']")).to be_present
+    end
+
+    it "renders a slider for each EQ band" do
+      bands = rendered.css("[data-player-target='eqMenu'] input[type='range'][data-band]")
+      expect(bands.map { |slider| slider["data-band"] }).to eq(%w[60 250 1000 4000 12000])
+    end
+
+    it "renders EQ presets" do
+      presets = rendered.css("button[data-action='player#applyEqPreset']")
+      expect(presets.map { |button| button["data-preset"] }).to eq(%w[flat bass vocal treble])
+    end
   end
 end

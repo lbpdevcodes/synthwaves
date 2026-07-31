@@ -143,6 +143,16 @@ Per-track playback gain, ReplayGain-style (analysis only, applied at playback):
 - `Maintenance::LoudnessBackfillTask` backfills existing tracks
 - Gain reaches the web player via `data-song-row-gain-db-value` → `track_builder.js` → queue → `player_controller`, which applies slider × gain as effective volume (attenuate-only unless the EQ graph is active)
 
+### Equalizer (Web Audio)
+
+The player bar EQ routes both recycled `<audio>` elements through a Web Audio graph (`app/javascript/helpers/audio_graph.js`): 5 bands (60Hz lowshelf, 250/1k/4k peaking, 12kHz highshelf) plus a per-element gain node that also carries loudness gain (full ±12dB when EQ is on) and crossfade ramps.
+
+Constraints that shape the design:
+
+- `MediaElementSource` requires CORS-clean media — while EQ is on, playback uses the `?proxy=1` same-origin stream URL (same trick as the visualizer), so no S3 bucket CORS changes are needed
+- `createMediaElementSource` is one-way per element and element `volume`/`muted` stop affecting routed audio — output goes through the graph's per-element gain node (`_setOutputVolume` in `player_controller.js`)
+- During AirPlay the device receives the element's flat feed; the local graph output is silenced so the two don't double up
+
 ### ViewComponents
 
 `TrackRow::Component` renders a track in list views with configurable options: `link_title`, `link_subtitle`, `show_album`, `hide_artist_if`, `show_duration`, `number`.

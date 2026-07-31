@@ -1,7 +1,8 @@
 import { Controller } from "@hotwired/stimulus"
+import { AudioGraph, EQ_BANDS, EQ_PRESETS } from "helpers/audio_graph"
 
 export default class extends Controller {
-  static targets = ["progress", "title", "artist", "artwork", "playIcon", "pauseIcon", "currentTime", "duration", "volume", "progressBar", "liveIndicator", "prevButton", "nextButton", "repeatOff", "repeatAll", "repeatOne", "shuffleIcon", "speedControl", "speedDisplay", "crossfadeMenu", "crossfadeButton"]
+  static targets = ["progress", "title", "artist", "artwork", "playIcon", "pauseIcon", "currentTime", "duration", "volume", "progressBar", "liveIndicator", "prevButton", "nextButton", "repeatOff", "repeatAll", "repeatOne", "shuffleIcon", "speedControl", "speedDisplay", "crossfadeMenu", "crossfadeButton", "eqMenu", "eqButton", "eqToggle"]
   static values = { playHistoryUrl: String }
 
   connect() {
@@ -78,11 +79,30 @@ export default class extends Controller {
     }
     document.addEventListener("click", this._closeCrossfadeOnOutsideClick)
 
+    // Close EQ menu on outside click
+    this._closeEqOnOutsideClick = (e) => {
+      if (this.hasEqMenuTarget && !this.eqMenuTarget.classList.contains("hidden") &&
+          !this.eqMenuTarget.contains(e.target) &&
+          !(this.hasEqButtonTarget && this.eqButtonTarget.contains(e.target))) {
+        this.eqMenuTarget.classList.add("hidden")
+      }
+    }
+    document.addEventListener("click", this._closeEqOnOutsideClick)
+
+    // AudioContext needs a user gesture to start — resume on any interaction
+    this._resumeGraphHandler = () => this.graph?.resume()
+    document.addEventListener("click", this._resumeGraphHandler)
+    document.addEventListener("keydown", this._resumeGraphHandler)
+
+    this._initEq()
     this.restoreSession()
   }
 
   disconnect() {
     document.removeEventListener("click", this._closeCrossfadeOnOutsideClick)
+    document.removeEventListener("click", this._closeEqOnOutsideClick)
+    document.removeEventListener("click", this._resumeGraphHandler)
+    document.removeEventListener("keydown", this._resumeGraphHandler)
     this.stopPositionSave()
     document.removeEventListener("player:play", this.playTrackHandler)
     document.removeEventListener("player:playYouTube", this.playYouTubeHandler)
@@ -204,7 +224,8 @@ export default class extends Controller {
           this.currentTimeTarget.textContent = this.formatTime(savedTime)
         }
       } else if (track.streamUrl) {
-        this.audio.src = track.streamUrl
+        this.audio.src = this._playbackUrl(track.streamUrl)
+        this.audio.dataset.appStreamUrl = track.streamUrl
         if (savedTime > 0) {
           this.audio.addEventListener("loadedmetadata", () => {
             this.audio.currentTime = savedTime
@@ -269,6 +290,19 @@ export default class extends Controller {
   onAirplayStateChanged({ active }) {
     const wasActive = this.airplayActive
     this.airplayActive = active
+
+    // With the EQ graph routed, the element is already playing a same-origin
+    // (proxied) URL the AirPlay device can reach, and the device receives the
+    // element's flat feed — the EQ colors only the local graph output. Silence
+    // the local graph while AirPlay is active so the two don't double up.
+    if (this.graph?.isConnected(this.audio)) {
+      if (active) {
+        this._setOutputVolume(this.audio, 0)
+      } else if (wasActive) {
+        this._applyEffectiveVolume()
+      }
+      return
+    }
 
     // AirPlay just became active mid-playback — swap to direct URL
     if (active && !wasActive && !this.audio.paused && this._resolvedDirectUrl) {
@@ -438,11 +472,13 @@ export default class extends Controller {
     localStorage.setItem("playerVolume", newVol.toString())
   }
 
-  // Loudness normalization: the slider is the user's volume; the element
-  // gets slider × track gain. Attenuate-only (no boost) until there is a
-  // Web Audio gain node in the chain.
+  // Loudness normalization: the slider is the user's volume; the output
+  // gets slider × track gain. Without the EQ graph, gain is attenuate-only
+  // (element volume caps at 1.0). With the graph, the per-element gain node
+  // applies the full ±gain.
   _applyEffectiveVolume() {
-    this.audio.volume = this._userVolume() * this._gainFactor()
+    const value = this._muted ? 0 : this._userVolume() * this._gainFactor()
+    this._setOutputVolume(this.audio, value)
   }
 
   _userVolume() {
@@ -454,14 +490,33 @@ export default class extends Controller {
   }
 
   _gainFactorFor(gainDb) {
-    return Math.pow(10, Math.min(gainDb || 0, 0) / 20)
+    const db = gainDb || 0
+    if (this.eqEnabled) return Math.pow(10, Math.max(Math.min(db, 12), -60) / 20)
+    return Math.pow(10, Math.min(db, 0) / 20)
+  }
+
+  // Once an element is routed through the Web Audio graph, its own volume
+  // and muted properties no longer affect what you hear — output must be
+  // driven through the graph's gain node for that element.
+  _setOutputVolume(element, value) {
+    if (this.graph?.isConnected(element)) {
+      this.graph.setElementGain(element, value)
+    } else {
+      element.volume = value
+    }
+  }
+
+  _outputVolume(element) {
+    if (this.graph?.isConnected(element)) return this.graph.elementGain(element)
+    return element.volume
   }
 
   toggleMute() {
-    if (this.audio.muted) {
-      this.audio.muted = false
+    if (this.graph?.isConnected(this.audio)) {
+      this._muted = !this._muted
+      this._applyEffectiveVolume()
     } else {
-      this.audio.muted = true
+      this.audio.muted = !this.audio.muted
     }
   }
 
@@ -740,7 +795,7 @@ export default class extends Controller {
     // Play immediately via the app URL — the browser follows the 302 redirect
     // at the network level, which is faster than a JS fetch roundtrip
     this._resolvedDirectUrl = null
-    this.audio.src = streamUrl
+    this.audio.src = this._playbackUrl(streamUrl)
     this.audio.dataset.appStreamUrl = streamUrl
     this.audio.play()
     document.dispatchEvent(new CustomEvent("player:sourceChanged", {
@@ -822,9 +877,10 @@ export default class extends Controller {
     this._pendingPreload = track
     // Preload next track for gapless/crossfade
     const preload = this._ensurePreloadAudio()
+    const preloadUrl = this._playbackUrl(track.streamUrl)
     preload.dataset.appStreamUrl = track.streamUrl
-    if (preload.src !== track.streamUrl) {
-      preload.src = track.streamUrl
+    if (preload.src !== preloadUrl && !preload.src.endsWith(preloadUrl)) {
+      preload.src = preloadUrl
       preload.load()
     }
   }
@@ -837,25 +893,25 @@ export default class extends Controller {
     const preload = this._ensurePreloadAudio()
     const cfDuration = this.crossfadeDuration * 1000 // ms
     const oldAudio = this.audio
-    const oldStartVolume = oldAudio.volume
+    const oldStartVolume = this._outputVolume(oldAudio)
     const newTargetVolume = this._userVolume() * this._gainFactorFor(this._pendingPreload.gainDb)
 
-    preload.volume = 0
+    this._setOutputVolume(preload, 0)
     preload.play()
 
     const startTime = performance.now()
     const fade = () => {
       const elapsed = performance.now() - startTime
       const progress = Math.min(elapsed / cfDuration, 1)
-      oldAudio.volume = oldStartVolume * (1 - progress)
-      preload.volume = newTargetVolume * progress
+      this._setOutputVolume(oldAudio, oldStartVolume * (1 - progress))
+      this._setOutputVolume(preload, newTargetVolume * progress)
       if (progress < 1) {
         requestAnimationFrame(fade)
       } else {
         // Swap complete
         oldAudio.pause()
         oldAudio.removeAttribute("src")
-        oldAudio.volume = oldStartVolume
+        this._setOutputVolume(oldAudio, oldStartVolume)
 
         this._swapAudioElements()
 
@@ -910,6 +966,146 @@ export default class extends Controller {
       btn.classList.toggle("text-neon-cyan", active)
       btn.classList.toggle("text-gray-300", !active)
     })
+  }
+
+  // Equalizer
+  //
+  // Enabling routes both recycled <audio> elements through a Web Audio
+  // graph (audio_graph.js). Routed elements must play same-origin URLs,
+  // so while EQ is on, playback uses the ?proxy=1 stream URL (the same
+  // trick the visualizer uses) — no S3 bucket CORS dependency.
+
+  _initEq() {
+    this.eqEnabled = localStorage.getItem("eqEnabled") === "true"
+    try {
+      this.eqBands = JSON.parse(localStorage.getItem("eqBands") || "{}")
+    } catch {
+      this.eqBands = {}
+    }
+
+    if (this.eqEnabled) {
+      this._ensureGraph()
+      this._applyEqBands()
+    }
+
+    this._syncEqControls()
+  }
+
+  _ensureGraph() {
+    if (this.graph) return
+    this.graph = new AudioGraph()
+    for (const element of [this.audio, this._ensurePreloadAudio()]) {
+      element.crossOrigin = "anonymous"
+      this.graph.connect(element)
+    }
+  }
+
+  // Same-origin stream URL while the graph is routed; the app URL otherwise
+  _playbackUrl(streamUrl) {
+    if (!this.eqEnabled || !streamUrl) return streamUrl
+    const separator = streamUrl.includes("?") ? "&" : "?"
+    return `${streamUrl}${separator}proxy=1`
+  }
+
+  toggleEqMenu() {
+    if (!this.hasEqMenuTarget) return
+    this.eqMenuTarget.classList.toggle("hidden")
+  }
+
+  toggleEqEnabled() {
+    this.eqEnabled = !this.eqEnabled
+    localStorage.setItem("eqEnabled", this.eqEnabled.toString())
+
+    if (this.eqEnabled) {
+      this._ensureGraph()
+      this._rerouteCurrentThroughProxy()
+      this._applyEqBands()
+    } else {
+      this._setEqTransparent()
+    }
+
+    this._applyEffectiveVolume()
+    this._syncEqControls()
+  }
+
+  setEqBand(event) {
+    const band = event.currentTarget.dataset.band
+    const db = parseFloat(event.currentTarget.value)
+
+    this.eqBands[band] = db
+    localStorage.setItem("eqBands", JSON.stringify(this.eqBands))
+
+    if (this.eqEnabled) this.graph?.setBandGain(band, db)
+    this._updateEqBandLabel(band, db)
+  }
+
+  applyEqPreset(event) {
+    const preset = EQ_PRESETS[event.currentTarget.dataset.preset]
+    if (!preset) return
+
+    this.eqBands = { ...preset }
+    localStorage.setItem("eqBands", JSON.stringify(this.eqBands))
+
+    if (this.eqEnabled) this._applyEqBands()
+    this._syncEqControls()
+  }
+
+  _applyEqBands() {
+    if (!this.graph) return
+    for (const { key } of EQ_BANDS) {
+      this.graph.setBandGain(key, this.eqBands[key] || 0)
+    }
+  }
+
+  // EQ off at runtime = transparent graph: saved bands are kept for the
+  // next time, but the filters pass audio through uncolored.
+  _setEqTransparent() {
+    if (!this.graph) return
+    for (const { key } of EQ_BANDS) {
+      this.graph.setBandGain(key, 0)
+    }
+  }
+
+  // Enabling mid-playback: the current track was loaded without CORS, which
+  // would render the graph silent — reload it through the proxy at the same
+  // position.
+  _rerouteCurrentThroughProxy() {
+    const appUrl = this.audio.dataset.appStreamUrl
+    if (!appUrl || appUrl.includes("proxy=1") || !this.audio.src) return
+
+    const position = this.audio.currentTime
+    const wasPlaying = !this.audio.paused
+
+    this.audio.src = this._playbackUrl(appUrl)
+    this.audio.addEventListener("loadedmetadata", () => {
+      this.audio.currentTime = position
+    }, { once: true })
+    if (wasPlaying) this.audio.play()
+  }
+
+  _syncEqControls() {
+    if (this.hasEqToggleTarget) {
+      this.eqToggleTarget.textContent = this.eqEnabled ? "On" : "Off"
+      this.eqToggleTarget.classList.toggle("text-neon-cyan", this.eqEnabled)
+      this.eqToggleTarget.classList.toggle("text-gray-400", !this.eqEnabled)
+    }
+    if (this.hasEqButtonTarget) {
+      this.eqButtonTarget.classList.toggle("text-neon-cyan", this.eqEnabled)
+      this.eqButtonTarget.classList.toggle("text-gray-400", !this.eqEnabled)
+    }
+    if (this.hasEqMenuTarget) {
+      for (const { key } of EQ_BANDS) {
+        const slider = this.eqMenuTarget.querySelector(`[data-band="${key}"]`)
+        const db = this.eqBands[key] || 0
+        if (slider) slider.value = db
+        this._updateEqBandLabel(key, db)
+      }
+    }
+  }
+
+  _updateEqBandLabel(band, db) {
+    const label = this.eqMenuTarget?.querySelector(`[data-band-value="${band}"]`)
+    if (label) label.textContent = db > 0 ? `+${db}` : `${db}`
   }
 
   // Playback speed (podcasts)
