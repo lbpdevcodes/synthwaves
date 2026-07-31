@@ -71,6 +71,19 @@ RSpec.describe "API::V1::Albums", type: :request do
 
       expect(response).to have_http_status(:not_found)
     end
+
+    it "exposes youtube_video_id and download_status on track summaries" do
+      album = create(:album, artist: artist, user: user)
+      create(:track, :youtube, album: album, artist: artist, user: user,
+        youtube_video_id: "abc123XYZ", download_status: "failed")
+
+      get "/api/v1/albums/#{album.id}", headers: auth_headers
+
+      json = JSON.parse(response.body)
+      track_json = json["tracks"].first
+      expect(track_json["youtube_video_id"]).to eq("abc123XYZ")
+      expect(track_json["download_status"]).to eq("failed")
+    end
   end
 
   describe "POST /api/v1/albums" do

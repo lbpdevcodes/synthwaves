@@ -106,6 +106,7 @@ Rails.application.routes.draw do
       resources :albums, only: [:index, :show, :create, :update, :destroy]
       resources :tracks, only: [:index, :show, :create, :update, :destroy] do
         get :stream, on: :member
+        post :audio, on: :member
       end
 
       resources :playlists, only: [:index, :show, :create, :update, :destroy] do
@@ -120,6 +121,8 @@ Rails.application.routes.draw do
 
       resource :track_metadata, controller: "track_metadata", only: [:show]
       resource :stats, only: [:show]
+
+      post "youtube_imports", to: "youtube_imports#create"
 
       get :search, to: "search#index"
     end

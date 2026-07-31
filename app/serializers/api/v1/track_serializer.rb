@@ -18,7 +18,8 @@ module API
       end
 
       view :summary do
-        fields :title, :track_number, :disc_number, :duration, :file_format
+        fields :title, :track_number, :disc_number, :duration, :file_format,
+          :youtube_video_id, :download_status
         field :has_audio do |track|
           track.audio_file.attached?
         end

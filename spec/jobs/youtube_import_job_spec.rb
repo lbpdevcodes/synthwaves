@@ -75,4 +75,39 @@ RSpec.describe YoutubeImportJob, type: :job do
       expect(playlist.tracks).to include(track1, track2)
     end
   end
+
+  describe "audio download enqueueing" do
+    let(:artist) { create(:artist, user: user) }
+    let(:album) { create(:album, artist: artist, user: user) }
+
+    before do
+      allow(YoutubePlaylistImportService).to receive(:call).and_return(album)
+    end
+
+    it "enqueues a MediaDownloadJob for each YouTube track without audio when download is true" do
+      create(:track, :youtube, album: album, artist: artist, user: user, youtube_video_id: "vid1")
+      create(:track, album: album, artist: artist, user: user, youtube_video_id: nil)
+      create(:track, album: album, artist: artist, user: user)
+
+      expect {
+        described_class.perform_now(
+          "https://www.youtube.com/playlist?list=PLtest123",
+          download: true,
+          user_id: user.id
+        )
+      }.to have_enqueued_job(MediaDownloadJob).once
+        .with(anything, "https://www.youtube.com/watch?v=vid1", user_id: user.id)
+    end
+
+    it "does not enqueue downloads by default" do
+      create(:track, :youtube, album: album, artist: artist, user: user, youtube_video_id: "vid1")
+
+      expect {
+        described_class.perform_now(
+          "https://www.youtube.com/playlist?list=PLtest123",
+          user_id: user.id
+        )
+      }.not_to have_enqueued_job(MediaDownloadJob)
+    end
+  end
 end

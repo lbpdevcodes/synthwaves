@@ -1,0 +1,156 @@
+#!/usr/bin/env ruby
+# Downloads audio for YouTube-imported tracks with the LOCAL yt-dlp (the
+# production server's IP is bot-checked by YouTube), pushes each file to
+# synthwaves.fm, and deletes it locally after a successful push.
+#
+# Usage:
+#   bin/import_audio "https://www.youtube.com/playlist?list=PL..." [--category music] [--playlist ID | --new-playlist NAME]
+#   bin/import_audio --album 42          # push audio for an existing album only
+#
+# Credentials come from an API key (create one at /api_keys):
+#   export SYNTHWAVES_CLIENT_ID=bc_...
+#   export SYNTHWAVES_SECRET_KEY=...
+
+require "net/http"
+require "json"
+require "optparse"
+require "open3"
+require "tmpdir"
+require "fileutils"
+
+options = {host: ENV.fetch("SYNTHWAVES_HOST", "https://synthwaves.fm"), category: "music"}
+OptionParser.new do |opts|
+  opts.banner = "Usage: bin/import_audio <playlist_url> [options] | bin/import_audio --album ID"
+  opts.on("--album ID", Integer, "Push audio for an existing album") { |v| options[:album_id] = v }
+  opts.on("--limit N", Integer, "Push at most N tracks") { |v| options[:limit] = v }
+  opts.on("--category C", "Import category (default: music)") { |v| options[:category] = v }
+  opts.on("--playlist ID", Integer, "Add imported tracks to an existing playlist") { |v| options[:playlist_id] = v }
+  opts.on("--new-playlist NAME", "Add imported tracks to a new playlist") { |v| options[:new_playlist_name] = v }
+  opts.on("--host URL", "Default: https://synthwaves.fm") { |v| options[:host] = v }
+  opts.on("--client-id ID", "Default: ENV[SYNTHWAVES_CLIENT_ID]") { |v| options[:client_id] = v }
+  opts.on("--secret-key KEY", "Default: ENV[SYNTHWAVES_SECRET_KEY]") { |v| options[:secret_key] = v }
+end.parse!
+
+options[:playlist_url] = ARGV.first
+options[:client_id] ||= ENV["SYNTHWAVES_CLIENT_ID"]
+options[:secret_key] ||= ENV["SYNTHWAVES_SECRET_KEY"]
+
+def abort_with(message)
+  warn "error: #{message}"
+  exit 1
+end
+
+def pluralize(count, word)
+  "#{count} #{word}#{"s" unless count == 1}"
+end
+
+abort_with("pass a playlist URL or --album ID") unless options[:playlist_url] || options[:album_id]
+abort_with("set SYNTHWAVES_CLIENT_ID and SYNTHWAVES_SECRET_KEY (create a key at /api_keys)") unless options[:client_id] && options[:secret_key]
+abort_with("yt-dlp not found on PATH") unless system("which yt-dlp", out: File::NULL)
+
+def api_request(options, method:, path:, token: nil, body: nil, multipart: nil)
+  uri = URI.join("#{options[:host]}/", path)
+  http = Net::HTTP.new(uri.host, uri.port)
+  http.use_ssl = uri.scheme == "https"
+
+  request = Net::HTTP.const_get(method.capitalize).new(uri)
+  request["Authorization"] = "Bearer #{token}" if token
+
+  if multipart
+    boundary = "----importaudio#{rand(1_000_000)}"
+    request["Content-Type"] = "multipart/form-data; boundary=#{boundary}"
+    file = multipart.fetch(:file)
+    request.body = [
+      "--#{boundary}",
+      "Content-Disposition: form-data; name=\"#{multipart.fetch(:name)}\"; filename=\"#{File.basename(file)}\"",
+      "Content-Type: application/octet-stream",
+      "",
+      File.binread(file),
+      "--#{boundary}--",
+      ""
+    ].join("\r\n")
+  elsif body
+    request["Content-Type"] = "application/json"
+    request.body = JSON.generate(body)
+  end
+
+  response = http.request(request)
+  [response.code.to_i, JSON.parse(response.body.to_s.empty? ? "{}" : response.body)]
+end
+
+def fetch_token(options)
+  code, json = api_request(options, method: :post, path: "api/v1/auth/token",
+    body: {client_id: options[:client_id], secret_key: options[:secret_key]})
+  abort_with("authentication failed: #{json["error"]}") unless code == 200
+  json.fetch("token")
+end
+
+def import_playlist(options, token)
+  payload = {url: options[:playlist_url], category: options[:category]}
+  payload[:playlist_id] = options[:playlist_id] if options[:playlist_id]
+  payload[:new_playlist_name] = options[:new_playlist_name] if options[:new_playlist_name]
+
+  code, json = api_request(options, method: :post, path: "api/v1/youtube_imports", token: token, body: payload)
+  abort_with("import failed: #{json["error"]}") unless code == 201
+
+  puts "Imported \"#{json["title"]}\" — #{json["track_count"]} tracks, #{json["tracks_missing_audio"]} missing audio"
+  json.fetch("album_id")
+end
+
+def tracks_missing_audio(options, token, album_id)
+  code, json = api_request(options, method: :get, path: "api/v1/albums/#{album_id}", token: token)
+  abort_with("could not fetch album #{album_id} (#{code})") unless code == 200
+
+  json.fetch("tracks").reject { |t| t["has_audio"] }.select { |t| t["youtube_video_id"].to_s != "" }
+end
+
+def download_audio(video_id, dir)
+  output, status = Open3.capture2e(
+    "yt-dlp", "-x", "--audio-format", "mp3", "--audio-quality", "0",
+    "--no-playlist", "-o", File.join(dir, "%(id)s.%(ext)s"),
+    "https://www.youtube.com/watch?v=#{video_id}"
+  )
+  file = Dir.glob(File.join(dir, "*.mp3")).first if status.success?
+  [file, output]
+end
+
+token = fetch_token(options)
+album_id = options[:album_id] || import_playlist(options, token)
+missing = tracks_missing_audio(options, token, album_id)
+missing = missing.first(options[:limit]) if options[:limit]
+
+if missing.empty?
+  puts "Nothing to do — all tracks have audio."
+  exit 0
+end
+
+puts "Pushing audio for #{pluralize(missing.size, "track")}..."
+pushed, failed = 0, []
+
+missing.each do |track|
+  Dir.mktmpdir("import_audio") do |dir|
+    print "  #{track["title"]}... "
+    file, yt_dlp_output = download_audio(track["youtube_video_id"], dir)
+
+    if file.nil?
+      failed << track["title"]
+      puts "DOWNLOAD FAILED (#{yt_dlp_output.lines.grep(/ERROR|error/).last&.strip || "yt-dlp exited non-zero"})"
+      next
+    end
+
+    code, json = api_request(options, method: :post, path: "api/v1/tracks/#{track["id"]}/audio",
+      token: token, multipart: {name: "audio_file", file: file})
+
+    if code == 200 && json["has_audio"]
+      pushed += 1
+      puts "ok"
+    else
+      failed << track["title"]
+      puts "PUSH FAILED (#{code}: #{json["error"]})"
+    end
+  end
+end
+
+puts "Done: #{pushed} pushed, #{failed.size} failed"
+puts "Failed tracks: #{failed.join(", ")}" if failed.any?
+exit(failed.empty? ? 0 : 1)
