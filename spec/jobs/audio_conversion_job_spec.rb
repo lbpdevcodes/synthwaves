@@ -85,5 +85,34 @@ RSpec.describe AudioConversionJob, type: :job do
         expect(temp_files).to be_empty
       end
     end
+
+    context "ffmpeg invocation" do
+      before do
+        # Attach a real mp3 (disguised as webm so the job converts it) so the
+        # stubbed ffmpeg can "produce" a parseable output file by copying it.
+        track.audio_file.attach(
+          io: File.open(Rails.root.join("spec/fixtures/files/test.mp3")),
+          filename: "test.webm",
+          content_type: "audio/webm"
+        )
+      end
+
+      it "transcodes at V0 variable bitrate quality, not 192k CBR" do
+        ffmpeg_calls = []
+        job = described_class.new(track.id)
+        allow(job).to receive(:system) do |*args|
+          ffmpeg_calls << args
+          input = args[args.index("-i") + 1]
+          FileUtils.cp(input, "#{input}.mp3")
+          true
+        end
+
+        job.perform_now
+
+        command = ffmpeg_calls.first
+        expect(command).to include("-q:a", "0")
+        expect(command).not_to include("192k")
+      end
+    end
   end
 end
