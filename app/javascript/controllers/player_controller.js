@@ -8,8 +8,9 @@ export default class extends Controller {
     // Append <audio> to <html> (outside <body>) so Turbo's body
     // replacement never detaches it — same pattern as youtube_player_controller.
     this.audio = this._ensureAudio()
+    this._ensurePreloadAudio()
 
-    // Only initialize state and audio element listeners once
+    // Only initialize state once
     if (!this.audio._playerInitialized) {
       this.audio._playerInitialized = true
       this.youtubeActive = false
@@ -20,21 +21,6 @@ export default class extends Controller {
       this.youtubeCurrentTime = 0
       this.youtubeDuration = 0
       this.hasScrobbled = false
-
-      this.audio.addEventListener("timeupdate", () => this.onTimeUpdate())
-      this.audio.addEventListener("ended", () => this.onEnded())
-      this.audio.addEventListener("loadedmetadata", () => this.onLoadedMetadata())
-      this.audio.addEventListener("play", () => {
-        this.updatePlayPauseIcon()
-        this.startPositionSave()
-      })
-      this.audio.addEventListener("error", (e) => {
-        console.warn("Audio error:", this.audio.error?.message, this.audio.error?.code)
-      })
-      this.audio.addEventListener("pause", () => {
-        this.updatePlayPauseIcon()
-        this.stopPositionSave()
-      })
     }
 
     this.playTrackHandler = (e) => this.playTrack(e.detail)
@@ -126,6 +112,7 @@ export default class extends Controller {
       audio.setAttribute("x-webkit-airplay", "allow")
       document.documentElement.appendChild(audio)
     }
+    this._attachAudioListeners(audio)
     return audio
   }
 
@@ -135,9 +122,35 @@ export default class extends Controller {
       audio = document.createElement("audio")
       audio.id = "persistent-audio-preload"
       audio.preload = "auto"
+      audio.setAttribute("x-webkit-airplay", "allow")
       document.documentElement.appendChild(audio)
     }
+    this._attachAudioListeners(audio)
     return audio
+  }
+
+  // Listeners attach once per element at creation. The two elements are
+  // recycled by _swapAudioElements() — attaching at creation (instead of
+  // after each swap) prevents duplicate-handler accumulation and keeps the
+  // error handler present on whichever element is active.
+  _attachAudioListeners(audio) {
+    if (audio._listenersAttached) return
+    audio._listenersAttached = true
+
+    audio.addEventListener("timeupdate", () => this.onTimeUpdate())
+    audio.addEventListener("ended", () => this.onEnded())
+    audio.addEventListener("loadedmetadata", () => this.onLoadedMetadata())
+    audio.addEventListener("play", () => {
+      this.updatePlayPauseIcon()
+      this.startPositionSave()
+    })
+    audio.addEventListener("error", () => {
+      console.warn("Audio error:", audio.error?.message, audio.error?.code)
+    })
+    audio.addEventListener("pause", () => {
+      this.updatePlayPauseIcon()
+      this.stopPositionSave()
+    })
   }
 
   get crossfadeDuration() {
@@ -306,6 +319,9 @@ export default class extends Controller {
     } else if (this.airplayActive) {
       // AirPlay is already active — must resolve first so Apple TV gets the direct URL
       this._resolveAndPlayForAirplay(streamUrl)
+    } else if (this._canSwapToPreloaded(streamUrl)) {
+      // Next track is already buffered on the preload element — start instantly
+      this._swapToPreloaded()
     } else {
       // Fast path: play immediately via the app URL, resolve in background for AirPlay
       this._resolveAndPlay(streamUrl)
@@ -549,7 +565,58 @@ export default class extends Controller {
       this.audio.play()
       return
     }
+    if (this._canGaplessSwap()) {
+      this._gaplessAdvance()
+      return
+    }
     document.dispatchEvent(new CustomEvent("queue:next"))
+  }
+
+  // Gapless: the next track is already buffered on the preload element —
+  // swap to it instantly instead of paying network+decode startup on the
+  // main element after a queue roundtrip.
+  _canGaplessSwap() {
+    if (this.crossfadeDuration > 0) return false // crossfade path handles it
+    if (!this._pendingPreload || this._pendingPreload.youtubeVideoId) return false
+    if (this.castActive || this.airplayActive) return false
+
+    return this._canSwapToPreloaded(this._pendingPreload.streamUrl)
+  }
+
+  _gaplessAdvance() {
+    this._swapToPreloaded()
+
+    // Queue advances to match reality; playTrack sees the flag and skips
+    // the source reset (same flow as a completed crossfade).
+    this._crossfadeJustCompleted = true
+    document.dispatchEvent(new CustomEvent("queue:next"))
+  }
+
+  _canSwapToPreloaded(streamUrl) {
+    const preload = document.getElementById("persistent-audio-preload")
+    if (!preload || !preload.src) return false
+    if (preload.dataset.appStreamUrl !== streamUrl) return false
+
+    return preload.readyState >= 3 // HAVE_FUTURE_DATA
+  }
+
+  _swapToPreloaded() {
+    const preload = this._ensurePreloadAudio()
+    const oldAudio = this.audio
+
+    oldAudio.pause()
+    oldAudio.removeAttribute("src")
+    this._swapAudioElements()
+
+    // Carry playback state across the swap
+    this.audio.volume = oldAudio.volume
+    this.audio.muted = oldAudio.muted
+    this.audio.playbackRate = oldAudio.playbackRate
+
+    this.audio.play()
+    document.dispatchEvent(new CustomEvent("player:sourceChanged", {
+      detail: { streamUrl: preload.dataset.appStreamUrl || preload.src }
+    }))
   }
 
   // YouTube events
@@ -766,23 +833,7 @@ export default class extends Controller {
         oldAudio.removeAttribute("src")
         oldAudio.volume = targetVolume
 
-        // Swap IDs so this.audio points to the new playing element
-        oldAudio.id = "persistent-audio-preload"
-        preload.id = "persistent-audio"
-        this.audio = preload
-
-        // Re-attach listeners for the new audio element
-        this.audio.addEventListener("timeupdate", () => this.onTimeUpdate())
-        this.audio.addEventListener("ended", () => this.onEnded())
-        this.audio.addEventListener("loadedmetadata", () => this.onLoadedMetadata())
-        this.audio.addEventListener("play", () => {
-          this.updatePlayPauseIcon()
-          this.startPositionSave()
-        })
-        this.audio.addEventListener("pause", () => {
-          this.updatePlayPauseIcon()
-          this.stopPositionSave()
-        })
+        this._swapAudioElements()
 
         this._crossfading = false
 
@@ -795,6 +846,19 @@ export default class extends Controller {
       }
     }
     requestAnimationFrame(fade)
+  }
+
+  // The preload element becomes the player and vice versa. IDs swap because
+  // other controllers (airplay, fullscreen, sleep timer) look up the active
+  // element as #persistent-audio. Listeners were attached at creation, so
+  // nothing needs re-binding here.
+  _swapAudioElements() {
+    const oldAudio = this.audio
+    const preload = this._ensurePreloadAudio()
+
+    oldAudio.id = "persistent-audio-preload"
+    preload.id = "persistent-audio"
+    this.audio = preload
   }
 
   toggleCrossfadeMenu() {
