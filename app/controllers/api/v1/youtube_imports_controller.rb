@@ -16,7 +16,7 @@ class API::V1::YoutubeImportsController < API::V1::BaseController
       track_count: album.tracks.count,
       tracks_missing_audio: album.tracks.where.missing(:audio_file_attachment).count
     }, status: :created
-  rescue YoutubePlaylistImportService::Error, MediaDownloadService::Error => e
+  rescue YoutubePlaylistImportService::Error, YoutubeAPIService::Error, MediaDownloadService::Error => e
     render_error(e.message)
   end
 end

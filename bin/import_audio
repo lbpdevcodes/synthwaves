@@ -75,7 +75,13 @@ def api_request(options, method:, path:, token: nil, body: nil, multipart: nil)
   end
 
   response = http.request(request)
-  [response.code.to_i, JSON.parse(response.body.to_s.empty? ? "{}" : response.body)]
+  body = response.body.to_s
+  json = begin
+    JSON.parse(body.empty? ? "{}" : body)
+  rescue JSON::ParserError
+    {"error" => "HTTP #{response.code}: server returned a non-JSON response (an unhandled exception — check the production logs)"}
+  end
+  [response.code.to_i, json]
 end
 
 def fetch_token(options)

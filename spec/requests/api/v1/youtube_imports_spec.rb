@@ -46,6 +46,19 @@ RSpec.describe "API::V1::YoutubeImports", type: :request do
       expect(json["error"]).to include("not a bot")
     end
 
+    it "returns unprocessable when the YouTube API rejects the request" do
+      allow(YoutubePlaylistImportService).to receive(:call)
+        .and_raise(YoutubeAPIService::Error, "The request cannot be completed because you have exceeded your quota")
+
+      post "/api/v1/youtube_imports",
+        params: {url: "https://www.youtube.com/playlist?list=PLquota"},
+        headers: auth_headers
+
+      expect(response).to have_http_status(:unprocessable_content)
+      json = JSON.parse(response.body)
+      expect(json["error"]).to include("quota")
+    end
+
     context "with a successful import" do
       let(:artist) { create(:artist, user: user) }
       let(:album) { create(:album, artist: artist, user: user, title: "Imported Album") }
