@@ -178,10 +178,10 @@ RSpec.describe "Playlists", type: :request do
       expect(response.body).to include("Copy track list")
     end
 
-    it "keeps Play All and Shuffle All as top-level actions" do
+    it "keeps Play All as the single primary action" do
       doc = Nokogiri::HTML(response.body)
       expect(doc.at_css("[data-action='play-all#playAll']")).to be_present
-      expect(doc.at_css("[data-action='play-all#shuffleAll']")).to be_present
+      expect(doc.at_css("[data-action='play-all#shuffleAll']")).not_to be_present
     end
 
     it "applies touch layout hooks" do
