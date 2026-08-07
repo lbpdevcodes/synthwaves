@@ -64,7 +64,7 @@
         </div>
         <!-- Progress bar -->
         <div class="w-full">
-          <div class="h-1.5 bg-gray-700 rounded-full cursor-pointer" data-action="click->fullscreen-now-playing#seek">
+          <div class="h-1.5 coarse:h-3 bg-gray-700 rounded-full cursor-pointer" data-action="click->fullscreen-now-playing#seek">
             <div data-fullscreen-now-playing-target="progress" class="h-full bg-gradient-to-r from-neon-pink to-neon-cyan rounded-full transition-all duration-200" style="width: 0%"></div>
           </div>
           <div class="flex justify-between mt-1">
@@ -74,14 +74,14 @@
         </div>
         <!-- Controls -->
         <div class="flex items-center gap-6">
-          <button data-action="fullscreen-now-playing#previous" class="text-gray-400 hover:text-white transition-colors">
+          <button data-action="fullscreen-now-playing#previous" class="text-gray-400 hover:text-white transition-colors coarse:p-4">
             <svg class="w-7 h-7" fill="currentColor" viewBox="0 0 20 20"><path d="M8.445 14.832A1 1 0 0010 14v-2.798l5.445 3.63A1 1 0 0017 14V6a1 1 0 00-1.555-.832L10 8.798V6a1 1 0 00-1.555-.832l-6 4a1 1 0 000 1.664l6 4z"/></svg>
           </button>
-          <button data-action="fullscreen-now-playing#togglePlayback" class="w-14 h-14 rounded-full bg-neon-pink text-white flex items-center justify-center hover:shadow-neon-pink transition-shadow">
+          <button data-action="fullscreen-now-playing#togglePlayback" class="w-14 h-14 coarse:w-20 coarse:h-20 rounded-full bg-neon-pink text-white flex items-center justify-center hover:shadow-neon-pink transition-shadow">
             <svg data-fullscreen-now-playing-target="playIcon" class="w-7 h-7" fill="currentColor" viewBox="0 0 20 20"><path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z"/></svg>
             <svg data-fullscreen-now-playing-target="pauseIcon" class="w-7 h-7 hidden" fill="currentColor" viewBox="0 0 20 20"><path d="M5.75 3a.75.75 0 00-.75.75v12.5c0 .414.336.75.75.75h1.5a.75.75 0 00.75-.75V3.75A.75.75 0 007.25 3h-1.5zM12.75 3a.75.75 0 00-.75.75v12.5c0 .414.336.75.75.75h1.5a.75.75 0 00.75-.75V3.75a.75.75 0 00-.75-.75h-1.5z"/></svg>
           </button>
-          <button data-action="fullscreen-now-playing#next" class="text-gray-400 hover:text-white transition-colors">
+          <button data-action="fullscreen-now-playing#next" class="text-gray-400 hover:text-white transition-colors coarse:p-4">
             <svg class="w-7 h-7" fill="currentColor" viewBox="0 0 20 20"><path d="M11.555 5.168A1 1 0 0010 6v2.798l-5.445-3.63A1 1 0 003 6v8a1 1 0 001.555.832L10 11.202V14a1 1 0 001.555.832l6-4a1 1 0 000-1.664l-6-4z"/></svg>
           </button>
         </div>
@@ -133,8 +133,8 @@
   </div>
   <div class="container mx-auto px-4 py-2">
     <div class="flex items-center justify-between gap-2 sm:gap-4">
-      <!-- Track info -->
-      <div class="flex items-center gap-3 min-w-0 flex-1">
+      <!-- Track info (tap to open fullscreen now playing) -->
+      <div class="flex items-center gap-3 min-w-0 flex-1 cursor-pointer" data-action="click->player#toggleFullscreen" title="Now Playing">
         <div class="w-10 h-10 rounded bg-gray-700 flex-shrink-0 flex items-center justify-center" data-player-target="artwork">
           <svg class="w-5 h-5 text-gray-400" fill="currentColor" viewBox="0 0 20 20"><path d="M18 3a1 1 0 00-1.196-.98l-10 2A1 1 0 006 5v9.114A4.369 4.369 0 005 14c-1.657 0-3 .895-3 2s1.343 2 3 2 3-.895 3-2V7.82l8-1.6v5.894A4.37 4.37 0 0015 12c-1.657 0-3 .895-3 2s1.343 2 3 2 3-.895 3-2V3z"/></svg>
         </div>
@@ -224,7 +224,7 @@
           </button>
         </div>
         <!-- Crossfade control -->
-        <div class="hidden md:block relative">
+        <div class="hidden md:block relative coarse-hide">
           <button data-action="player#toggleCrossfadeMenu" data-player-target="crossfadeButton" class="text-gray-400 hover:text-neon-cyan p-1" title="Crossfade">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
@@ -281,7 +281,7 @@
           </svg>
         </button>
         <!-- Sleep timer -->
-        <div class="hidden sm:block sm:relative" data-controller="sleep-timer">
+        <div class="hidden sm:block sm:relative coarse-hide" data-controller="sleep-timer">
           <button data-action="sleep-timer#toggleMenu" class="text-gray-400 hover:text-neon-cyan p-1 relative" title="Sleep Timer">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/>
@@ -299,7 +299,7 @@
           </div>
         </div>
         <!-- Visualizer toggle -->
-        <button data-action="player#toggleVisualizer" class="hidden sm:inline-flex text-gray-400 hover:text-neon-cyan p-1" title="Visualizer">
+        <button data-action="player#toggleVisualizer" class="hidden sm:inline-flex text-gray-400 hover:text-neon-cyan p-1 coarse-hide" title="Visualizer">
           <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
             <rect x="1" y="8" width="3" height="8" rx="0.5"/>
             <rect x="6" y="4" width="3" height="16" rx="0.5"/>

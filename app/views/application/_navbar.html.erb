@@ -7,7 +7,7 @@
           <%= render(Logo::Component.new(size: :md, icon: true, text: false)) %>
         <% end %>
         <% if authenticated? %>
-          <nav class="hidden md:flex items-center space-x-3 text-sm">
+          <nav class="hidden md:flex items-center space-x-3 text-sm desktop-nav">
             <%= render Button::Component.new(label: "Listen", behavior: :navigation, link_url: music_path, style: :nav_link) %>
             <%= render Button::Component.new(label: "Watch", behavior: :navigation, link_url: tv_path, style: :nav_link) %>
             <%= render Button::Component.new(label: "Stats", behavior: :navigation, link_url: stats_path, style: :nav_link) %>
@@ -16,7 +16,7 @@
       </div>
       <% if authenticated? %>
         <!-- Desktop search widget -->
-        <div class="hidden md:block relative" data-controller="global-search" data-global-search-url-value="<%= search_dropdown_path %>">
+        <div class="hidden md:block relative desktop-nav" data-controller="global-search" data-global-search-url-value="<%= search_dropdown_path %>">
           <div class="relative">
             <svg class="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>

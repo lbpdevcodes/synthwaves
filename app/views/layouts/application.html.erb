@@ -3,7 +3,7 @@
   <head>
     <title><%= content_for(:title) || "synthwaves.fm" %></title>
     <%= meta_tags %>
-    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
     <meta name="robots" content="noindex, nofollow">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="application-name" content="SynthWWves.fm">
@@ -32,7 +32,7 @@
       <meta name="turbo:native" content="true">
     <% end %>
   </head>
-  <body class="bg-gray-900 synthwave-bg text-white <%= 'pb-40 md:pb-24' unless turbo_native_app? %> scanlines" data-controller="youtube-player keyboard-shortcuts<%= ' bridge--playback bridge--video' if turbo_native_app? %>">
+  <body class="bg-gray-900 synthwave-bg text-white <%= 'page-pad' unless turbo_native_app? %> scanlines" data-controller="youtube-player keyboard-shortcuts<%= ' bridge--playback bridge--video' if turbo_native_app? %>">
     <% if authenticated? %>
       <%= turbo_stream_from "downloads_#{Current.user.id}" %>
       <%= turbo_stream_from "recordings_#{Current.user.id}" %>

@@ -1,5 +1,6 @@
-<div class="flex items-center justify-between px-4 py-3 border-b border-gray-700 last:border-0 hover:bg-gray-700/50"
+<div class="flex items-center justify-between px-4 py-3 coarse:py-4 border-b border-gray-700 last:border-0 hover:bg-gray-700/50 cursor-pointer active:bg-gray-700/70"
      data-controller="song-row now-playing"
+     data-action="click->song-row#playFromRow"
      data-song-row-track-id-value="<%= track.id %>"
      data-now-playing-track-id-value="<%= track.id %>"
      data-song-row-title-value="<%= track.title %>"
@@ -26,11 +27,11 @@
      data-song-row-native-cover-art-url-value="<%= helpers.native_url_builder.cover_art_url(track.album) %>"
      <% end %>>
   <div class="flex items-center gap-3 min-w-0 flex-1">
-    <button type="button" data-action="song-row#play" class="w-8 text-center text-gray-400 hover:text-neon-pink group/play">
+    <button type="button" data-action="song-row#play" class="w-8 coarse:w-10 text-center text-gray-400 hover:text-neon-pink group/play">
       <% if number %>
-        <span class="group-hover/play:hidden" data-song-row-target="trackNumber"><%= number %></span>
+        <span class="group-hover/play:hidden coarse:hidden" data-song-row-target="trackNumber"><%= number %></span>
       <% end %>
-      <svg class="w-5 h-5 mx-auto <%= 'hidden group-hover/play:block' if number %>" fill="currentColor" viewBox="0 0 20 20"><path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z"/></svg>
+      <svg class="w-5 h-5 mx-auto <%= 'hidden group-hover/play:block coarse:block' if number %>" fill="currentColor" viewBox="0 0 20 20"><path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z"/></svg>
     </button>
     <div class="min-w-0">
       <div class="font-medium text-white truncate">
@@ -41,7 +42,7 @@
         <% end %>
       </div>
       <% if show_subtitle? %>
-        <div class="text-sm text-gray-400">
+        <div class="text-sm coarse:text-base text-gray-400">
           <%= safe_join(subtitle_parts.map { |part|
             if part[:url]
               render(Button::Component.new(label: part[:text], behavior: :navigation, link_url: part[:url], style: :inline_link, turbo_frame: "_top"))

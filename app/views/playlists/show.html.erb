@@ -22,11 +22,19 @@
         <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M15.312 3.752a.75.75 0 01.937-.187l.084.058 1.5 1.25a.75.75 0 01.084 1.121l-.084.079-1.5 1.25a.75.75 0 01-1.04-1.065l.056-.056.251-.21H14.5a2.5 2.5 0 00-1.967.96l-.103.145-1.18 1.853-1.25-1.96 .47-.738A4 4 0 0114.5 3.002h1.1l-.251-.21a.75.75 0 01-.098-1l.06-.07zM3.75 4a.75.75 0 01.102 1.493L3.75 5.5H2.75a.75.75 0 01-.102-1.493L2.75 4h1zm12.562 9.248a.75.75 0 01.937-.187l.084.058 1.5 1.25a.75.75 0 01.084 1.121l-.084.079-1.5 1.25a.75.75 0 01-1.04-1.065l.056-.056.251-.21H14.5a4 4 0 01-3.03-1.388l-.16-.197-.56-.78 1.25-1.962.43.675A2.5 2.5 0 0014.5 13h1.1l-.251-.21a.75.75 0 01-.098-1l.06-.07zM3.75 14a.75.75 0 01.102 1.493L3.75 15.5H2.75a.75.75 0 01-.102-1.493L2.75 14h1z" clip-rule="evenodd"/></svg>
         Shuffle All
       <% end %>
-      <%= button_to "Download", downloads_path(downloadable_type: "Playlist", downloadable_id: @playlist.id), class: "px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-600" %>
-      <%= render Button::Component.new(label: "Copy track list", style: :secondary, data: { clipboard_target: "button", action: "clipboard#copy" }) %>
-      <%= render Button::Component.new(label: "Edit", behavior: :navigation, link_url: edit_playlist_path(@playlist), style: :secondary) %>
       <%= render "playlists/merge_menu", playlist: @playlist %>
-      <%= button_to "Delete", playlist_path(@playlist), method: :delete, data: { turbo_confirm: "Delete this playlist?" }, class: "px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700" %>
+      <%= render Dropdown::Component.new(position: :right, width: "w-52") do |dropdown| %>
+        <% dropdown.with_trigger do %>
+          <span class="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-white bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors">
+            More
+            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M10 6a2 2 0 110-4 2 2 0 010 4zm0 6a2 2 0 110-4 2 2 0 010 4zm0 6a2 2 0 110-4 2 2 0 010 4z"/></svg>
+          </span>
+        <% end %>
+        <%= render Button::Component.new(label: "Edit", behavior: :navigation, link_url: edit_playlist_path(@playlist), style: :menu_item) %>
+        <%= render Button::Component.new(label: "Copy track list", style: :menu_item, data: { clipboard_target: "button", action: "clipboard#copy" }) %>
+        <%= button_to "Download", downloads_path(downloadable_type: "Playlist", downloadable_id: @playlist.id), class: "block w-full text-left px-4 py-2 text-sm text-white hover:bg-gray-700 hover:text-neon-cyan" %>
+        <%= button_to "Delete", playlist_path(@playlist), method: :delete, data: { turbo_confirm: "Delete this playlist?" }, class: "block w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-gray-700" %>
+      <% end %>
     </div>
   </div>
   <turbo-frame id="playlist-tracks" data-turbo-action="advance">
@@ -41,14 +49,14 @@
           <%= render TrackRow::Component.new(track: pt.track, number: pt.position, link_title: true, link_subtitle: true) do |c| %>
             <% c.with_trailing do %>
               <% if pt.track.audio_file.attached? %>
-                <%= link_to download_track_path(pt.track), class: "text-gray-400 hover:text-neon-cyan", title: "Download" do %>
+                <%= link_to download_track_path(pt.track), class: "text-gray-400 hover:text-neon-cyan coarse:p-2.5", title: "Download" do %>
                   <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
                 <% end %>
               <% end %>
               <%= render "favorites/button", favorable: pt.track, favorited: @favorited_track_ids.include?(pt.track.id) %>
               <%= button_to playlist_track_path(@playlist, pt),
                     method: :delete,
-                    class: "text-gray-400 hover:text-red-600",
+                    class: "text-gray-400 hover:text-red-600 coarse:p-2.5",
                     title: "Remove from playlist" do %>
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
               <% end %>

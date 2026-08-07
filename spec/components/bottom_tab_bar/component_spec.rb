@@ -86,5 +86,10 @@ RSpec.describe BottomTabBar::Component, type: :component do
       expect(nav["class"]).to include("fixed")
       expect(nav["class"]).to include("bottom-16")
     end
+
+    it "has a bottom-tab-bar hook class for touch CSS" do
+      html = render_component
+      expect(html.at_css("nav")["class"]).to include("bottom-tab-bar")
+    end
   end
 end

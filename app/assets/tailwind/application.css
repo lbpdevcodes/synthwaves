@@ -16,6 +16,10 @@
   --font-display: "Orbitron", ui-sans-serif, system-ui, sans-serif;
 }
 
+/* Touch-first variant: matches phones, tablets, and car head units whose
+   primary input is a finger, regardless of viewport width. */
+@custom-variant coarse (@media (pointer: coarse));
+
 @layer utilities {
   /* Neon text glow effects */
   .glow-cyan {
@@ -319,4 +323,79 @@ dialog.modal[open]::backdrop {
   [class*="bg-sunset"]
 ) {
   --color-white: #fff;
+}
+
+/* ==================================================================
+   Touch (coarse pointer) support — car head units, phones, tablets
+   Plain CSS (not utilities) so these rules land after the Tailwind
+   layers and win cascade ties against breakpoint variants.
+   ================================================================== */
+
+/* Tap fundamentals: no flash, no double-tap zoom delay (harmless on desktop) */
+html {
+  -webkit-tap-highlight-color: transparent;
+}
+a, button, [data-action], input, select, label {
+  touch-action: manipulation;
+}
+
+/* Fixed bottom bars respect home-indicator / rounded-corner insets */
+#player-bar {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+.bottom-tab-bar {
+  bottom: calc(4rem + env(safe-area-inset-bottom));
+}
+
+/* Page bottom padding: room for the fixed player bar (+ tab bar on small
+   screens). A single hook class avoids utility-vs-utility cascade fights. */
+.page-pad {
+  padding-bottom: 10rem; /* player bar + bottom tab bar */
+}
+@media (min-width: 768px) {
+  .page-pad {
+    padding-bottom: 6rem; /* player bar only */
+  }
+}
+
+@media (pointer: coarse) {
+  /* Player bar: finger-sized targets regardless of viewport width */
+  #player-bar button {
+    min-width: 44px;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  #player-bar [data-player-target="progressBar"] {
+    height: 0.5rem;
+  }
+  /* Decluttered on touch: playlist merge menu, sleep timer, visualizer, crossfade */
+  .coarse-hide {
+    display: none;
+  }
+  /* Queue panel: enlarge reorder/remove buttons (~22px by default) */
+  #queue-panel-container button {
+    min-width: 44px;
+    min-height: 44px;
+  }
+  /* Pagination pills (~30px by default) */
+  .pagy a:not([role="separator"]),
+  .pagy label {
+    padding: 0.5rem 1rem;
+  }
+}
+
+/* Large touch screens (car head units): keep the finger-sized tab bar,
+   drop the desktop nav cluster */
+@media (pointer: coarse) and (min-width: 768px) {
+  .bottom-tab-bar {
+    display: block; /* overrides md:hidden */
+  }
+  .desktop-nav {
+    display: none;
+  }
+  .page-pad {
+    padding-bottom: 10rem; /* player bar + tab bar again */
+  }
 }

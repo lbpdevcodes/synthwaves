@@ -88,7 +88,7 @@
                     data-song-row-stream-url-value="<%= station.needs_proxy? ? internet_radio_station_stream_path(station) : station.stream_url %>"
                     data-song-row-is-live-value="true"
                     data-action="click->song-row#play">
-              <div class="w-14 h-14 rounded-full bg-neon-pink text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-lg">
+              <div class="w-14 h-14 rounded-full bg-neon-pink text-white flex items-center justify-center opacity-0 group-hover:opacity-100 coarse:opacity-100 transition-opacity shadow-lg">
                 <svg class="w-7 h-7 ml-1" fill="currentColor" viewBox="0 0 20 20"><path d="M6.3 2.841A1.5 1.5 0 004 4.11V15.89a1.5 1.5 0 002.3 1.269l9.344-5.89a1.5 1.5 0 000-2.538L6.3 2.84z"/></svg>
               </div>
             </button>
