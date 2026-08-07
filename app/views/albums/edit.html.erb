@@ -33,6 +33,12 @@
     </div>
 
     <div>
+      <%= f.label :youtube_playlist_url, "YouTube Playlist URL", class: "block text-sm font-medium text-gray-400 mb-1" %>
+      <%= f.text_field :youtube_playlist_url, placeholder: "https://www.youtube.com/playlist?list=…", class: "w-full rounded-lg bg-gray-800 border border-gray-700 px-3 py-2 text-white focus:outline-neon-cyan" %>
+      <p class="text-xs text-gray-500 mt-1">Source playlist for "Refresh from YouTube" and audio imports.</p>
+    </div>
+
+    <div>
       <%= f.label :cover_image, "Cover Image", class: "block text-sm font-medium text-gray-400 mb-1" %>
       <% if @album.cover_image.attached? %>
         <div class="mb-2">
