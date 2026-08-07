@@ -101,6 +101,45 @@ RSpec.describe "Albums", type: :request do
       expect(response).to have_http_status(:ok)
     end
 
+    it "keeps playback actions top-level" do
+      album = create(:album, artist: create(:artist, user: user))
+      get album_path(album)
+
+      doc = Nokogiri::HTML(response.body)
+      expect(doc.at_css("[data-action='play-all#playAll']")).to be_present
+      expect(doc.at_css("[data-action='play-all#shuffleAll']")).to be_present
+    end
+
+    it "groups management actions in an overflow menu" do
+      album = create(:album, youtube_playlist_url: "https://www.youtube.com/playlist?list=PLx", artist: create(:artist, user: user))
+      get album_path(album)
+
+      doc = Nokogiri::HTML(response.body)
+      menu = doc.css("[data-controller~='dropdown']").find { |d| d.text.include?("Export ZIP") }
+      expect(menu).to be_present
+      expect(menu.text).to include("Fetch cover", "Refresh from YouTube")
+    end
+
+    it "groups admin actions in the overflow menu for admins" do
+      admin = create(:user, admin: true)
+      login_user(admin)
+      album = create(:album, artist: create(:artist, user: admin))
+      get album_path(album)
+
+      doc = Nokogiri::HTML(response.body)
+      menu = doc.css("[data-controller~='dropdown']").find { |d| d.text.include?("Export ZIP") }
+      expect(menu).to be_present
+      expect(menu.text).to include("Edit", "Delete")
+    end
+
+    it "does not render the YouTube playlist URL field" do
+      album = create(:album, artist: create(:artist, user: user))
+      get album_path(album)
+
+      doc = Nokogiri::HTML(response.body)
+      expect(doc.at_css("input[name='album[youtube_playlist_url]']")).not_to be_present
+    end
+
     it "sorts by disc/track number by default" do
       album = create(:album, artist: create(:artist, user: user))
       track_b = create(:track, album: album, disc_number: 1, track_number: 2, title: "Beta")
@@ -337,6 +376,14 @@ RSpec.describe "Albums", type: :request do
       album = create(:album, artist: create(:artist, user: admin))
       get edit_album_path(album)
       expect(response).to have_http_status(:ok)
+    end
+
+    it "renders the YouTube playlist URL field" do
+      album = create(:album, artist: create(:artist, user: admin))
+      get edit_album_path(album)
+
+      doc = Nokogiri::HTML(response.body)
+      expect(doc.at_css("input[name='album[youtube_playlist_url]']")).to be_present
     end
 
     it "redirects non-admin" do

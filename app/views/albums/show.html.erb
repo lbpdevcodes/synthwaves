@@ -42,27 +42,30 @@
               playlists: current_user_playlists,
               new_playlist_name: @album.title
             ) %>
-        <%= button_to "Export ZIP", downloads_path(downloadable_type: "Album", downloadable_id: @album.id), class: "inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-neon-cyan bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors" %>
-        <%= button_to "Fetch cover", fetch_cover_album_path(@album), class: "inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-neon-cyan bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors" %>
-        <% if @album.youtube_playlist_url.present? %>
-          <%= button_to "Refresh Episodes", refresh_album_path(@album), class: "inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-neon-cyan bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors" %>
-        <% end %>
-        <% if @album.tracks.where.not(youtube_video_id: [nil, ""]).where.missing(:audio_file_attachment).any? %>
-          <%= button_to "Download Audio", download_audio_album_path(@album), class: "inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-neon-cyan bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors" %>
-        <% end %>
         <% if Current.user.admin? %>
-          <%= render Button::Component.new(label: "Edit", behavior: :navigation, link_url: edit_album_path(@album), style: :secondary, size: :small) %>
-          <%= button_to "Delete", album_path(@album), method: :delete, class: "inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-red-400 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors", data: { turbo_confirm: "Delete \"#{@album.title}\" and all its tracks? This cannot be undone." } %>
           <%= render "albums/merge_menu", album: @album %>
         <% end %>
+        <%= render Dropdown::Component.new(position: :left, width: "w-56") do |dropdown| %>
+          <% dropdown.with_trigger do %>
+            <span class="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-white bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors">
+              More
+              <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M10 6a2 2 0 110-4 2 2 0 010 4zm0 6a2 2 0 110-4 2 2 0 010 4zm0 6a2 2 0 110-4 2 2 0 010 4z"/></svg>
+            </span>
+          <% end %>
+          <%= button_to "Export ZIP", downloads_path(downloadable_type: "Album", downloadable_id: @album.id), class: "block w-full text-left px-4 py-2 text-sm text-white hover:bg-gray-700 hover:text-neon-cyan" %>
+          <%= button_to "Fetch cover", fetch_cover_album_path(@album), class: "block w-full text-left px-4 py-2 text-sm text-white hover:bg-gray-700 hover:text-neon-cyan" %>
+          <% if @album.youtube_playlist_url.present? %>
+            <%= button_to "Refresh from YouTube", refresh_album_path(@album), class: "block w-full text-left px-4 py-2 text-sm text-white hover:bg-gray-700 hover:text-neon-cyan" %>
+          <% end %>
+          <% if @album.tracks.where.not(youtube_video_id: [nil, ""]).where.missing(:audio_file_attachment).any? %>
+            <%= button_to "Download Audio", download_audio_album_path(@album), class: "block w-full text-left px-4 py-2 text-sm text-white hover:bg-gray-700 hover:text-neon-cyan" %>
+          <% end %>
+          <% if Current.user.admin? %>
+            <%= render Button::Component.new(label: "Edit", behavior: :navigation, link_url: edit_album_path(@album), style: :menu_item) %>
+            <%= button_to "Delete", album_path(@album), method: :delete, class: "block w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-gray-700", data: { turbo_confirm: "Delete \"#{@album.title}\" and all its tracks? This cannot be undone." } %>
+          <% end %>
+        <% end %>
       </div>
-      <%= form_with model: @album, class: "mt-3 flex flex-col sm:flex-row items-stretch sm:items-center gap-2" do |f| %>
-        <%= f.text_field :youtube_playlist_url,
-              placeholder: "YouTube playlist URL",
-              class: "text-sm rounded-lg border border-gray-600 bg-gray-700 text-white px-3 py-2 flex-1 min-w-0 focus:outline-neon-cyan" %>
-        <%= f.submit "Save",
-              class: "px-3 py-1 text-sm font-medium text-white bg-neon-pink hover:shadow-neon-pink rounded-md cursor-pointer" %>
-      <% end %>
     </div>
   </div>
   <turbo-frame id="album-tracks" data-turbo-action="advance">
