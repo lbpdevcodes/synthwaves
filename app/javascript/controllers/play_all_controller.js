@@ -11,20 +11,6 @@ export default class extends Controller {
     }))
   }
 
-  shuffleAll() {
-    const tracks = this.collectTracks()
-    if (tracks.length === 0) return
-
-    const shuffleEnabled = localStorage.getItem("playerShuffle") === "true"
-    if (!shuffleEnabled) {
-      document.dispatchEvent(new CustomEvent("queue:toggleShuffle"))
-    }
-
-    document.dispatchEvent(new CustomEvent("queue:playAll", {
-      detail: { tracks, startIndex: 0 }
-    }))
-  }
-
   collectTracks() {
     const rows = this.element.querySelectorAll("[data-controller~='song-row']")
     return Array.from(rows).map(el => buildTrackFromElement(el))
