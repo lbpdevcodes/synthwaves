@@ -64,6 +64,11 @@ RSpec.configure do |config|
   # You can uncomment this line to turn off ActiveRecord support entirely.
   # config.use_active_record = false
 
+  # Test env uses a real memory cache (so controller rate_limit is exercised
+  # in specs); clear it between examples so counters and fragments from one
+  # example can't leak into the next.
+  config.before(:each) { Rails.cache.clear }
+
   # RSpec Rails uses metadata to mix in different behaviours to your tests,
   # for example enabling you to call `get` and `post` in request specs. e.g.:
   #

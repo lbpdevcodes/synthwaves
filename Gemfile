@@ -97,3 +97,7 @@ gem "http"
 gem "rubyzip", "~> 2.3"
 
 gem "blueprinter", "~> 1.2"
+
+# Remote MCP surface (POST /mcp) for LLM agents. 0.x with frequent
+# releases — keep pinned to the tested minor.
+gem "mcp", "~> 0.25.0"

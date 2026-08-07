@@ -1,16 +1,17 @@
 # synthwaves.fm API Documentation
 
-synthwaves.fm exposes three API layers for programmatic access to your music library.
+synthwaves.fm exposes four API layers for programmatic access to your music library.
 
 ## API Layers
 
-| Layer                              | Base URL                 | Auth Method             | Use Case                                |
-| ---------------------------------- | ------------------------ | ----------------------- | --------------------------------------- |
-| [JWT API v1](jwt-api.md)           | `/api/v1/`               | JWT Bearer token        | Native app bootstrap, token exchange    |
-| [Import API](import-api.md)        | `/api/import/`           | JWT Bearer token        | Uploading tracks, videos, and playlists |
-| [Subsonic API](subsonic/README.md) | `/rest/` or `/api/rest/` | Subsonic token/password | Subsonic-compatible client playback     |
+| Layer                              | Base URL                 | Auth Method                    | Use Case                                |
+| ---------------------------------- | ------------------------ | ------------------------------ | --------------------------------------- |
+| [JWT API v1](jwt-api.md)           | `/api/v1/`               | JWT Bearer token               | Native app bootstrap, token exchange    |
+| [Import API](import-api.md)        | `/api/import/`           | JWT Bearer token               | Uploading tracks, videos, and playlists |
+| [Subsonic API](subsonic/README.md) | `/rest/` or `/api/rest/` | Subsonic token/password        | Subsonic-compatible client playback     |
+| [MCP Server](mcp.md)               | `/mcp`                   | HTTP Basic (API key)           | AI agent library management             |
 
-All three layers require authentication. See the [Authentication Guide](authentication.md) for details.
+All four layers require authentication. See the [Authentication Guide](authentication.md) for details.
 
 ## API Key Management
 
@@ -34,10 +35,17 @@ API keys are managed through the web UI at `/api_keys`. Each key has a `client_i
 | POST   | `/api/import/playlists`      | Import a playlist          | [import-api.md](import-api.md#post-apiimportplaylists)      |
 | POST   | `/api/import/videos`         | Import a video             | [import-api.md](import-api.md#post-apiimportvideos)         |
 
+### MCP Server (1 endpoint, 21 tools)
+
+| Method | Path  | Description                                | Doc                 |
+| ------ | ----- | ------------------------------------------ | ------------------- |
+| POST   | `/mcp` | JSON-RPC 2.0 MCP endpoint for AI agents   | [mcp.md](mcp.md)    |
+
 ### Subsonic API (30 endpoints)
 
 | Endpoint               | Description                    | Doc                                       |
 | ---------------------- | ------------------------------ | ----------------------------------------- |
+| `ping`                 | Test connectivity              | [system.md](subsonic/system.md)           |
 | `ping`                 | Test connectivity              | [system.md](subsonic/system.md)           |
 | `getLicense`           | Get server license             | [system.md](subsonic/system.md)           |
 | `getMusicFolders`      | List music folders             | [browsing.md](subsonic/browsing.md)       |
