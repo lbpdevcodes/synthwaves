@@ -101,13 +101,13 @@ RSpec.describe "Albums", type: :request do
       expect(response).to have_http_status(:ok)
     end
 
-    it "keeps playback actions top-level" do
+    it "keeps Play All as the single primary action" do
       album = create(:album, artist: create(:artist, user: user))
       get album_path(album)
 
       doc = Nokogiri::HTML(response.body)
       expect(doc.at_css("[data-action='play-all#playAll']")).to be_present
-      expect(doc.at_css("[data-action='play-all#shuffleAll']")).to be_present
+      expect(doc.at_css("[data-action='play-all#shuffleAll']")).not_to be_present
     end
 
     it "groups management actions in an overflow menu" do

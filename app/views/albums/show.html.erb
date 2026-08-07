@@ -32,10 +32,6 @@
           <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M6.3 2.84A1.5 1.5 0 004 4.11v11.78a1.5 1.5 0 002.3 1.27l9.344-5.891a1.5 1.5 0 000-2.538L6.3 2.84z"/></svg>
           Play All
         <% end %>
-        <%= render Button::Component.new(style: :secondary, size: :small, data: { action: "play-all#shuffleAll" }, extra_classes: "gap-1") do %>
-          <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M15.312 3.752a.75.75 0 01.937-.187l.084.058 1.5 1.25a.75.75 0 01.084 1.121l-.084.079-1.5 1.25a.75.75 0 01-1.04-1.065l.056-.056.251-.21H14.5a2.5 2.5 0 00-1.967.96l-.103.145-1.18 1.853-1.25-1.96 .47-.738A4 4 0 0114.5 3.002h1.1l-.251-.21a.75.75 0 01-.098-1l.06-.07zM3.75 4a.75.75 0 01.102 1.493L3.75 5.5H2.75a.75.75 0 01-.102-1.493L2.75 4h1zm12.562 9.248a.75.75 0 01.937-.187l.084.058 1.5 1.25a.75.75 0 01.084 1.121l-.084.079-1.5 1.25a.75.75 0 01-1.04-1.065l.056-.056.251-.21H14.5a4 4 0 01-3.03-1.388l-.16-.197-.56-.78 1.25-1.962.43.675A2.5 2.5 0 0014.5 13h1.1l-.251-.21a.75.75 0 01-.098-1l.06-.07zM3.75 14a.75.75 0 01.102 1.493L3.75 15.5H2.75a.75.75 0 01-.102-1.493L2.75 14h1z" clip-rule="evenodd"/></svg>
-          Shuffle All
-        <% end %>
         <%= render "favorites/button", favorable: @album, favorited: Current.user.favorites.exists?(favorable: @album) %>
         <%= render BulkPlaylistMenu::Component.new(
               tracks: @all_tracks,
