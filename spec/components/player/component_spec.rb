@@ -75,5 +75,23 @@ RSpec.describe Player::Component, type: :component do
       presets = rendered.css("button[data-action='player#applyEqPreset']")
       expect(presets.map { |button| button["data-preset"] }).to eq(%w[flat bass vocal treble])
     end
+
+    it "opens fullscreen now playing when the track info is tapped" do
+      html = rendered
+      artwork = html.at_css("[data-player-target='artwork']")
+      info = artwork.ancestors("div").find { |d| d["data-action"].to_s.include?("click->player#toggleFullscreen") }
+      expect(info).to be_present
+      expect(info["class"]).to include("cursor-pointer")
+    end
+
+    it "marks secondary controls as hidden on touch devices" do
+      html = rendered
+      sleep_timer = html.at_css("[data-controller='sleep-timer']")
+      visualizer = html.at_css("button[data-action='player#toggleVisualizer']")
+      crossfade = html.at_css("button[data-player-target='crossfadeButton']").parent
+      expect(sleep_timer["class"]).to include("coarse-hide")
+      expect(visualizer["class"]).to include("coarse-hide")
+      expect(crossfade["class"]).to include("coarse-hide")
+    end
   end
 end

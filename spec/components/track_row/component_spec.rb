@@ -135,6 +135,29 @@ RSpec.describe TrackRow::Component, type: :component do
     end
   end
 
+  describe "touch playback" do
+    it "plays the track when the row body is tapped" do
+      html = render_component
+      row = html.at_css("[data-controller]")
+      expect(row["data-action"]).to include("click->song-row#playFromRow")
+    end
+
+    it "gives visual press feedback on the row" do
+      html = render_component
+      row = html.at_css("[data-controller]")
+      expect(row["class"]).to include("cursor-pointer")
+      expect(row["class"]).to include("active:bg-gray-700/70")
+    end
+
+    it "always shows the play icon on touch devices when a number is present" do
+      html = render_component(number: 7)
+      number_span = html.at_css("button span")
+      play_svg = html.at_css("button svg")
+      expect(number_span["class"]).to include("coarse:hidden")
+      expect(play_svg["class"]).to include("coarse:block")
+    end
+  end
+
   describe "title" do
     it "shows plain title by default" do
       html = render_component

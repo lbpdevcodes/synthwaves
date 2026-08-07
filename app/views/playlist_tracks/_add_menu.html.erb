@@ -1,5 +1,5 @@
 <div class="relative" data-controller="playlist-menu" data-action="click@window->playlist-menu#close">
-  <button data-action="click->playlist-menu#toggle" class="text-gray-400 hover:text-neon-cyan" title="Add to playlist">
+  <button data-action="click->playlist-menu#toggle" class="text-gray-400 hover:text-neon-cyan coarse:p-2.5" title="Add to playlist">
     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
   </button>
   <div data-playlist-menu-target="menu" class="hidden absolute z-10 mt-1 w-56 bg-gray-800 border border-gray-700 rounded-lg shadow-lg <%= local_assigns[:menu_class] || 'right-0' %>">

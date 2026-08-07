@@ -7,7 +7,18 @@ export default class extends Controller {
   play(event) {
     event.preventDefault()
     event.stopPropagation()
+    this.playTracks()
+  }
 
+  // Tapping anywhere on the row body plays — except on links, buttons, or
+  // forms inside the row (title/artist links, favorite, remove, etc.),
+  // which keep their own behavior.
+  playFromRow(event) {
+    if (event.target.closest("a, button, form, input, select")) return
+    this.playTracks()
+  }
+
+  playTracks() {
     const container = this.element.parentElement
     const siblings = container ? container.querySelectorAll("[data-controller~='song-row']") : []
 

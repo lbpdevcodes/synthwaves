@@ -178,6 +178,26 @@ RSpec.describe "Playlists", type: :request do
       expect(response.body).to include("Copy track list")
     end
 
+    it "keeps Play All and Shuffle All as top-level actions" do
+      doc = Nokogiri::HTML(response.body)
+      expect(doc.at_css("[data-action='play-all#playAll']")).to be_present
+      expect(doc.at_css("[data-action='play-all#shuffleAll']")).to be_present
+    end
+
+    it "applies touch layout hooks" do
+      doc = Nokogiri::HTML(response.body)
+      expect(doc.at_css("meta[name='viewport']")["content"]).to include("viewport-fit=cover")
+      expect(doc.at_css("body")["class"]).to include("page-pad")
+      expect(doc.at_css("nav.bottom-tab-bar")).to be_present
+    end
+
+    it "groups management actions in an overflow menu" do
+      doc = Nokogiri::HTML(response.body)
+      menu = doc.css("[data-controller~='dropdown']").find { |d| d.text.include?("Edit") }
+      expect(menu).to be_present
+      expect(menu.text).to include("Download", "Copy track list", "Delete")
+    end
+
     it "includes track info in clipboard data attribute" do
       doc = Nokogiri::HTML(response.body)
       clipboard_div = doc.at_css('[data-controller="clipboard"]')
