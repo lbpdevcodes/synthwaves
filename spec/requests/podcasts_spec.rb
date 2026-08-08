@@ -12,6 +12,12 @@ RSpec.describe "Podcasts", type: :request do
       expect(response).to have_http_status(:ok)
     end
 
+    it "links back to the TV podcasts tab" do
+      artist = create(:artist, :podcast)
+      get podcast_path(artist)
+      expect(response.body).to include(tv_path(tab: "podcasts"))
+    end
+
     it "returns not found for a music artist" do
       artist = create(:artist, category: "music")
       get podcast_path(artist)

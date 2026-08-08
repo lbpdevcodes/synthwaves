@@ -76,7 +76,7 @@
 
   <%# Podcasts %>
   <% if @podcasts.any? %>
-    <%= render "library/section", title: "Podcasts", see_all_path: music_path(tab: "podcasts") do %>
+    <%= render "library/section", title: "Podcasts", see_all_path: tv_path(tab: "podcasts") do %>
       <% @podcasts.each do |podcast| %>
         <%= render "library/podcast_card", podcast: podcast %>
       <% end %>
@@ -109,7 +109,7 @@
         color: "purple",
         icon: tag.svg(tag.path(d: "M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3", stroke_linecap: "round", stroke_linejoin: "round", stroke_width: "2"), class: "w-5 h-5 text-purple-400", fill: "none", stroke: "currentColor", viewBox: "0 0 24 24") %>
       <%= render "library/browse_card",
-        path: music_path(tab: "podcasts"),
+        path: tv_path(tab: "podcasts"),
         label: "Podcasts",
         count: @podcast_count,
         item_name: "podcast",
