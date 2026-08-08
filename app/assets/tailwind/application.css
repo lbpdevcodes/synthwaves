@@ -14,6 +14,9 @@
 
   /* Display font */
   --font-display: "Orbitron", ui-sans-serif, system-ui, sans-serif;
+
+  /* Body font (loaded by every theme's font_url; previously never assigned) */
+  --font-body: "Inter", ui-sans-serif, system-ui, sans-serif;
 }
 
 /* Touch-first variant: matches phones, tablets, and car head units whose
@@ -123,6 +126,32 @@
       var(--color-gray-900);
     background-size: 60px 60px, 60px 60px, 100% 100%, 100% 100%;
     background-attachment: fixed;
+  }
+
+  /* Torn paper receipt: solid paper shape with zigzag notches cut from the
+     top and bottom edges via a three-layer mask (base rect minus two rows of
+     conic-gradient triangle notches). Use filter: drop-shadow (not box-shadow)
+     for elevation — the mask alpha is what casts the shadow. */
+  .receipt-paper {
+    --zig: 12px;
+    background-color: #f7f4ec;
+    color: #292524;
+    -webkit-mask-image:
+      linear-gradient(#000 0 0),
+      conic-gradient(from 135deg at top, #000 90deg, #0000 0),
+      conic-gradient(from -45deg at bottom, #000 90deg, #0000 0);
+    -webkit-mask-position: center, top, bottom;
+    -webkit-mask-size: 100% 100%, calc(2 * var(--zig)) var(--zig), calc(2 * var(--zig)) var(--zig);
+    -webkit-mask-repeat: no-repeat, repeat-x, repeat-x;
+    -webkit-mask-composite: source-over, destination-out, destination-out;
+    mask-image:
+      linear-gradient(#000 0 0),
+      conic-gradient(from 135deg at top, #000 90deg, #0000 0),
+      conic-gradient(from -45deg at bottom, #000 90deg, #0000 0);
+    mask-position: center, top, bottom;
+    mask-size: 100% 100%, calc(2 * var(--zig)) var(--zig), calc(2 * var(--zig)) var(--zig);
+    mask-repeat: no-repeat, repeat-x, repeat-x;
+    mask-composite: add, subtract, subtract;
   }
 }
 
