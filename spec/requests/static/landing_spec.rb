@@ -21,19 +21,28 @@ RSpec.describe "Static::Landing", type: :request do
         expect(response.body).not_to include("AI Assistant")
       end
 
-      it "displays mobile apps coming soon section" do
-        expect(response.body).to include("Take it")
-        expect(response.body).to include("everywhere")
-        expect(response.body).to include("Coming Soon")
-        expect(response.body).to include("iOS")
-        expect(response.body).to include("Android")
+      it "pitches music ownership in the hero" do
+        expect(response.body).to include("Stop renting your music")
+        expect(response.body).to include("Start your collection")
       end
 
-      it "uses media-focused copy instead of music-only" do
-        expect(response.body).to include("Self-hosted media streaming")
-        expect(response.body).to include("Your Media, Your Server")
-        expect(response.body).to include("A complete media platform")
-        expect(response.body).to include("add your media")
+      it "shows the true cost of renting as an itemized receipt" do
+        expect(response.body).to include("The math of renting")
+        expect(response.body).to include("$1,318.80")
+        expect(response.body).to include("Songs you own")
+        expect(response.body).to include("Take nothing with you")
+      end
+
+      it "states the ownership pillars" do
+        expect(response.body).to include("Your files, forever")
+        expect(response.body).to include("Your server, your rules")
+        expect(response.body).to include("Any player you like")
+      end
+
+      it "no longer advertises app stores or the tech stack" do
+        expect(response.body).not_to include("Download on the App Store")
+        expect(response.body).not_to include("Coming Soon")
+        expect(response.body).not_to include("Built with")
       end
     end
 
