@@ -134,6 +134,13 @@ Rails.application.routes.draw do
     end
   end
 
+  # Remote MCP surface for LLM agents. HTTP Basic APIKey auth, not session
+  # or JWT auth. POST-only, stateless JSON-RPC responses (no SSE); other
+  # verbs 405. The constant is AgentGateway (not Mcp*) because "mcp" is an
+  # inflection-risky path segment for Zeitwerk.
+  post "/mcp", to: "agent_gateway#create", defaults: {format: :json}
+  match "/mcp", to: "agent_gateway#method_not_allowed", via: [:get, :put, :patch, :delete]
+
   # API keys management
   resources :api_keys, only: [:index, :new, :create, :destroy]
 

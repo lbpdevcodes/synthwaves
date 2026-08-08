@@ -89,13 +89,15 @@ Current  -- ActiveSupport::CurrentAttributes holding current session/user
 
 ## Authentication
 
-Three authentication layers:
+Four authentication layers:
 
 1. **Web sessions** - Signed HTTP-only cookies via `Authentication` concern. Session records track user_agent and ip_address.
 
 2. **JWT API** (`/api/v1/`) - Client authenticates with `client_id` + `secret_key` to `POST /api/v1/auth/token`. Returns HS256 JWT (1-hour expiry) using `JWTService`. API requests use `Authorization: Bearer <token>` header. Validated in `API::V1::BaseController`.
 
 3. **Subsonic API** (`/rest/` and `/api/rest/`) - Username via `:u` param (email_address). Two auth methods: MD5 token (`:t` + `:s` salt) or plaintext password (`:p` param, optional hex encoding with `enc:` prefix). Uses `subsonic_password` field on User. Response format controlled by `:f` param (JSON or XML).
+
+4. **MCP Server** (`/mcp`) - HTTP Basic with API key `client_id`:`secret_key` (long-lived, unlike the 1-hour JWTs). Stateless JSON-RPC 2.0 via the `mcp` gem; a fresh `MCP::Server` is built per request in `AgentGatewayController`. Gateway code lives in `app/services/agent_gateway/` (named AgentGateway, not Mcp*, because `mcp` is inflection-risky for Zeitwerk). Tools are thin user-scoped wrappers over existing services/models. See `docs/api/mcp.md`.
 
 ## Theming
 
