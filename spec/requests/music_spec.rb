@@ -7,12 +7,12 @@ RSpec.describe "Music", type: :request do
       expect(response).to redirect_to(new_session_path)
     end
 
-    it "defaults to artists tab" do
+    it "defaults to playlists tab" do
       user = create(:user)
       login_user(user)
       get music_path
       expect(response).to have_http_status(:success)
-      expect(response.body).to include("Music")
+      expect(response.body).to include("Search playlists...")
     end
 
     it "renders the artists tab" do
@@ -51,12 +51,12 @@ RSpec.describe "Music", type: :request do
       expect(response.body).to include("Test Track")
     end
 
-    it "falls back to artists for invalid tab" do
+    it "falls back to playlists for invalid tab" do
       user = create(:user)
       login_user(user)
       get music_path(tab: "invalid")
       expect(response).to have_http_status(:success)
-      expect(response.body).to include("Search artists...")
+      expect(response.body).to include("Search playlists...")
     end
 
     it "renders the playlists tab" do
@@ -80,6 +80,17 @@ RSpec.describe "Music", type: :request do
 
       expect(response).to have_http_status(:success)
       expect(response.body).not_to include("Secret Playlist")
+    end
+
+    it "sorts playlists by recently updated by default" do
+      user = create(:user)
+      login_user(user)
+      create(:playlist, name: "Stale Playlist", user: user, created_at: 1.hour.ago, updated_at: 1.day.ago)
+      create(:playlist, name: "Fresh Playlist", user: user, created_at: 1.day.ago, updated_at: 1.hour.ago)
+
+      get music_path(tab: "playlists")
+
+      expect(response.body.index("Fresh Playlist")).to be < response.body.index("Stale Playlist")
     end
 
     it "renders the radio tab" do
@@ -129,6 +140,15 @@ RSpec.describe "Music", type: :request do
       get music_path
 
       expect(response.body).to include(">Playlists</a>")
+    end
+
+    it "lists the playlists tab first" do
+      user = create(:user)
+      login_user(user)
+
+      get music_path
+
+      expect(response.body.index(">Playlists</a>")).to be < response.body.index(">Artists</a>")
     end
   end
 end

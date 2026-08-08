@@ -132,6 +132,14 @@ RSpec.describe "Library", type: :request do
         expect(response.body).to include("Tech Talk")
       end
 
+      it "links to the TV podcasts tab" do
+        create(:artist, :podcast, user: user)
+
+        get library_path
+        # Podcasts section "See all" + Browse card
+        expect(response.body.scan(tv_path(tab: "podcasts")).size).to eq(2)
+      end
+
       it "is hidden when no podcasts exist" do
         get library_path
         # "Podcasts" appears in Browse tiles, but no podcast cards should render

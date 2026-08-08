@@ -3,7 +3,7 @@ class MusicController < ApplicationController
 
   def show
     @available_tabs = available_tabs
-    @tab = params[:tab].presence_in(@available_tabs) || "artists"
+    @tab = params[:tab].presence_in(@available_tabs) || "playlists"
 
     case @tab
     when "artists"
@@ -24,7 +24,7 @@ class MusicController < ApplicationController
   private
 
   def available_tabs
-    %w[artists albums tracks playlists radio internet_radio]
+    %w[playlists artists albums tracks radio internet_radio]
   end
 
   def load_artists
@@ -67,7 +67,7 @@ class MusicController < ApplicationController
 
   def load_playlists
     @query = params[:q]
-    @sort = sort_column(Playlist, default: "created_at")
+    @sort = sort_column(Playlist, default: "updated_at")
     @direction = sort_direction
     scope = Current.user.playlists.search(@query).order(@sort => @direction)
     @pagy, @playlists = pagy(:offset, scope, limit: 24)
