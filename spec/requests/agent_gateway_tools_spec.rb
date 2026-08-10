@@ -30,6 +30,17 @@ RSpec.describe "MCP agent gateway tools", type: :request do
     body.dig("result", "content", 0, "text")
   end
 
+  describe "response format" do
+    it "returns compact JSON without pretty-printing" do
+      create(:playlist, user: user)
+
+      body = call_tool("list_playlists")
+      text = body.dig("result", "content", 0, "text")
+
+      expect(text).to eq(JSON.generate(JSON.parse(text)))
+    end
+  end
+
   describe "search" do
     it "finds the user's own artists, albums, and tracks by title fragment" do
       artist = create(:artist, user: user, name: "Perturbator")
@@ -55,6 +66,54 @@ RSpec.describe "MCP agent gateway tools", type: :request do
 
     it "returns an error result when query is missing" do
       body = call_tool("search", {})
+
+      expect(tool_error?(body)).to be true
+    end
+  end
+
+  describe "match_tracks" do
+    it "resolves a mixed batch of queries in request order" do
+      artist = create(:artist, user: user, name: "New Order")
+      album = create(:album, user: user, artist: artist, title: "PCL")
+      exact = create(:track, user: user, artist: artist, album: album, title: "Blue Monday")
+      partial = create(:track, user: user, artist: artist, album: album, title: "Age of Consent")
+
+      payload = tool_payload(call_tool("match_tracks",
+        {"queries" => ["New Order - Blue Monday", "age of cons", "Everything's Gone Green"]}))
+
+      expect(payload["results"].map { |r| r["query"] }).to eq(
+        ["New Order - Blue Monday", "age of cons", "Everything's Gone Green"]
+      )
+      first, second, third = payload["results"]
+      expect(first["matched"]).to be true
+      expect(first["confidence"]).to eq("exact")
+      expect(first["track"]).to eq({"id" => exact.id, "title" => "Blue Monday", "artist" => "New Order"})
+      expect(second["matched"]).to be true
+      expect(second["confidence"]).to eq("partial")
+      expect(second["track"]["id"]).to eq(partial.id)
+      expect(third["matched"]).to be false
+      expect(third["track"]).to be_nil
+      expect(third["confidence"]).to be_nil
+    end
+
+    it "does not match tracks outside the user's library" do
+      foreign_artist = create(:artist, user: other_user, name: "New Order")
+      foreign_album = create(:album, user: other_user, artist: foreign_artist, title: "PCL")
+      create(:track, user: other_user, artist: foreign_artist, album: foreign_album, title: "Blue Monday")
+
+      payload = tool_payload(call_tool("match_tracks", {"queries" => ["Blue Monday"]}))
+
+      expect(payload["results"].first["matched"]).to be false
+    end
+
+    it "returns an error result for more than 200 queries" do
+      body = call_tool("match_tracks", {"queries" => Array.new(201, "x")})
+
+      expect(tool_error?(body)).to be true
+    end
+
+    it "returns an error result for an empty query string" do
+      body = call_tool("match_tracks", {"queries" => [""]})
 
       expect(tool_error?(body)).to be true
     end
@@ -201,6 +260,111 @@ RSpec.describe "MCP agent gateway tools", type: :request do
       expect(payload["tracks"].map { |t| t["position"] }).to eq([1, 2])
       expect(payload["tracks"].first["playlist_track_id"]).to be_present
       expect(payload["total_duration"]).to eq(360)
+    end
+
+    it "returns all tracks without pagination metadata by default" do
+      playlist = create(:playlist, user: user)
+      playlist.add_tracks(create_list(:track, 3, user: user))
+
+      payload = tool_payload(call_tool("get_playlist", {"playlist_id" => playlist.id}))
+
+      expect(payload["tracks"].size).to eq(3)
+      expect(payload).not_to have_key("pagination")
+    end
+
+    it "returns flat rows when compact is true" do
+      playlist = create(:playlist, user: user)
+      artist = create(:artist, user: user, name: "Perturbator")
+      album = create(:album, user: user, artist: artist)
+      track = create(:track, user: user, artist: artist, album: album, title: "Sentient", duration: 372)
+      playlist.add_track(track)
+      entry = playlist.playlist_tracks.first
+
+      payload = tool_payload(call_tool("get_playlist", {"playlist_id" => playlist.id, "compact" => true}))
+
+      expect(payload["tracks"]).to eq([{
+        "position" => 1,
+        "playlist_track_id" => entry.id,
+        "track_id" => track.id,
+        "title" => "Sentient",
+        "artist" => "Perturbator",
+        "duration" => 372
+      }])
+    end
+
+    it "pages tracks with pagination metadata" do
+      playlist = create(:playlist, user: user)
+      tracks = create_list(:track, 5, user: user)
+      playlist.add_tracks(tracks)
+
+      payload = tool_payload(call_tool("get_playlist",
+        {"playlist_id" => playlist.id, "page" => 2, "per_page" => 2}))
+
+      expect(payload["tracks"].map { |t| t.dig("track", "title") }).to eq(
+        [tracks[2].title, tracks[3].title]
+      )
+      expect(payload["pagination"]).to eq(
+        {"page" => 2, "per_page" => 2, "total_pages" => 3, "total_count" => 5}
+      )
+    end
+
+    it "treats per_page without page as page 1" do
+      playlist = create(:playlist, user: user)
+      tracks = create_list(:track, 3, user: user)
+      playlist.add_tracks(tracks)
+
+      payload = tool_payload(call_tool("get_playlist",
+        {"playlist_id" => playlist.id, "per_page" => 2}))
+
+      expect(payload["tracks"].map { |t| t.dig("track", "title") }).to eq(
+        [tracks[0].title, tracks[1].title]
+      )
+      expect(payload["pagination"]["page"]).to eq(1)
+    end
+
+    it "returns empty tracks with metadata for a page beyond the end" do
+      playlist = create(:playlist, user: user)
+      playlist.add_tracks(create_list(:track, 2, user: user))
+
+      payload = tool_payload(call_tool("get_playlist",
+        {"playlist_id" => playlist.id, "page" => 5, "per_page" => 50}))
+
+      expect(payload["tracks"]).to be_empty
+      expect(payload["pagination"]).to eq(
+        {"page" => 5, "per_page" => 50, "total_pages" => 1, "total_count" => 2}
+      )
+    end
+
+    it "combines compact rows with pagination" do
+      playlist = create(:playlist, user: user)
+      playlist.add_tracks(create_list(:track, 3, user: user))
+
+      payload = tool_payload(call_tool("get_playlist",
+        {"playlist_id" => playlist.id, "compact" => true, "page" => 2, "per_page" => 2}))
+
+      expect(payload["tracks"].size).to eq(1)
+      expect(payload["tracks"].first.keys).to contain_exactly(
+        "position", "playlist_track_id", "track_id", "title", "artist", "duration"
+      )
+      expect(payload["pagination"]["total_count"]).to eq(3)
+    end
+
+    it "keeps total_duration as the whole-playlist total when paged" do
+      playlist = create(:playlist, user: user)
+      playlist.add_tracks(create_list(:track, 5, user: user, duration: 60))
+
+      payload = tool_payload(call_tool("get_playlist",
+        {"playlist_id" => playlist.id, "page" => 1, "per_page" => 2}))
+
+      expect(payload["total_duration"]).to eq(300)
+    end
+
+    it "returns an error result when per_page exceeds 500" do
+      playlist = create(:playlist, user: user)
+
+      body = call_tool("get_playlist", {"playlist_id" => playlist.id, "per_page" => 501})
+
+      expect(tool_error?(body)).to be true
     end
 
     it "returns an error result for another user's playlist" do
@@ -390,6 +554,203 @@ RSpec.describe "MCP agent gateway tools", type: :request do
       body = call_tool("reorder_playlist", {"playlist_id" => playlist.id, "playlist_track_ids" => []})
 
       expect(tool_error?(body)).to be true
+    end
+  end
+
+  describe "replace_playlist_tracks" do
+    it "sets the exact contents in the given order" do
+      playlist = create(:playlist, user: user)
+      playlist.add_track(create(:track, user: user))
+      tracks = create_list(:track, 3, user: user)
+
+      payload = tool_payload(call_tool("replace_playlist_tracks",
+        {"playlist_id" => playlist.id, "track_ids" => [tracks[2].id, tracks[0].id, tracks[1].id]}))
+
+      expect(payload["tracks_count"]).to eq(3)
+      expect(playlist.tracks.order("playlist_tracks.position")).to eq([tracks[2], tracks[0], tracks[1]])
+      expect(playlist.playlist_tracks.order(:position).pluck(:position)).to eq([1, 2, 3])
+    end
+
+    it "clears the playlist for an empty track_ids array" do
+      playlist = create(:playlist, user: user)
+      playlist.add_tracks(create_list(:track, 2, user: user))
+
+      payload = tool_payload(call_tool("replace_playlist_tracks",
+        {"playlist_id" => playlist.id, "track_ids" => []}))
+
+      expect(payload["tracks_count"]).to eq(0)
+      expect(playlist.playlist_tracks.count).to eq(0)
+    end
+
+    it "allows the same track twice" do
+      playlist = create(:playlist, user: user)
+      track = create(:track, user: user)
+
+      payload = tool_payload(call_tool("replace_playlist_tracks",
+        {"playlist_id" => playlist.id, "track_ids" => [track.id, track.id]}))
+
+      expect(payload["tracks_count"]).to eq(2)
+      expect(playlist.playlist_tracks.order(:position).pluck(:track_id)).to eq([track.id, track.id])
+    end
+
+    it "returns an error and changes nothing for an unknown track id" do
+      playlist = create(:playlist, user: user)
+      track = create(:track, user: user)
+      playlist.add_track(track)
+      missing_id = Track.maximum(:id).to_i + 1
+
+      body = call_tool("replace_playlist_tracks",
+        {"playlist_id" => playlist.id, "track_ids" => [track.id, missing_id]})
+
+      expect(tool_error?(body)).to be true
+      expect(tool_error_message(body)).to include(missing_id.to_s)
+      expect(playlist.tracks.order("playlist_tracks.position")).to eq([track])
+    end
+
+    it "returns an error and changes nothing for another user's track id" do
+      playlist = create(:playlist, user: user)
+      own_track = create(:track, user: user)
+      playlist.add_track(own_track)
+      foreign_track = create(:track, user: other_user)
+
+      body = call_tool("replace_playlist_tracks",
+        {"playlist_id" => playlist.id, "track_ids" => [own_track.id, foreign_track.id]})
+
+      expect(tool_error?(body)).to be true
+      expect(playlist.tracks.order("playlist_tracks.position")).to eq([own_track])
+    end
+
+    it "returns an error result for another user's playlist" do
+      playlist = create(:playlist, user: other_user)
+      track = create(:track, user: user)
+
+      body = call_tool("replace_playlist_tracks",
+        {"playlist_id" => playlist.id, "track_ids" => [track.id]})
+
+      expect(tool_error?(body)).to be true
+    end
+
+    it "is idempotent for the same ordered ids" do
+      playlist = create(:playlist, user: user)
+      tracks = create_list(:track, 3, user: user)
+      ids = tracks.map(&:id)
+
+      call_tool("replace_playlist_tracks", {"playlist_id" => playlist.id, "track_ids" => ids})
+      payload = tool_payload(call_tool("replace_playlist_tracks",
+        {"playlist_id" => playlist.id, "track_ids" => ids}))
+
+      expect(payload["tracks_count"]).to eq(3)
+      expect(playlist.tracks.order("playlist_tracks.position")).to eq(tracks)
+    end
+  end
+
+  describe "remove_playlist_tracks" do
+    it "removes many entries by playlist_track_ids" do
+      playlist = create(:playlist, user: user)
+      tracks = create_list(:track, 3, user: user)
+      playlist.add_tracks(tracks)
+      entries = playlist.playlist_tracks.order(:position).to_a
+      survivor = entries.last
+
+      payload = tool_payload(call_tool("remove_playlist_tracks",
+        {"playlist_id" => playlist.id, "playlist_track_ids" => entries.first(2).map(&:id)}))
+
+      expect(payload["removed"]).to eq(2)
+      expect(payload["tracks_count"]).to eq(1)
+      expect(playlist.playlist_tracks.order(:position).pluck(:id)).to eq([survivor.id])
+    end
+
+    it "removes every entry with the given track_ids, including duplicates" do
+      playlist = create(:playlist, user: user)
+      repeated = create(:track, user: user)
+      keeper = create(:track, user: user)
+      playlist.playlist_tracks.create!(track: repeated, position: 1)
+      playlist.playlist_tracks.create!(track: keeper, position: 2)
+      playlist.playlist_tracks.create!(track: repeated, position: 3)
+
+      payload = tool_payload(call_tool("remove_playlist_tracks",
+        {"playlist_id" => playlist.id, "track_ids" => [repeated.id]}))
+
+      expect(payload["removed"]).to eq(2)
+      expect(playlist.tracks.order("playlist_tracks.position")).to eq([keeper])
+    end
+
+    it "updates the counter cache after a bulk delete" do
+      playlist = create(:playlist, user: user)
+      tracks = create_list(:track, 3, user: user)
+      playlist.add_tracks(tracks)
+
+      call_tool("remove_playlist_tracks",
+        {"playlist_id" => playlist.id, "track_ids" => tracks.first(2).map(&:id)})
+
+      expect(playlist.reload.playlist_tracks_count).to eq(1)
+    end
+
+    it "returns an error when both id arrays are given" do
+      playlist = create(:playlist, user: user)
+
+      body = call_tool("remove_playlist_tracks",
+        {"playlist_id" => playlist.id, "playlist_track_ids" => [1], "track_ids" => [2]})
+
+      expect(tool_error?(body)).to be true
+      expect(tool_error_message(body)).to include("exactly one")
+    end
+
+    it "returns an error when neither id array is given" do
+      playlist = create(:playlist, user: user)
+
+      body = call_tool("remove_playlist_tracks", {"playlist_id" => playlist.id})
+
+      expect(tool_error?(body)).to be true
+      expect(tool_error_message(body)).to include("exactly one")
+    end
+
+    it "ignores unknown ids and counts only actual removals" do
+      playlist = create(:playlist, user: user)
+      playlist.add_track(create(:track, user: user))
+      entry = playlist.playlist_tracks.first
+
+      payload = tool_payload(call_tool("remove_playlist_tracks",
+        {"playlist_id" => playlist.id, "playlist_track_ids" => [entry.id, entry.id + 1000]}))
+
+      expect(payload["removed"]).to eq(1)
+      expect(payload["tracks_count"]).to eq(0)
+    end
+
+    it "does not touch entries from a different playlist" do
+      playlist = create(:playlist, user: user)
+      playlist.add_track(create(:track, user: user))
+      other_playlist = create(:playlist, user: user)
+      other_playlist.add_track(create(:track, user: user))
+      foreign_entry = other_playlist.playlist_tracks.first
+
+      payload = tool_payload(call_tool("remove_playlist_tracks",
+        {"playlist_id" => playlist.id, "playlist_track_ids" => [foreign_entry.id]}))
+
+      expect(payload["removed"]).to eq(0)
+      expect(PlaylistTrack.exists?(foreign_entry.id)).to be true
+    end
+
+    it "returns an error result for another user's playlist" do
+      playlist = create(:playlist, user: other_user)
+
+      body = call_tool("remove_playlist_tracks",
+        {"playlist_id" => playlist.id, "track_ids" => [1]})
+
+      expect(tool_error?(body)).to be true
+    end
+
+    it "is idempotent for a repeated call" do
+      playlist = create(:playlist, user: user)
+      track = create(:track, user: user)
+      playlist.add_track(track)
+
+      call_tool("remove_playlist_tracks", {"playlist_id" => playlist.id, "track_ids" => [track.id]})
+      payload = tool_payload(call_tool("remove_playlist_tracks",
+        {"playlist_id" => playlist.id, "track_ids" => [track.id]}))
+
+      expect(payload["removed"]).to eq(0)
+      expect(payload["tracks_count"]).to eq(0)
     end
   end
 

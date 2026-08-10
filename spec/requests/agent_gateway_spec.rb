@@ -109,11 +109,12 @@ RSpec.describe "MCP agent gateway", type: :request do
 
       names = response.parsed_body.dig("result", "tools").map { |tool| tool.fetch("name") }
       expect(names).to contain_exactly(
-        "search",
+        "search", "match_tracks",
         "list_artists", "get_artist", "list_albums", "get_album", "list_tracks", "get_track",
         "list_playlists", "get_playlist",
         "create_playlist", "update_playlist", "delete_playlist",
-        "add_tracks_to_playlist", "remove_playlist_track", "reorder_playlist",
+        "add_tracks_to_playlist", "remove_playlist_track", "remove_playlist_tracks",
+        "reorder_playlist", "replace_playlist_tracks",
         "create_playlist_from_album",
         "upload_track", "import_youtube_playlist",
         "list_favorites", "favorite", "unfavorite"

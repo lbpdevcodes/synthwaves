@@ -15,15 +15,30 @@ class Playlist < ApplicationRecord
 
   def add_tracks(tracks)
     next_position = (playlist_tracks.maximum(:position) || 0) + 1
+    existing_ids = playlist_tracks.where(track_id: tracks.map(&:id)).pluck(:track_id).to_set
     added = 0
 
     tracks.each do |track|
-      next if playlist_tracks.exists?(track: track)
+      next if existing_ids.include?(track.id)
       playlist_tracks.create!(track: track, position: next_position)
       next_position += 1
       added += 1
     end
     added
+  end
+
+  # Sets the playlist's exact contents (positions 1..N, duplicates allowed).
+  # delete_all + insert_all bypass counter_cache callbacks and the counter
+  # column is read-only, so reset_counters writes it in the same transaction.
+  def replace_tracks(track_ids)
+    transaction do
+      playlist_tracks.delete_all
+      playlist_tracks.insert_all(
+        track_ids.each_with_index.map { |track_id, index| {track_id: track_id, position: index + 1} }
+      )
+      Playlist.reset_counters(id, :playlist_tracks, touch: true)
+    end
+    track_ids.size
   end
 
   def random_cover_track

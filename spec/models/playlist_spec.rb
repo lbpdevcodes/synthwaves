@@ -221,6 +221,70 @@ RSpec.describe Playlist, type: :model do
     it "returns 0 for empty input" do
       expect(playlist.add_tracks([])).to eq(0)
     end
+
+    it "checks for duplicates with a single query" do
+      tracks = create_list(:track, 2)
+      playlist.add_tracks(tracks)
+
+      sql = []
+      subscriber = ->(_name, _start, _finish, _id, payload) { sql << payload[:sql] }
+      ActiveSupport::Notifications.subscribed(subscriber, "sql.active_record") do
+        playlist.add_tracks([tracks.first, create(:track)])
+      end
+
+      dupe_checks = sql.select { |s| s.match?(/SELECT.*playlist_tracks.*track_id/i) }
+      expect(dupe_checks.size).to eq(1)
+    end
+  end
+
+  describe "#replace_tracks" do
+    let(:user) { create(:user) }
+    let(:playlist) { create(:playlist, user: user) }
+    let(:track1) { create(:track) }
+    let(:track2) { create(:track) }
+    let(:track3) { create(:track) }
+
+    it "replaces existing contents with the new tracks in order" do
+      playlist.playlist_tracks.create!(track: track1, position: 1)
+
+      playlist.replace_tracks([track3.id, track2.id])
+
+      positions = playlist.playlist_tracks.order(:position).pluck(:track_id, :position)
+      expect(positions).to eq([[track3.id, 1], [track2.id, 2]])
+    end
+
+    it "returns the count and updates the counter cache" do
+      count = playlist.replace_tracks([track1.id, track2.id, track3.id])
+
+      expect(count).to eq(3)
+      expect(playlist.reload.playlist_tracks_count).to eq(3)
+    end
+
+    it "clears the playlist for an empty array" do
+      playlist.playlist_tracks.create!(track: track1, position: 1)
+
+      count = playlist.replace_tracks([])
+
+      expect(count).to eq(0)
+      expect(playlist.playlist_tracks.count).to eq(0)
+      expect(playlist.reload.playlist_tracks_count).to eq(0)
+    end
+
+    it "allows the same track twice at distinct positions" do
+      playlist.replace_tracks([track1.id, track1.id])
+
+      positions = playlist.playlist_tracks.order(:position).pluck(:track_id, :position)
+      expect(positions).to eq([[track1.id, 1], [track1.id, 2]])
+    end
+
+    it "removes the old playlist_track rows" do
+      old_entry = playlist.playlist_tracks.create!(track: track1, position: 1)
+
+      playlist.replace_tracks([track2.id])
+
+      expect(PlaylistTrack.exists?(old_entry.id)).to be false
+      expect(PlaylistTrack.where(playlist_id: playlist.id).count).to eq(1)
+    end
   end
 
   describe ".search" do

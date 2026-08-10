@@ -20,7 +20,7 @@ class API::V1::PlaylistsController < API::V1::BaseController
 
     render json: API::V1::PlaylistSerializer.render_as_hash(@playlist, view: :full).merge(
       total_duration: @playlist.tracks.sum(:duration),
-      tracks: API::V1::PlaylistTrackSerializer.render_as_hash(playlist_tracks),
+      tracks: API::V1::PlaylistTrackSerializer.render_as_hash(playlist_tracks, view: :full),
       pagination: pagination_meta(pagy)
     )
   end

@@ -3,14 +3,15 @@ module AgentGateway
   # needs, not full REST parity.
   module Tools
     ALL = [
-      Search,
+      Search, MatchTracks,
       ListArtists, GetArtist,
       ListAlbums, GetAlbum,
       ListTracks, GetTrack,
       ListPlaylists, GetPlaylist,
       ListFavorites,
       CreatePlaylist, UpdatePlaylist, DeletePlaylist,
-      AddTracksToPlaylist, RemovePlaylistTrack, ReorderPlaylist,
+      AddTracksToPlaylist, RemovePlaylistTrack, RemovePlaylistTracks,
+      ReorderPlaylist, ReplacePlaylistTracks,
       CreatePlaylistFromAlbum,
       Favorite, Unfavorite,
       UploadTrack, ImportYoutubePlaylist
