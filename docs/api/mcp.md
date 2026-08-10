@@ -14,7 +14,7 @@ The server speaks **JSON-RPC 2.0 over stateless HTTP** (Streamable HTTP without 
 - Notifications (requests without an `id`) return `202 Accepted` with an empty body.
 - Non-POST methods return `405 Method Not Allowed` (`Allow: POST`).
 - JSON-RPC batch arrays are supported.
-- Responses are `application/json`. Tool results are text content containing pretty-printed JSON; expected failures (validation errors, unknown IDs) come back as `isError: true` tool results with HTTP 200.
+- Responses are `application/json`. Tool results are text content containing compact JSON; expected failures (validation errors, unknown IDs) come back as `isError: true` tool results with HTTP 200.
 
 ## Authentication
 
@@ -60,6 +60,7 @@ All IDs are per-user. Every tool resolves records through the authenticated key'
 | Tool           | Description                                                                        |
 | -------------- | ---------------------------------------------------------------------------------- |
 | `search`       | Search artists, albums, and tracks by title fragment (genre/year/favorites filters) |
+| `match_tracks` | Resolve many `"Artist - Title"` or bare-title queries to track IDs in one call (max 200 per call) |
 | `list_artists` | List artists (`q`, `category`, sort, limit)                                         |
 | `get_artist`   | One artist with their albums                                                        |
 | `list_albums`  | List albums (`q`, `artist_id`, sort, limit)                                         |
@@ -72,13 +73,15 @@ All IDs are per-user. Every tool resolves records through the authenticated key'
 | Tool                        | Description                                                                  |
 | --------------------------- | ---------------------------------------------------------------------------- |
 | `list_playlists`            | List playlists with track counts                                              |
-| `get_playlist`              | One playlist with tracks in position order, each carrying `playlist_track_id` |
+| `get_playlist`              | One playlist with tracks in position order, each carrying `playlist_track_id`. Optional `compact` (flat rows), `page`/`per_page` (max 500) for large playlists |
 | `create_playlist`           | Create a playlist, optionally seeded with `track_ids` in the given order      |
 | `update_playlist`           | Rename a playlist                                                             |
 | `delete_playlist`           | Delete a playlist (tracks are never deleted)                                  |
 | `add_tracks_to_playlist`    | Add tracks by `track_ids` (in order) or `album_id` (disc/track order)         |
 | `remove_playlist_track`     | Remove one entry by `playlist_track_id` (NOT the track ID)                    |
+| `remove_playlist_tracks`    | Remove many entries by `playlist_track_ids` or `track_ids` (removes every matching entry) |
 | `reorder_playlist`          | Rewrite the full order from an array of `playlist_track_ids`                  |
+| `replace_playlist_tracks`   | Set the exact full contents from an ordered `track_ids` array in one call (empty array clears; fails without changes on unknown IDs) |
 | `create_playlist_from_album`| Create a playlist containing every track of an album                          |
 
 ### Favorites
@@ -101,3 +104,13 @@ All IDs are per-user. Every tool resolves records through the authenticated key'
 - **Upload size**: `upload_track` caps decoded audio at ~50 MB (≈67 MB of base64 in the JSON body). Reverse proxies may impose their own request-body limits.
 - **Writes take effect immediately.** Deleting a playlist never deletes its tracks.
 - The implementation lives in `app/services/agent_gateway/` (`AgentGatewayController` + `MCP::Server` from the `mcp` gem).
+
+### Large playlists
+
+For playlists with hundreds or thousands of tracks, keep payloads and call counts small:
+
+1. Read with `get_playlist` using `compact=true` and `page`/`per_page` (max 500 per page). Compact rows carry `position`, `playlist_track_id`, `track_id`, `title`, `artist`, `duration`.
+2. Resolve song names to track IDs in bulk with `match_tracks` — never one `search` call per song.
+3. Rewrite contents with `replace_playlist_tracks` (exact ordered `track_ids` array, one call) or remove batches with `remove_playlist_tracks`.
+
+`replace_playlist_tracks` changes every `playlist_track_id`, so re-fetch before calling `remove_playlist_track(s)` or `reorder_playlist`.

@@ -3,7 +3,7 @@ module AgentGateway
   # Synthwaves APIKeys have no scopes, so every tool is registered;
   # user scoping happens inside each tool via server_context.
   class Server
-    VERSION = "1.0.0"
+    VERSION = "1.1.0"
 
     INSTRUCTIONS = <<~TEXT.freeze
       Synthwaves is a self-hosted music streaming library. These tools manage
@@ -20,13 +20,22 @@ module AgentGateway
       - All IDs are per-user. "Record not found" means the ID does not exist
         in this user's library.
       - get_playlist returns playlist_track_id values. Pass those (not track
-        IDs) to remove_playlist_track and reorder_playlist.
+        IDs) to remove_playlist_track(s) and reorder_playlist.
       - Tracks from import_youtube_playlist have has_audio=false: that tool
         imports metadata only. The server does not download YouTube audio
         (datacenter IPs are bot-checked); audio is pushed later by a separate
         local process, so freshly imported music is not playable yet.
       - upload_track expects base64-encoded audio bytes. Embedded tags are
         read automatically; explicit metadata arguments override them.
+
+      Efficient workflow for large playlists (hundreds/thousands of tracks):
+      - Read with get_playlist using compact=true and page/per_page (max 500
+        per page).
+      - Resolve song names to track IDs in bulk with match_tracks — never one
+        search call per song.
+      - replace_playlist_tracks sets a playlist's exact contents from an
+        ordered track_ids array in one call; remove_playlist_tracks removes
+        many entries at once.
     TEXT
 
     def self.for(api_key)

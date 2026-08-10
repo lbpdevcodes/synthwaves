@@ -16,7 +16,7 @@ module AgentGateway
       private
 
       def json_response(payload)
-        MCP::Tool::Response.new([{type: "text", text: JSON.pretty_generate(payload)}])
+        MCP::Tool::Response.new([{type: "text", text: JSON.generate(payload)}])
       end
 
       def error_response(message)
