@@ -11,7 +11,7 @@ module AgentGateway
       ListFavorites,
       CreatePlaylist, UpdatePlaylist, DeletePlaylist,
       AddTracksToPlaylist, RemovePlaylistTrack, RemovePlaylistTracks,
-      ReorderPlaylist, ReplacePlaylistTracks,
+      ReorderPlaylist,
       CreatePlaylistFromAlbum,
       Favorite, Unfavorite,
       UploadTrack, ImportYoutubePlaylist

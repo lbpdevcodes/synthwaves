@@ -8,7 +8,7 @@ module AgentGateway
         "instead of one search call per song. Each query is \"Artist - Title\" or a bare title. " \
         "Per query returns the best match in the user's library: confidence exact (full title match, " \
         "case-insensitive, artist must match too if given) or partial (title substring). " \
-        "Feed the resolved IDs to add_tracks_to_playlist or replace_playlist_tracks."
+        "Feed the resolved IDs to add_tracks_to_playlist, at most 500 per call."
       annotations(read_only_hint: true, destructive_hint: false, open_world_hint: false)
       input_schema(
         properties: {

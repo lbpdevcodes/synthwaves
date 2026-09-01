@@ -4,6 +4,11 @@ module AgentGateway
   # uses. Expected failures become isError tool results (HTTP 200);
   # anything else propagates to the gem's JSON-RPC internal-error handling.
   class Tool < MCP::Tool
+    # Ceiling on any array of ids a tool accepts. An agent cannot reliably
+    # emit thousands of ids in one tool call, so large playlist edits are
+    # chunked instead. See docs/api/mcp.md "Large playlists".
+    MAX_BULK_IDS = 500
+
     class << self
       def call(server_context:, **args)
         perform(server_context:, **args)
@@ -21,6 +26,17 @@ module AgentGateway
 
       def error_response(message)
         MCP::Tool::Response.new([{type: "text", text: message}], error: true)
+      end
+
+      # Returns nil when every given array fits, an error response otherwise.
+      # The mcp gem validates input_schema before perform runs, so a schema
+      # maxItems would preempt this message with json_schemer's wording.
+      def bulk_limit_error(*id_arrays)
+        return nil if id_arrays.compact.none? { |ids| ids.size > MAX_BULK_IDS }
+
+        error_response("Send at most #{MAX_BULK_IDS} ids per call. Split the list and " \
+          "call again — appends and removals are cumulative, so several small calls " \
+          "edit a large playlist safely.")
       end
 
       def user(server_context)

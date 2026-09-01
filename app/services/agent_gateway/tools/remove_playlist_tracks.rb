@@ -7,13 +7,16 @@ module AgentGateway
       description "Remove many entries from a playlist in one call. Pass exactly one of " \
         "playlist_track_ids (entry IDs from get_playlist — NOT track IDs) or track_ids (removes " \
         "every entry with those track IDs, including duplicates). Unknown IDs are ignored. " \
-        "The tracks themselves stay in the library."
+        "The tracks themselves stay in the library. Send at most 500 ids per call — split a " \
+        "longer list and call again, because removals accumulate."
       annotations(read_only_hint: false, destructive_hint: true, idempotent_hint: true)
       input_schema(
         properties: {
           playlist_id: {type: "integer"},
-          playlist_track_ids: {type: "array", items: {type: "integer"}, minItems: 1, maxItems: 10_000},
-          track_ids: {type: "array", items: {type: "integer"}, minItems: 1, maxItems: 10_000}
+          playlist_track_ids: {type: "array", items: {type: "integer"}, minItems: 1,
+                               description: "Entry IDs to remove; at most 500 per call"},
+          track_ids: {type: "array", items: {type: "integer"}, minItems: 1,
+                      description: "Track IDs to remove; at most 500 per call"}
         },
         required: ["playlist_id"]
       )
@@ -22,6 +25,9 @@ module AgentGateway
         if playlist_track_ids.present? == track_ids.present?
           return error_response("Pass exactly one of playlist_track_ids or track_ids")
         end
+
+        limit_error = bulk_limit_error(playlist_track_ids, track_ids)
+        return limit_error if limit_error
 
         playlist = user(server_context).playlists.find(playlist_id)
         scope = playlist.playlist_tracks

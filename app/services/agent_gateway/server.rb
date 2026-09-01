@@ -3,7 +3,7 @@ module AgentGateway
   # Synthwaves APIKeys have no scopes, so every tool is registered;
   # user scoping happens inside each tool via server_context.
   class Server
-    VERSION = "1.1.0"
+    VERSION = "2.0.0"
 
     INSTRUCTIONS = <<~TEXT.freeze
       Synthwaves is a self-hosted music streaming library. These tools manage
@@ -31,11 +31,14 @@ module AgentGateway
       Efficient workflow for large playlists (hundreds/thousands of tracks):
       - Read with get_playlist using compact=true and page/per_page (max 500
         per page).
-      - Resolve song names to track IDs in bulk with match_tracks — never one
-        search call per song.
-      - replace_playlist_tracks sets a playlist's exact contents from an
-        ordered track_ids array in one call; remove_playlist_tracks removes
-        many entries at once.
+      - Resolve song names to track IDs in bulk with match_tracks (max 200
+        queries per call) — never one search call per song.
+      - Edit in chunks of at most 500 ids per call. add_tracks_to_playlist
+        appends and skips tracks the playlist already holds;
+        remove_playlist_tracks removes many entries at once. Both accumulate,
+        so repeat the call until the edit is complete.
+      - No tool takes a playlist's full contents. An agent cannot reliably
+        emit thousands of ids in one call, so chunk the edit instead.
     TEXT
 
     def self.for(api_key)

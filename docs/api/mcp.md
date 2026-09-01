@@ -74,14 +74,13 @@ All IDs are per-user. Every tool resolves records through the authenticated key'
 | --------------------------- | ---------------------------------------------------------------------------- |
 | `list_playlists`            | List playlists with track counts                                              |
 | `get_playlist`              | One playlist with tracks in position order, each carrying `playlist_track_id`. Optional `compact` (flat rows), `page`/`per_page` (max 500) for large playlists |
-| `create_playlist`           | Create a playlist, optionally seeded with `track_ids` in the given order      |
+| `create_playlist`           | Create a playlist, optionally seeded with `track_ids` in the given order (max 500 per call) |
 | `update_playlist`           | Rename a playlist                                                             |
 | `delete_playlist`           | Delete a playlist (tracks are never deleted)                                  |
-| `add_tracks_to_playlist`    | Add tracks by `track_ids` (in order) or `album_id` (disc/track order)         |
+| `add_tracks_to_playlist`    | Add tracks by `track_ids` (in order, max 500 per call) or `album_id` (disc/track order). Tracks already in the playlist are skipped |
 | `remove_playlist_track`     | Remove one entry by `playlist_track_id` (NOT the track ID)                    |
-| `remove_playlist_tracks`    | Remove many entries by `playlist_track_ids` or `track_ids` (removes every matching entry) |
+| `remove_playlist_tracks`    | Remove many entries by `playlist_track_ids` or `track_ids` (removes every matching entry, max 500 ids per call) |
 | `reorder_playlist`          | Rewrite the full order from an array of `playlist_track_ids`                  |
-| `replace_playlist_tracks`   | Set the exact full contents from an ordered `track_ids` array in one call (empty array clears; fails without changes on unknown IDs) |
 | `create_playlist_from_album`| Create a playlist containing every track of an album                          |
 
 ### Favorites
@@ -107,10 +106,12 @@ All IDs are per-user. Every tool resolves records through the authenticated key'
 
 ### Large playlists
 
-For playlists with hundreds or thousands of tracks, keep payloads and call counts small:
+No tool takes a playlist's full contents. An agent cannot reliably emit thousands of IDs in one tool call, so edit a large playlist in chunks:
 
 1. Read with `get_playlist` using `compact=true` and `page`/`per_page` (max 500 per page). Compact rows carry `position`, `playlist_track_id`, `track_id`, `title`, `artist`, `duration`.
-2. Resolve song names to track IDs in bulk with `match_tracks` — never one `search` call per song.
-3. Rewrite contents with `replace_playlist_tracks` (exact ordered `track_ids` array, one call) or remove batches with `remove_playlist_tracks`.
+2. Resolve song names to track IDs in bulk with `match_tracks` (max 200 queries per call) — never one `search` call per song.
+3. Append with `add_tracks_to_playlist` and remove with `remove_playlist_tracks`, **at most 500 IDs per call**. Both accumulate, so repeat until the edit is complete.
 
-`replace_playlist_tracks` changes every `playlist_track_id`, so re-fetch before calling `remove_playlist_track(s)` or `reorder_playlist`.
+Over 500 IDs the call is rejected without any change, and the error tells you to split the list. Appends skip tracks the playlist already holds, so overlapping chunks are safe to resend after a failure.
+
+`remove_playlist_tracks` deletes rows without renumbering the survivors, so `position` becomes sparse. Track order is unaffected. Call `reorder_playlist` only if you need positions numbered from 1 again.
