@@ -77,8 +77,10 @@ file. Reference it only as `$(cat config/go_synapse_api_key)`.
 
 ## Board conventions
 
-- **Search before you open a card.** Run `list_cards board_id=15` and scan the
-  titles first. A card may already cover the work.
+- **Search before you open a card.** Run `list_cards board_id=15 status=all`
+  and scan the titles first. A card may already cover the work. Pass
+  `status=all` or you will not see finished cards, and you will re-open work
+  somebody already did.
 - **A card id is not a card key.** `move_card`, `update_card` and
   `add_card_comment` all take the numeric `id`. `SYN-1` is the key a human
   reads. `list_cards` returns both.
@@ -105,6 +107,13 @@ Each of these is verified against this live server.
   `move_card` to 56 stamps `completed_at` by itself. Do not also call
   `update_card operation=complete`. Column 58 is `kind: active`, so Validation
   leaves the card open.
+- **`list_cards` hides completed cards, so Done always looks empty.** The
+  `status` parameter takes `open` or `all` and defaults to `open`. Column 56
+  is `kind: done`, so every card that lands there is completed and drops out
+  of the default listing. Verified: `list_cards board_id=15` returned 3 cards
+  with Done empty; `status=all` returned 5 and showed both Done cards. A card
+  that vanishes after you move it to Done is filtered, not lost — `get_card`
+  still returns it.
 - **`list_cards` needs exactly one of `board_id` or `column_id`.** The schema
   marks both optional. The handler rejects both-or-neither with "Pass exactly
   one of board_id or column_id."
@@ -246,8 +255,10 @@ green the tests are.
 
 ## Workflows
 
-**Report the board.** One call: `list_cards board_id=15`. Group the result by
-`column_id` and name the columns from the table above. Do not call per column.
+**Report the board.** One call: `list_cards board_id=15 status=all`. Group the
+result by `column_id` and name the columns from the table above. Do not call
+per column. Without `status=all` the Done column always reads empty — see the
+trap below.
 
 **Pick the next card.** `list_cards column_id=54`, then rank by `priority`,
 `due_on` and `card_type`. An `epic` is never next; split it first.
