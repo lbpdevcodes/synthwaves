@@ -414,6 +414,17 @@ RSpec.describe "MCP agent gateway tools", type: :request do
       expect(tool_error?(body)).to be true
       expect(tool_error_message(body)).to include("Name")
     end
+
+    it "rejects more than 500 track_ids without creating the playlist" do
+      track = create(:track, user: user)
+
+      body = call_tool("create_playlist",
+        {"name" => "Too Big", "track_ids" => [track.id] + ((track.id + 1)..(track.id + 500)).to_a})
+
+      expect(tool_error?(body)).to be true
+      expect(tool_error_message(body)).to include("500")
+      expect(user.playlists.find_by(name: "Too Big")).to be_nil
+    end
   end
 
   describe "update_playlist" do
@@ -505,6 +516,41 @@ RSpec.describe "MCP agent gateway tools", type: :request do
 
       expect(tool_error?(body)).to be true
     end
+
+    it "rejects more than 500 track_ids without changing the playlist" do
+      playlist = create(:playlist, user: user)
+      track = create(:track, user: user)
+
+      body = call_tool("add_tracks_to_playlist",
+        {"playlist_id" => playlist.id, "track_ids" => [track.id] + ((track.id + 1)..(track.id + 500)).to_a})
+
+      expect(tool_error?(body)).to be true
+      expect(tool_error_message(body)).to include("500")
+      expect(playlist.reload.playlist_tracks_count).to eq(0)
+    end
+
+    it "accepts exactly 500 track_ids" do
+      playlist = create(:playlist, user: user)
+      track = create(:track, user: user)
+
+      payload = tool_payload(call_tool("add_tracks_to_playlist",
+        {"playlist_id" => playlist.id, "track_ids" => [track.id] + ((track.id + 1)..(track.id + 499)).to_a}))
+
+      expect(payload["added"]).to eq(1)
+    end
+
+    it "accumulates across chunked calls and skips tracks already in the playlist" do
+      playlist = create(:playlist, user: user)
+      tracks = create_list(:track, 4, user: user)
+
+      call_tool("add_tracks_to_playlist",
+        {"playlist_id" => playlist.id, "track_ids" => tracks.first(3).map(&:id)})
+      payload = tool_payload(call_tool("add_tracks_to_playlist",
+        {"playlist_id" => playlist.id, "track_ids" => tracks.last(2).map(&:id)}))
+
+      expect(payload["added"]).to eq(1)
+      expect(payload["tracks_count"]).to eq(4)
+    end
   end
 
   describe "remove_playlist_track" do
@@ -554,93 +600,6 @@ RSpec.describe "MCP agent gateway tools", type: :request do
       body = call_tool("reorder_playlist", {"playlist_id" => playlist.id, "playlist_track_ids" => []})
 
       expect(tool_error?(body)).to be true
-    end
-  end
-
-  describe "replace_playlist_tracks" do
-    it "sets the exact contents in the given order" do
-      playlist = create(:playlist, user: user)
-      playlist.add_track(create(:track, user: user))
-      tracks = create_list(:track, 3, user: user)
-
-      payload = tool_payload(call_tool("replace_playlist_tracks",
-        {"playlist_id" => playlist.id, "track_ids" => [tracks[2].id, tracks[0].id, tracks[1].id]}))
-
-      expect(payload["tracks_count"]).to eq(3)
-      expect(playlist.tracks.order("playlist_tracks.position")).to eq([tracks[2], tracks[0], tracks[1]])
-      expect(playlist.playlist_tracks.order(:position).pluck(:position)).to eq([1, 2, 3])
-    end
-
-    it "clears the playlist for an empty track_ids array" do
-      playlist = create(:playlist, user: user)
-      playlist.add_tracks(create_list(:track, 2, user: user))
-
-      payload = tool_payload(call_tool("replace_playlist_tracks",
-        {"playlist_id" => playlist.id, "track_ids" => []}))
-
-      expect(payload["tracks_count"]).to eq(0)
-      expect(playlist.playlist_tracks.count).to eq(0)
-    end
-
-    it "allows the same track twice" do
-      playlist = create(:playlist, user: user)
-      track = create(:track, user: user)
-
-      payload = tool_payload(call_tool("replace_playlist_tracks",
-        {"playlist_id" => playlist.id, "track_ids" => [track.id, track.id]}))
-
-      expect(payload["tracks_count"]).to eq(2)
-      expect(playlist.playlist_tracks.order(:position).pluck(:track_id)).to eq([track.id, track.id])
-    end
-
-    it "returns an error and changes nothing for an unknown track id" do
-      playlist = create(:playlist, user: user)
-      track = create(:track, user: user)
-      playlist.add_track(track)
-      missing_id = Track.maximum(:id).to_i + 1
-
-      body = call_tool("replace_playlist_tracks",
-        {"playlist_id" => playlist.id, "track_ids" => [track.id, missing_id]})
-
-      expect(tool_error?(body)).to be true
-      expect(tool_error_message(body)).to include(missing_id.to_s)
-      expect(playlist.tracks.order("playlist_tracks.position")).to eq([track])
-    end
-
-    it "returns an error and changes nothing for another user's track id" do
-      playlist = create(:playlist, user: user)
-      own_track = create(:track, user: user)
-      playlist.add_track(own_track)
-      foreign_track = create(:track, user: other_user)
-
-      body = call_tool("replace_playlist_tracks",
-        {"playlist_id" => playlist.id, "track_ids" => [own_track.id, foreign_track.id]})
-
-      expect(tool_error?(body)).to be true
-      expect(playlist.tracks.order("playlist_tracks.position")).to eq([own_track])
-    end
-
-    it "returns an error result for another user's playlist" do
-      playlist = create(:playlist, user: other_user)
-      track = create(:track, user: user)
-
-      body = call_tool("replace_playlist_tracks",
-        {"playlist_id" => playlist.id, "track_ids" => [track.id]})
-
-      expect(tool_error?(body)).to be true
-    end
-
-    it "is idempotent for the same ordered ids" do
-      playlist = create(:playlist, user: user)
-      tracks = create_list(:track, 3, user: user)
-      ids = tracks.map(&:id)
-
-      call_tool("replace_playlist_tracks", {"playlist_id" => playlist.id, "track_ids" => ids})
-      payload = tool_payload(call_tool("replace_playlist_tracks",
-        {"playlist_id" => playlist.id, "track_ids" => ids}))
-
-      expect(payload["tracks_count"]).to eq(3)
-      expect(playlist.tracks.order("playlist_tracks.position")).to eq(tracks)
     end
   end
 
@@ -751,6 +710,44 @@ RSpec.describe "MCP agent gateway tools", type: :request do
 
       expect(payload["removed"]).to eq(0)
       expect(payload["tracks_count"]).to eq(0)
+    end
+
+    it "rejects more than 500 track_ids without removing anything" do
+      playlist = create(:playlist, user: user)
+      track = create(:track, user: user)
+      playlist.add_track(track)
+
+      body = call_tool("remove_playlist_tracks",
+        {"playlist_id" => playlist.id, "track_ids" => [track.id] + ((track.id + 1)..(track.id + 500)).to_a})
+
+      expect(tool_error?(body)).to be true
+      expect(tool_error_message(body)).to include("500")
+      expect(playlist.reload.playlist_tracks_count).to eq(1)
+    end
+
+    it "rejects more than 500 playlist_track_ids without removing anything" do
+      playlist = create(:playlist, user: user)
+      playlist.add_track(create(:track, user: user))
+      entry = playlist.playlist_tracks.first
+
+      body = call_tool("remove_playlist_tracks",
+        {"playlist_id" => playlist.id,
+         "playlist_track_ids" => [entry.id] + ((entry.id + 1)..(entry.id + 500)).to_a})
+
+      expect(tool_error?(body)).to be true
+      expect(tool_error_message(body)).to include("500")
+      expect(playlist.reload.playlist_tracks_count).to eq(1)
+    end
+
+    it "accepts exactly 500 track_ids" do
+      playlist = create(:playlist, user: user)
+      track = create(:track, user: user)
+      playlist.add_track(track)
+
+      payload = tool_payload(call_tool("remove_playlist_tracks",
+        {"playlist_id" => playlist.id, "track_ids" => [track.id] + ((track.id + 1)..(track.id + 499)).to_a}))
+
+      expect(payload["removed"]).to eq(1)
     end
   end
 
