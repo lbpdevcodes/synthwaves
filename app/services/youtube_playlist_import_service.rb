@@ -49,13 +49,12 @@ class YoutubePlaylistImportService
 
   def import_tracks
     @items.each do |item|
-      enriched = YoutubeMetadataEnricher.call(title: item[:title], channel_name: @playlist_info[:channel_name])
-
-      track_artist = if enriched[:source] == :parsed
-        @user.artists.find_or_create_by!(name: enriched[:artist]) { |a| a.category = @category }
-      else
-        @artist
-      end
+      enriched = YoutubeMetadataEnricher.call(
+        title: item[:title],
+        channel_name: @playlist_info[:channel_name],
+        playlist_title: @playlist_info[:title]
+      )
+      track_artist = artist_for(enriched)
 
       @user.tracks.find_or_create_by!(youtube_video_id: item[:video_id]) do |track|
         track.title = enriched[:title]
@@ -65,6 +64,15 @@ class YoutubePlaylistImportService
         track.duration = item[:duration]
       end
     end
+  end
+
+  # A caller who named the artist outranks one read out of the playlist title,
+  # but never outranks an artist named in the video title itself.
+  def artist_for(enriched)
+    return @artist if enriched[:source] == :channel
+    return @artist if enriched[:source] == :playlist && @artist_override
+
+    @user.artists.find_or_create_by!(name: enriched[:artist]) { |a| a.category = @category }
   end
 
   def fetch_playlist_data

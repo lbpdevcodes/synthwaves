@@ -30,6 +30,32 @@ RSpec.describe YoutubePlaylistImportService do
       expect(track2.track_number).to eq(2)
     end
 
+    it "credits the playlist artist when the video titles name no artist" do
+      stub_playlist_api_calls(playlist_title: "Carlos Vives - El Amor De Mi Tierra (Full Album)")
+
+      album = described_class.call("https://www.youtube.com/playlist?list=PLtest123", api_key: api_key, user: user)
+
+      expect(album.tracks.map { |track| track.artist.name }.uniq).to eq(["Carlos Vives"])
+    end
+
+    it "still credits the channel when the playlist title names no artist" do
+      stub_playlist_api_calls(playlist_title: "90s Latin Music")
+
+      album = described_class.call("https://www.youtube.com/playlist?list=PLtest123", api_key: api_key, user: user)
+
+      expect(album.tracks.map { |track| track.artist.name }.uniq).to eq(["Test Channel"])
+    end
+
+    it "keeps an explicitly named artist over one read from the playlist title" do
+      stub_playlist_api_calls(playlist_title: "Carlos Vives - El Amor De Mi Tierra (Full Album)")
+      chosen = create(:artist, user: user, name: "Chosen Artist")
+
+      album = described_class.call("https://www.youtube.com/playlist?list=PLtest123",
+        api_key: api_key, user: user, artist: chosen)
+
+      expect(album.tracks.map { |track| track.artist.name }.uniq).to eq(["Chosen Artist"])
+    end
+
     it "skips duplicate tracks on re-import" do
       stub_playlist_api_calls
 
@@ -215,7 +241,7 @@ RSpec.describe YoutubePlaylistImportService do
       .to_return(status: 200, body: "fake_image_data", headers: {"Content-Type" => "image/jpeg"})
   end
 
-  def stub_playlist_api_calls(track_titles: ["Song 1", "Song 2"])
+  def stub_playlist_api_calls(track_titles: ["Song 1", "Song 2"], playlist_title: "Test Playlist")
     title1, title2 = track_titles
 
     stub_request(:get, "https://www.googleapis.com/youtube/v3/playlists")
@@ -226,7 +252,7 @@ RSpec.describe YoutubePlaylistImportService do
         body: {
           items: [{
             snippet: {
-              title: "Test Playlist",
+              title: playlist_title,
               channelTitle: "Test Channel",
               thumbnails: {high: {url: "https://i.ytimg.com/vi/abc/hqdefault.jpg"}}
             },
