@@ -114,6 +114,40 @@ RSpec.describe YoutubeMetadataEnricher do
     end
   end
 
+  describe ".call with a playlist title" do
+    it "credits the playlist artist when the video title names no artist" do
+      result = described_class.call(title: "Yaleo", channel_name: "PamelaGC",
+        playlist_title: "FULL ALBUM - SUPERNATURAL (Santana) (1999)")
+
+      expect(result[:artist]).to eq("Santana")
+      expect(result[:title]).to eq("Yaleo")
+      expect(result[:source]).to eq(:playlist)
+    end
+
+    it "prefers the artist in the video title over the playlist title" do
+      result = described_class.call(title: "Shakira - Inevitable", channel_name: "Diego Pradilla",
+        playlist_title: "Carlos Vives - El Amor De Mi Tierra (Full Album)")
+
+      expect(result[:artist]).to eq("Shakira")
+      expect(result[:source]).to eq(:parsed)
+    end
+
+    it "falls back to the channel when the playlist title names no artist" do
+      result = described_class.call(title: "TEMBLANDO", channel_name: "Andersson solorzano niño",
+        playlist_title: "clasicos rock en español")
+
+      expect(result[:artist]).to eq("Andersson solorzano niño")
+      expect(result[:source]).to eq(:channel)
+    end
+
+    it "falls back to the channel when no playlist title is given" do
+      result = described_class.call(title: "Song Without Dash", channel_name: "ArtistChannel")
+
+      expect(result[:artist]).to eq("ArtistChannel")
+      expect(result[:source]).to eq(:channel)
+    end
+  end
+
   describe ".clean_for_search" do
     it "strips all parenthesized and bracketed content" do
       result = described_class.clean_for_search("Song (feat. Other) [Deluxe Edition]")
