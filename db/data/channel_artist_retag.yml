@@ -1,0 +1,554 @@
+# Reviewed artist/title repair for YouTube imports that credited the channel
+# owner as the artist. Keyed by track id: one channel carries more than one
+# artist, so a per-artist rename is not safe. An entry with no title names
+# only the band in its title and needs a person to identify the song.
+# Applied by Maintenance::RetagChannelArtistTracksTask via ChannelArtistRetag.
+---
+1695:
+  artist: "Shakira"
+  title: "Inevitable"
+1696:
+  artist: "Ricky Martin"
+  title: "Livin' la Vida Loca"
+1697:
+  artist: "Santana"
+  title: "Smooth (feat. Rob Thomas)"
+1698:
+  artist: "Selena"
+  title: "Amor Prohibido"
+1699:
+  artist: "Mana"
+  title: "Rayando el Sol"
+1700:
+  artist: "Mana"
+  title: "Oye Mi Amor"
+1701:
+  artist: "Marco Antonio Solís"
+  title: "Si No Te Hubieras Ido"
+1702:
+  artist: "Los Enanitos Verdes"
+  title: "Lamento Boliviano"
+1703:
+  artist: "Shakira"
+  title: "Estoy Aquí"
+1704:
+  artist: "Shakira"
+  title: "Ciega, Sordomuda"
+1705:
+  artist: "Chayanne"
+  title: "Dejaría Todo"
+1706:
+  artist: "Luis Miguel"
+  title: "No Sé Tú"
+1707:
+  artist: "Selena"
+  title: "No Me Queda Más"
+1708:
+  artist: "Christina Aguilera"
+  title: "Genie in a Bottle"
+1709:
+  artist: "Jennifer Lopez"
+  title: "Let's Get Loud"
+1710:
+  artist: "Aterciopelados"
+  title: "Bolero Falaz"
+1711:
+  artist: "Selena"
+  title: "Como La Flor (Live from the Astrodome)"
+1712:
+  artist: "Ricardo Arjona"
+  title: "Mujeres"
+1713:
+  artist: "Enrique Iglesias"
+  title: "Experiencia Religiosa"
+1714:
+  artist: "Jennifer Lopez"
+  title: "No Me Ames"
+1715:
+  artist: "Elvis Crespo"
+  title: "Suavemente"
+1716:
+  artist: "Alejandro Fernández"
+  title: "Si Tú Supieras"
+1717:
+  artist: "Selena"
+  title: "Si Una Vez (Live from the Astrodome)"
+1718:
+  artist: "Selena"
+  title: "Bidi Bidi Bom Bom"
+1719:
+  artist: "Marc Anthony"
+  title: "Dímelo"
+1720:
+  artist: "Fey"
+  title: "Azúcar Amargo"
+1721:
+  artist: "Gianluca Grignani"
+  title: "Mi Historia Entre Tus Dedos"
+1722:
+  artist: "Shakira"
+  title: "Antología"
+1723:
+  artist: "Luis Miguel"
+  title: "Inolvidable"
+1724:
+  artist: "Los Fabulosos Cadillacs"
+  title: "Matador"
+1725:
+  artist: "Enrique Iglesias"
+  title: "Si Tú Te Vas"
+1726:
+  artist: "Thalía"
+  title: "Piel Morena"
+1727:
+  artist: "Jon Secada"
+  title: "Just Another Day"
+1729:
+  artist: "Gloria Estefan & Miami Sound Machine"
+  title: "Conga"
+1730:
+  artist: "Ricky Martin"
+  title: "She Bangs"
+1731:
+  artist: "Los del Río"
+  title: "Macarena (Bayside Boys Remix)"
+1732:
+  artist: "Gloria Estefan"
+  title: "Mi Tierra"
+1733:
+  artist: "Franco de Vita"
+  title: "No Basta"
+1734:
+  artist: "Jennifer Lopez"
+  title: "If You Had My Love"
+1735:
+  artist: "Soda Stereo"
+  title: "De Música Ligera (El Último Concierto)"
+1736:
+  artist: "Ricky Martin"
+  title: "La Copa de la Vida"
+1737:
+  artist: "Ricky Martin"
+  title: "María"
+1738:
+  artist: "Gloria Estefan"
+  title: "Con los Años Que Me Quedan"
+1739:
+  artist: "Shakira"
+  title: "Ojos Así"
+1740:
+  artist: "Gloria Trevi"
+  title: "Pelo Suelto"
+1741:
+  artist: "Carlos Vives"
+  title: "La Gota Fría"
+1742:
+  artist: "Café Tacvba"
+  title: "La Ingrata"
+1743:
+  artist: "Juan Luis Guerra 4.40"
+  title: "Burbujas de Amor"
+5839:
+  artist: "Los Enanitos Verdes"
+  title: "La Muralla Verde"
+5840:
+  artist: "Los Enanitos Verdes"
+5843:
+  artist: "Los Enanitos Verdes"
+  title: "Temblando"
+5846:
+  artist: "Hombres G"
+5849:
+  artist: "Soda Stereo"
+  title: "En la Ciudad de la Furia"
+5852:
+  artist: "Soda Stereo"
+5854:
+  artist: "Soda Stereo"
+  title: "Cuando Pase el Temblor"
+5856:
+  artist: "Los Rodríguez"
+5858:
+  artist: "Vilma Palma e Vampiros"
+5859:
+  artist: "Vilma Palma e Vampiros"
+5861:
+  artist: "Mecano"
+5863:
+  artist: "Mecano"
+5864:
+  artist: "Los Toreros Muertos"
+  title: "La Puta de la Cabra"
+5865:
+  artist: "Los Toreros Muertos"
+  title: "Mi Aguita Amarilla"
+5867:
+  artist: "Caifanes"
+  title: "Afuera"
+5868:
+  artist: "Caifanes"
+5877:
+  artist: "Miguel Mateos"
+  title: "Cuando Seas Grande"
+5880:
+  artist: "Miguel Mateos"
+  title: "Llámame Si Me Necesitas"
+5881:
+  artist: "Miguel Mateos"
+  title: "Mi Sombra en la Pared"
+5883:
+  artist: "Bond"
+  title: "Victory (live)"
+5884:
+  artist: "Bond"
+5885:
+  artist: "Bond"
+  title: "Victory"
+5886:
+  artist: "La Trinca"
+  title: "El IVA Hecho Fácil"
+5887:
+  artist: "La Trinca"
+  title: "El Ataque de las Chicas Cocodrilo"
+5888:
+  artist: "Charly García"
+  title: "Los Dinosaurios / Estoy Verde (live)"
+5889:
+  artist: "Fito Páez"
+5891:
+  artist: "Fito Páez"
+  title: "Mariposa Tecknicolor"
+5892:
+  artist: "Fito Páez"
+5893:
+  artist: "Fito Páez"
+5897:
+  artist: "Santana"
+5901:
+  artist: "Santana"
+  title: "Samba Pa Ti"
+5904:
+  artist: "Los Prisioneros"
+  title: "¿Por Qué No Se Van?"
+5906:
+  artist: "Los Prisioneros"
+  title: "El Baile de los Que Sobran"
+5910:
+  artist: "Ana y Jaime"
+  title: "Décimo Grado"
+5912:
+  artist: "Mägo de Oz"
+  title: "Molinos de Viento"
+5913:
+  artist: "Café Tacvba"
+  title: "Eres"
+5918:
+  artist: "Rosario Flores"
+  title: "Sabor, Sabor"
+5920:
+  artist: "Andrés Calamaro"
+5925:
+  artist: "Locomía"
+  title: "Loco Mía"
+5926:
+  artist: "Locomía"
+  title: "Rumba, Samba, Mambo"
+5935:
+  artist: "Los Enanitos Verdes"
+5936:
+  artist: "Caifanes"
+5937:
+  artist: "Maldita Vecindad"
+  title: "Pachuco"
+5938:
+  artist: "Maldita Vecindad"
+  title: "Pachuco"
+5944:
+  artist: "Jarabe de Palo"
+  title: "Bonito"
+1754:
+  artist: "Buena Vista Social Club"
+  title: "Chan Chan"
+1755:
+  artist: "Buena Vista Social Club"
+  title: "De Camino a la Vereda"
+1756:
+  artist: "Buena Vista Social Club"
+  title: "El Cuarto de Tula"
+1757:
+  artist: "Buena Vista Social Club"
+  title: "Pueblo Nuevo"
+1758:
+  artist: "Buena Vista Social Club"
+  title: "Dos Gardenias"
+1759:
+  artist: "Buena Vista Social Club"
+  title: "¿Y Tú Qué Has Hecho?"
+1760:
+  artist: "Buena Vista Social Club"
+  title: "Veinte Años"
+1761:
+  artist: "Buena Vista Social Club"
+  title: "El Carretero"
+1762:
+  artist: "Buena Vista Social Club"
+  title: "Candela"
+1763:
+  artist: "Buena Vista Social Club"
+  title: "Amor de Loca Juventud"
+1764:
+  artist: "Buena Vista Social Club"
+  title: "Orgullecida"
+1765:
+  artist: "Buena Vista Social Club"
+  title: "Murmullo"
+1766:
+  artist: "Buena Vista Social Club"
+  title: "Buena Vista Social Club"
+1767:
+  artist: "Buena Vista Social Club"
+  title: "La Bayamesa"
+1768:
+  artist: "Buena Vista Social Club"
+  title: "Chan Chan"
+5773:
+  artist: "Juan Luis Guerra 4.40"
+  title: "La Dueña del Swing"
+5784:
+  artist: "Juan Luis Guerra 4.40"
+  title: "Si No La Tengo"
+5787:
+  artist: "Juan Luis Guerra 4.40"
+  title: "Si Tú Te Vas"
+5788:
+  artist: "Juan Luis Guerra 4.40"
+  title: "Ella Dice"
+5790:
+  artist: "Juan Luis Guerra 4.40"
+5792:
+  artist: "Juan Luis Guerra 4.40"
+5795:
+  artist: "Juan Luis Guerra 4.40"
+5796:
+  artist: "Juan Luis Guerra 4.40"
+5800:
+  artist: "Juan Luis Guerra 4.40"
+5801:
+  artist: "Juan Luis Guerra 4.40"
+5807:
+  artist: "Juan Luis Guerra 4.40"
+5810:
+  artist: "Juan Luis Guerra 4.40"
+5813:
+  artist: "Juan Luis Guerra 4.40"
+  title: "Amapola (Remix)"
+5818:
+  artist: "Juan Luis Guerra 4.40"
+  title: "Vale la Pena (Afro Mix)"
+1808:
+  artist: "Juan Luis Guerra 4.40"
+  title: "Juan Luis Guerra Mix Éxitos"
+1809:
+  artist: "Juan Luis Guerra 4.40"
+  title: "Rosalía"
+1810:
+  artist: "Juan Luis Guerra 4.40"
+  title: "Como Abeja al Panal"
+1811:
+  artist: "Juan Luis Guerra 4.40"
+  title: "Carta de Amor"
+1812:
+  artist: "Juan Luis Guerra 4.40"
+  title: "Estrellitas y Duendes"
+1813:
+  artist: "Juan Luis Guerra 4.40"
+  title: "A Pedir Su Mano"
+1814:
+  artist: "Juan Luis Guerra 4.40"
+  title: "La Bilirrubina"
+1815:
+  artist: "Juan Luis Guerra 4.40"
+  title: "Burbujas de Amor"
+1816:
+  artist: "Juan Luis Guerra 4.40"
+  title: "Bachata Rosa"
+1817:
+  artist: "Juan Luis Guerra 4.40"
+  title: "Reforéstame"
+1818:
+  artist: "Juan Luis Guerra 4.40"
+  title: "Acompáñeme Civil"
+1819:
+  artist: "Juan Luis Guerra 4.40"
+1820:
+  artist: "Carlos Vives"
+  title: "Déjame Entrar"
+1821:
+  artist: "Carlos Vives"
+  title: "Carito"
+1822:
+  artist: "Carlos Vives"
+  title: "Amor Latino"
+1823:
+  artist: "Carlos Vives"
+  title: "Luna Nueva"
+1824:
+  artist: "Carlos Vives"
+  title: "Papadio"
+1825:
+  artist: "Carlos Vives"
+  title: "Quiero Verte Sonreír"
+1826:
+  artist: "Carlos Vives"
+  title: "A las Doce Menos Diez"
+1827:
+  artist: "Carlos Vives"
+  title: "María Teresa"
+1828:
+  artist: "Carlos Vives"
+  title: "Décimas"
+1829:
+  artist: "Carlos Vives"
+  title: "Santa Elegía"
+1830:
+  artist: "Carlos Vives"
+  title: "Déjame Entrar (Vallenato)"
+1831:
+  artist: "Carlos Vives"
+  title: "El Amor de Mi Tierra"
+1832:
+  artist: "Carlos Vives"
+  title: "Fruta Fresca"
+1833:
+  artist: "Carlos Vives"
+1834:
+  artist: "Carlos Vives"
+  title: "19 de Noviembre"
+1835:
+  artist: "Carlos Vives"
+  title: "Tu Amor Eterno"
+1836:
+  artist: "Carlos Vives"
+  title: "La Mona"
+1837:
+  artist: "Carlos Vives"
+  title: "Volver al Valle"
+1838:
+  artist: "Carlos Vives"
+  title: "El Cante"
+1839:
+  artist: "Carlos Vives"
+  title: "La Cartera"
+1840:
+  artist: "Carlos Vives"
+  title: "Pitan, Pitan"
+1841:
+  artist: "Carlos Vives"
+  title: "La Receta"
+1842:
+  artist: "Carlos Vives"
+  title: "La Piragua"
+5948:
+  artist: "Santana"
+  title: "Yaleo"
+5949:
+  artist: "Santana"
+  title: "Love of My Life (feat. Dave Matthews)"
+5950:
+  artist: "Santana"
+  title: "Put Your Lights On (feat. Everlast)"
+5951:
+  artist: "Santana"
+  title: "Africa Bamba"
+5952:
+  artist: "Santana"
+  title: "Smooth (feat. Rob Thomas)"
+5953:
+  artist: "Santana"
+  title: "Do You Like the Way (feat. Lauryn Hill & Cee-Lo)"
+5954:
+  artist: "Santana"
+  title: "María María (feat. The Product G&B)"
+5955:
+  artist: "Santana"
+  title: "Migra"
+5956:
+  artist: "Santana"
+  title: "Corazón Espinado (feat. Maná)"
+5957:
+  artist: "Santana"
+  title: "Wishing It Was (feat. Eagle-Eye Cherry)"
+5958:
+  artist: "Santana"
+  title: "El Farol"
+5959:
+  artist: "Santana"
+  title: "Primavera"
+5960:
+  artist: "Santana"
+  title: "The Calling (feat. Eric Clapton)"
+2308:
+  artist: "Carole King"
+2309:
+  artist: "Carole King"
+2310:
+  artist: "Carole King"
+2311:
+  artist: "Carole King"
+2312:
+  artist: "Carole King"
+2313:
+  artist: "Carole King"
+2314:
+  artist: "Carole King"
+2315:
+  artist: "Carole King"
+2316:
+  artist: "Carole King"
+2317:
+  artist: "Carole King"
+2318:
+  artist: "Carole King"
+2319:
+  artist: "Carole King"
+5820:
+  artist: "Los Rodríguez"
+  title: "Milonga del Marinero y el Capitán"
+5821:
+  artist: "Los Rodríguez"
+  title: "Palabras Más, Palabras Menos"
+5822:
+  artist: "Los Rodríguez"
+  title: "Aquí No Podemos Hacerlo"
+5824:
+  artist: "Los Rodríguez"
+  title: "Para No Olvidar"
+5825:
+  artist: "Los Rodríguez"
+  title: "El Tiempo Dirá"
+5826:
+  artist: "Los Rodríguez"
+  title: "En un Hotel de Mil Estrellas"
+5827:
+  artist: "Los Rodríguez"
+  title: "Mucho Mejor"
+5828:
+  artist: "Los Rodríguez"
+  title: "La Puerta de al Lado"
+5829:
+  artist: "Los Rodríguez"
+  title: "Una Forma de Vida"
+5830:
+  artist: "Los Rodríguez"
+  title: "Extraño"
+5831:
+  artist: "Los Rodríguez"
+  title: "10 Años Después"
+6004:
+  artist: "Vicente Fernández"
+  title: "El Rey"
+6005:
+  artist: "Vicente Fernández"
+5835:
+  artist: "Joe Arroyo"
+  title: "La Rebelión (No Le Pegue a la Negra)"
