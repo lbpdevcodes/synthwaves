@@ -131,6 +131,11 @@ Each of these is verified against this live server.
 - **Stay under 60 calls a minute.** Read the whole board with one
   `list_cards board_id=15`, never one call per column. Over the limit the
   server returns JSON-RPC `-32000` and HTTP 429.
+- **`gh` talks to the wrong repo by default.** `origin` is
+  `git@github.com:pandorocks/synthwaves.git`, which GitHub redirects to
+  `lbpdevcodes/synthwaves`. `gh` follows the stale name and acts on the wrong
+  repo or reports no PR. Pass `--repo lbpdevcodes/synthwaves` on every `gh pr`
+  call, and `--head <branch>` on `gh pr view` and `gh pr checks`.
 - **CRM tasks are not kanban cards.** `list_contact_tasks` and friends are
   follow-ups attached to a contact.
 
@@ -205,21 +210,39 @@ update_card card_id=<n> description_markdown=<problem + the approved plan>
 add_card_comment card_id=<n> content_markdown=<commit sha, files touched, what proves it>
 ```
 
-**5. Close.** The code is complete, but nobody has proven it:
+**5. Land the work.** `main` is branch-protected, so nothing lands by a direct
+push. Branch, commit with the card key in the subject, push, open the PR:
+
+```bash
+git checkout -b <short-branch-name>
+git commit -m "SYN-<n>: <what changed>"
+git push -u origin <short-branch-name>
+gh pr create --repo lbpdevcodes/synthwaves --head <short-branch-name> \
+  --title "SYN-<n>: <what changed>" --body-file <path>
+```
+
+Pass `--repo lbpdevcodes/synthwaves --head <branch>` on every `gh pr` call.
+See the `gh` trap below for why.
+
+**6. Move to Validation.** The code is complete and the PR is open, but nobody
+has merged or proven it:
 
 ```
 move_card card_id=<n> column_id=58
 ```
 
-The work is proven — a test failed first and then passed, or a real run showed
-the behavior:
+A card waits here while the PR is open. Add the PR URL as a comment.
+
+**7. Close.** The PR is merged *and* the work is proven — a test failed first
+and then passed, or a real run showed the behavior:
 
 ```
 move_card card_id=<n> column_id=56
 ```
 
 Column 56 completes the card by itself. Do not call
-`update_card operation=complete` after it.
+`update_card operation=complete` after it. An unmerged PR is not Done, however
+green the tests are.
 
 ## Workflows
 
