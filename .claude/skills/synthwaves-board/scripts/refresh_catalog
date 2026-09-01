@@ -1,0 +1,242 @@
+#!/usr/bin/env ruby
+# Regenerates the Synapse MCP tool catalogue for the synthwaves board.
+#
+# The Synapse engine that defines these tools lives in another repo and changes
+# often, so the catalogue is generated, never hand-written. Run it whenever a
+# call fails on a schema this catalogue describes:
+#
+#   .claude/skills/synthwaves-board/scripts/refresh_catalog
+#
+# The script fails loudly when a tool matches no group. That is deliberate: a
+# new engine tool must appear in the docs, not vanish.
+#
+# Overrides:
+#   GO_SYNAPSE_KEY_FILE   default: config/go_synapse_api_key
+#   GO_SYNAPSE_MCP_URL    default: https://gosynapse.io/synapse/mcp
+
+require "json"
+require "net/http"
+require "uri"
+
+SKILL_DIR = Pathname.new(__dir__).parent
+REPO_ROOT = SKILL_DIR.parent.parent.parent
+REFERENCES = SKILL_DIR.join("references")
+
+DEFAULT_KEY_FILE = REPO_ROOT.join("config", "go_synapse_api_key")
+DEFAULT_URL = "https://gosynapse.io/synapse/mcp"
+
+SCRIPT_PATH = ".claude/skills/synthwaves-board/scripts/refresh_catalog"
+
+# Ordered. The first pattern that matches a tool name wins, so the specific
+# groups sit above the general ones. Three orderings are load-bearing:
+#   memory  before assistants  -> delete_assistant_memory is memory
+#   inbox   before notes       -> create_conversation_note is inbox
+#   channels/workflows/automations before webhooks
+#                              -> register_channel_webhook is a channel tool,
+#                                 rotate_workflow_webhook_token is a workflow one
+GROUPS = [
+  ["projects", "Projects, boards, columns and cards",
+    "The kanban surface. Hierarchy is project -> board -> column -> card. " \
+    "Cards carry comments, checklist items, labels and due dates. " \
+    "list_assignable_people lives here because assignment is mostly a kanban " \
+    "concern, but it serves contacts, tasks and conversations too.",
+    /project|board|column|card|checklist_item|label|assignable_people/],
+  ["memory", "Assistant memory",
+    "Long-lived facts an assistant remembers between conversations.",
+    /memor(y|ies)/],
+  ["inbox", "Inbox conversations",
+    "The team inbox for messaging-channel conversations, plus its digest and " \
+    "analytics.",
+    /conversation|inbox_digest/],
+  ["knowledge", "Knowledge base",
+    "The corpus the assistants answer from: collections, connectors that feed " \
+    "them, retrieval, and the gaps a question exposed.",
+    /knowledge|\Aask\z|\Alist_documents\z/],
+  ["notes", "Notes",
+    "The Notion-style note tree: notes and the folders that hold them.",
+    /note/],
+  ["crm", "Contacts and opportunities",
+    "People, the opportunities attached to them, and their follow-up tasks. " \
+    "These tasks are CRM follow-ups, not kanban cards.",
+    /contact|opportunity|lead_status/],
+  ["media", "Media storage",
+    "Uploaded files and the folders that organise them.",
+    /media/],
+  ["channels", "Messaging channels",
+    "The inbound channels conversations arrive on, and their provisioning.",
+    /channel/],
+  ["workflows", "Workflows",
+    "Multi-step workflow definitions and their runs.",
+    /workflow/],
+  ["automations", "Automations",
+    "Trigger-driven automations and their runs.",
+    /automation/],
+  ["integrations", "Tool servers and connections",
+    "Remote MCP tool servers this deployment consumes, and OAuth connections.",
+    /tool_server|\Alist_tools\z|connection/],
+  ["assistants", "Assistants and skills",
+    "The assistant definitions and the on-demand skill playbooks they load.",
+    /assistant|skill/],
+  ["webhooks", "Webhook endpoints",
+    "Outbound webhook endpoints and their delivery log.",
+    /webhook/]
+].freeze
+
+DESTRUCTIVE = /\A(delete|merge|rotate)_/
+
+def die(message)
+  warn "refresh_catalog: #{message}"
+  exit 1
+end
+
+def read_key
+  path = Pathname.new(ENV.fetch("GO_SYNAPSE_KEY_FILE", DEFAULT_KEY_FILE.to_s))
+  key = begin
+    path.read.strip
+  rescue SystemCallError => e
+    die "cannot read the access key at #{path}: #{e.message.split(" @ ").first}."
+  end
+  die "the access key at #{path} is empty." if key.empty?
+  key
+end
+
+def post(url, key, payload)
+  uri = URI(url)
+  http = Net::HTTP.new(uri.host, uri.port)
+  http.use_ssl = uri.scheme == "https"
+  http.read_timeout = 60
+  request = Net::HTTP::Post.new(uri,
+    "Authorization" => "Bearer #{key}",
+    "Content-Type" => "application/json",
+    "Accept" => "application/json")
+  request.body = payload.to_json
+  http.request(request)
+end
+
+def fetch_tools(url, key)
+  response = begin
+    post(url, key, {jsonrpc: "2.0", id: 1, method: "tools/list"})
+  rescue SystemCallError, SocketError, Net::OpenTimeout, OpenSSL::SSL::SSLError => e
+    die "cannot reach #{url}: #{e.message}."
+  end
+  unless response.is_a?(Net::HTTPSuccess)
+    die "#{url} returned HTTP #{response.code}. #{response.body.to_s[0, 300]}"
+  end
+  payload = JSON.parse(response.body)
+  die "the server refused tools/list: #{payload["error"]}." if payload["error"]
+  [payload.dig("result", "tools"), fetch_version(url, key)]
+end
+
+def fetch_version(url, key)
+  response = post(url, key, {
+    jsonrpc: "2.0", id: 2, method: "initialize",
+    params: {protocolVersion: "2025-06-18", capabilities: {},
+             clientInfo: {name: "refresh_catalog", version: "1"}}
+  })
+  info = JSON.parse(response.body).dig("result", "serverInfo")
+  "#{info.fetch("name", "synapse")} #{info.fetch("version", "?")}"
+rescue
+  "unknown"
+end
+
+def group(tools)
+  buckets = GROUPS.to_h { |name, _, _, _| [name, []] }
+  orphans = []
+  tools.sort_by { |tool| tool["name"] }.each do |tool|
+    match = GROUPS.find { |_, _, _, pattern| pattern.match?(tool["name"]) }
+    match ? buckets[match[0]] << tool : orphans << tool["name"]
+  end
+  if orphans.any?
+    die "these tools match no group, so they would be missing from the " \
+        "catalogue: #{orphans.join(", ")}. Add a pattern to GROUPS."
+  end
+  total = buckets.values.sum(&:size)
+  die "grouped #{total} tools but the server returned #{tools.size}." if total != tools.size
+  buckets
+end
+
+def cell(text)
+  text.to_s.split.join(" ").gsub("|", "\\|")
+end
+
+def render_type(schema)
+  kind = schema["type"] || "any"
+  kind = kind.join(" or ") if kind.is_a?(Array)
+  kind = "array of #{schema.dig("items", "type") || "any"}" if kind == "array"
+  kind += " (" + schema["enum"].map { |v| "`#{v}`" }.join(" \\| ") + ")" if schema["enum"]
+  kind
+end
+
+def render_tool(tool)
+  schema = tool["inputSchema"] || {}
+  properties = schema["properties"] || {}
+  required = schema["required"] || []
+  annotations = tool["annotations"] || {}
+
+  marker = if annotations["readOnlyHint"]
+    "read"
+  elsif DESTRUCTIVE.match?(tool["name"])
+    "write, destructive"
+  else
+    "write"
+  end
+
+  lines = ["### `#{tool["name"]}` — #{marker}", "", cell(tool["description"]), ""]
+  if properties.any?
+    lines += ["| Parameter | Type | Required | Description |", "| --- | --- | --- | --- |"]
+    properties.keys.sort_by { |k| [required.include?(k) ? 0 : 1, k] }.each do |key|
+      spec = properties[key] || {}
+      lines << "| `#{key}` | #{render_type(spec)} | " \
+               "#{required.include?(key) ? "yes" : "no"} | #{cell(spec["description"])} |"
+    end
+  else
+    lines << "Takes no parameters."
+  end
+  lines << ""
+  lines.join("\n")
+end
+
+def stamp(count, version)
+  "*#{count} tools. Generated from `tools/list` on #{version}. " \
+  "Regenerate with `#{SCRIPT_PATH}` — do not edit by hand.*"
+end
+
+def write(path, text)
+  path.write(text.rstrip + "\n")
+  puts "  wrote #{path.relative_path_from(REPO_ROOT)}"
+end
+
+def main
+  url = ENV.fetch("GO_SYNAPSE_MCP_URL", DEFAULT_URL)
+  tools, version = fetch_tools(url, read_key)
+  buckets = group(tools)
+  REFERENCES.mkpath
+
+  puts "#{tools.size} tools from #{url} (#{version})"
+
+  index = [
+    "# Synapse MCP tool index",
+    "",
+    stamp(tools.size, version),
+    "",
+    "Every tool the synthwaves account key can call, grouped by module. Open " \
+    "the module file for full parameters.",
+    ""
+  ]
+
+  GROUPS.each do |name, title, blurb, _|
+    group_tools = buckets[name]
+    index += ["## #{title} — [`#{name}.md`](#{name}.md) (#{group_tools.size})", ""]
+    group_tools.each { |tool| index << "- `#{tool["name"]}` — #{cell(tool["description"])}" }
+    index << ""
+
+    body = ["# #{title}", "", blurb, "", stamp(group_tools.size, version), "",
+      "Back to the [index](00-index.md).", "", "---", ""]
+    body += group_tools.map { |tool| render_tool(tool) }
+    write(REFERENCES.join("#{name}.md"), body.join("\n"))
+  end
+
+  write(REFERENCES.join("00-index.md"), index.join("\n"))
+end
+
+main if __FILE__ == $PROGRAM_NAME
