@@ -2,6 +2,16 @@
 
 Music streaming web application built with Rails 8.
 
+## Project Management
+
+Every piece of work in this repo runs through a card on the Synthwaves kanban
+board: project 13, board 15, at https://gosynapse.io/synapse/boards/15. No
+behavior change, fix, feature, refactor or production run starts without a card.
+
+- The rule: `.claude/rules/project-management.md`
+- The column ids, the tool calls and the traps: the `synthwaves-board` skill
+- Access key: `config/go_synapse_api_key` (gitignored, mode 600)
+
 ## Common Commands
 
 ```bash

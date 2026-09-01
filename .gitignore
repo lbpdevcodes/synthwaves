@@ -48,3 +48,5 @@ db/*.sqlite3
 .beads/dolt-monitor.pid.lock
 .claude/prove_it
 .DS_store
+
+config/go_synapse_api_key
