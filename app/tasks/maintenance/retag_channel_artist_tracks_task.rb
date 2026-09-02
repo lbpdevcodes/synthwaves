@@ -6,8 +6,11 @@ module Maintenance
   # Safe to re-run: the mapping is keyed by track id and each entry writes the
   # same artist and title every time.
   class RetagChannelArtistTracksTask < MaintenanceTasks::Task
+    # No order clause here. MaintenanceTasks hands this relation to
+    # job-iteration, which refuses one that carries its own ORDER BY and then
+    # reorders by primary key to drive the cursor. Id order is kept either way.
     def collection
-      Track.where(id: retag.track_ids).order(:id)
+      Track.where(id: retag.track_ids)
     end
 
     def count
