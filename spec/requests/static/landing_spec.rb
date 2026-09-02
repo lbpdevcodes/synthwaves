@@ -39,6 +39,11 @@ RSpec.describe "Static::Landing", type: :request do
         expect(response.body).to include("Any player you like")
       end
 
+      it "links to the current GitHub repo" do
+        expect(response.body).to include("https://github.com/lbpdevcodes/synthwaves")
+        expect(response.body).not_to include("leopolicastro/synthwaves.fm")
+      end
+
       it "no longer advertises app stores or the tech stack" do
         expect(response.body).not_to include("Download on the App Store")
         expect(response.body).not_to include("Coming Soon")
