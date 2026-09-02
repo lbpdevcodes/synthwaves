@@ -13,8 +13,6 @@ FOREIGN KEY ("user_id")
 );
 CREATE INDEX "index_api_keys_on_user_id" ON "api_keys" ("user_id") /*application='GroovyTunes'*/;
 CREATE UNIQUE INDEX "index_api_keys_on_client_id" ON "api_keys" ("client_id") /*application='GroovyTunes'*/;
-CREATE TABLE IF NOT EXISTS "maintenance_tasks_runs" ("id" integer PRIMARY KEY AUTOINCREMENT NOT NULL, "task_name" varchar NOT NULL, "started_at" datetime(6), "ended_at" datetime(6), "time_running" float DEFAULT 0.0 NOT NULL, "tick_count" bigint, "tick_total" bigint, "job_id" varchar, "cursor" varchar, "status" varchar DEFAULT 'enqueued' NOT NULL, "error_class" varchar, "error_message" varchar, "backtrace" text, "created_at" datetime(6) NOT NULL, "updated_at" datetime(6) NOT NULL, "arguments" text, "lock_version" integer DEFAULT 0 NOT NULL, "metadata" text /*application='GroovyTunes'*/);
-CREATE INDEX "index_maintenance_tasks_runs" ON "maintenance_tasks_runs" ("task_name", "status", "created_at" DESC) /*application='GroovyTunes'*/;
 CREATE TABLE IF NOT EXISTS "flipper_features" ("id" integer PRIMARY KEY AUTOINCREMENT NOT NULL, "key" varchar NOT NULL, "created_at" datetime(6) NOT NULL, "updated_at" datetime(6) NOT NULL);
 CREATE UNIQUE INDEX "index_flipper_features_on_key" ON "flipper_features" ("key") /*application='GroovyTunes'*/;
 CREATE TABLE IF NOT EXISTS "flipper_gates" ("id" integer PRIMARY KEY AUTOINCREMENT NOT NULL, "feature_key" varchar NOT NULL, "key" varchar NOT NULL, "value" text, "created_at" datetime(6) NOT NULL, "updated_at" datetime(6) NOT NULL);
@@ -210,7 +208,7 @@ FOREIGN KEY ("artist_id")
 );
 CREATE INDEX "index_albums_on_artist_id" ON "albums" ("artist_id") /*application='SynthWaves'*/;
 CREATE UNIQUE INDEX "index_albums_on_artist_id_and_title" ON "albums" ("artist_id", "title") /*application='SynthWaves'*/;
-CREATE TABLE IF NOT EXISTS "tracks" ("id" integer PRIMARY KEY AUTOINCREMENT NOT NULL, "title" varchar NOT NULL, "album_id" integer NOT NULL, "artist_id" integer NOT NULL, "track_number" integer, "disc_number" integer DEFAULT 1, "duration" float, "file_format" varchar, "file_size" integer, "bitrate" integer, "created_at" datetime(6) NOT NULL, "updated_at" datetime(6) NOT NULL, "youtube_video_id" varchar, "lyrics" text, "download_status" varchar, "download_error" varchar, "user_id" integer NOT NULL, "apple_music_id" varchar /*application='SynthWaves'*/, "isrc" varchar /*application='SynthWaves'*/, "content_rating" varchar /*application='SynthWaves'*/, "language" varchar /*application='SynthWaves'*/, "release_year" integer /*application='SynthWaves'*/, "enrichment_status" varchar /*application='SynthWaves'*/, "enriched_at" datetime(6) /*application='SynthWaves'*/, "musicbrainz_recording_id" varchar /*application='SynthWaves'*/, "musicbrainz_enrichment_status" varchar /*application='SynthWaves'*/, "musicbrainz_enriched_at" datetime(6) /*application='SynthWaves'*/, "loudness_lufs" float, "loudness_gain_db" float, CONSTRAINT "fk_rails_d99a0cbd74"
+CREATE TABLE IF NOT EXISTS "tracks" ("id" integer PRIMARY KEY AUTOINCREMENT NOT NULL, "title" varchar NOT NULL, "album_id" integer NOT NULL, "artist_id" integer NOT NULL, "track_number" integer, "disc_number" integer DEFAULT 1, "duration" float, "file_format" varchar, "file_size" integer, "bitrate" integer, "created_at" datetime(6) NOT NULL, "updated_at" datetime(6) NOT NULL, "youtube_video_id" varchar, "lyrics" text, "download_status" varchar, "download_error" varchar, "user_id" integer NOT NULL, "apple_music_id" varchar /*application='SynthWaves'*/, "isrc" varchar /*application='SynthWaves'*/, "content_rating" varchar /*application='SynthWaves'*/, "language" varchar /*application='SynthWaves'*/, "release_year" integer /*application='SynthWaves'*/, "enrichment_status" varchar /*application='SynthWaves'*/, "enriched_at" datetime(6) /*application='SynthWaves'*/, "musicbrainz_recording_id" varchar /*application='SynthWaves'*/, "musicbrainz_enrichment_status" varchar /*application='SynthWaves'*/, "musicbrainz_enriched_at" datetime(6) /*application='SynthWaves'*/, "loudness_lufs" float /*application='SynthWaves'*/, "loudness_gain_db" float /*application='SynthWaves'*/, CONSTRAINT "fk_rails_d99a0cbd74"
 FOREIGN KEY ("artist_id")
   REFERENCES "artists" ("id")
 , CONSTRAINT "fk_rails_7c47d80164"
@@ -274,7 +272,10 @@ CREATE INDEX "index_tracks_on_musicbrainz_recording_id" ON "tracks" ("musicbrain
 CREATE INDEX "index_tracks_on_musicbrainz_enrichment_status" ON "tracks" ("musicbrainz_enrichment_status") /*application='SynthWaves'*/;
 CREATE INDEX "index_albums_on_musicbrainz_release_id" ON "albums" ("musicbrainz_release_id") /*application='SynthWaves'*/;
 CREATE INDEX "index_artists_on_musicbrainz_artist_id" ON "artists" ("musicbrainz_artist_id") /*application='SynthWaves'*/;
+CREATE TABLE IF NOT EXISTS "maintenance_tasks_runs" ("id" integer PRIMARY KEY AUTOINCREMENT NOT NULL, "task_name" varchar NOT NULL, "started_at" datetime(6), "ended_at" datetime(6), "time_running" float DEFAULT 0.0 NOT NULL, "tick_count" bigint DEFAULT 0 NOT NULL, "tick_total" bigint, "job_id" varchar, "cursor" varchar, "status" varchar DEFAULT 'enqueued' NOT NULL, "error_class" varchar, "error_message" varchar, "backtrace" text, "created_at" datetime(6) NOT NULL, "updated_at" datetime(6) NOT NULL, "arguments" text, "lock_version" integer DEFAULT 0 NOT NULL, "metadata" text);
+CREATE INDEX "index_maintenance_tasks_runs" ON "maintenance_tasks_runs" ("task_name", "status", "created_at" DESC) /*application='SynthWaves'*/;
 INSERT INTO "schema_migrations" (version) VALUES
+('20260902195740'),
 ('20260731111258'),
 ('20260404002732'),
 ('20260402210631'),
