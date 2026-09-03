@@ -112,6 +112,7 @@ RSpec.describe "MCP agent gateway", type: :request do
         "search", "match_tracks",
         "list_artists", "get_artist", "list_albums", "get_album", "list_tracks", "get_track",
         "update_artist", "update_album", "update_tracks",
+        "merge_artists", "merge_albums",
         "list_playlists", "get_playlist",
         "create_playlist", "update_playlist", "delete_playlist",
         "add_tracks_to_playlist", "remove_playlist_track", "remove_playlist_tracks",

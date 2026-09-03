@@ -35,7 +35,7 @@ API keys are managed through the web UI at `/api_keys`. Each key has a `client_i
 | POST   | `/api/import/playlists`      | Import a playlist          | [import-api.md](import-api.md#post-apiimportplaylists)      |
 | POST   | `/api/import/videos`         | Import a video             | [import-api.md](import-api.md#post-apiimportvideos)         |
 
-### MCP Server (1 endpoint, 26 tools)
+### MCP Server (1 endpoint, 28 tools)
 
 | Method | Path  | Description                                | Doc                 |
 | ------ | ----- | ------------------------------------------ | ------------------- |

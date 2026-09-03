@@ -1100,4 +1100,92 @@ RSpec.describe "MCP agent gateway tools", type: :request do
       expect(foreign.reload.title).to eq("Private")
     end
   end
+
+  describe "merge_artists" do
+    def duplicate_pair
+      target = create(:artist, user: user, name: "Maná")
+      source = create(:artist, user: user, name: "Mana")
+      album = create(:album, user: user, artist: source, title: "Amar es Combatir")
+      track = create(:track, user: user, artist: source, album: album)
+      [target, source, track]
+    end
+
+    it "moves the source's tracks to the target and deletes the source" do
+      target, source, track = duplicate_pair
+
+      payload = tool_payload(call_tool("merge_artists",
+        {"target_artist_id" => target.id, "source_artist_id" => source.id}))
+
+      expect(track.reload.artist).to eq(target)
+      expect(Artist.exists?(source.id)).to be false
+      expect(payload["artist"]["name"]).to eq("Maná")
+    end
+
+    it "reports what it absorbed" do
+      target, source, _ = duplicate_pair
+
+      payload = tool_payload(call_tool("merge_artists",
+        {"target_artist_id" => target.id, "source_artist_id" => source.id}))
+
+      expect(payload).to include("absorbed_albums" => 1, "absorbed_tracks" => 1)
+    end
+
+    it "refuses to merge an artist into itself" do
+      artist = create(:artist, user: user)
+
+      body = call_tool("merge_artists",
+        {"target_artist_id" => artist.id, "source_artist_id" => artist.id})
+
+      expect(tool_error?(body)).to be true
+      expect(tool_error_message(body)).to include("itself")
+      expect(Artist.exists?(artist.id)).to be true
+    end
+
+    it "returns an error result for another user's artist and leaves it alone" do
+      target = create(:artist, user: user)
+      foreign = create(:artist, user: other_user)
+
+      body = call_tool("merge_artists",
+        {"target_artist_id" => target.id, "source_artist_id" => foreign.id})
+
+      expect(tool_error?(body)).to be true
+      expect(Artist.exists?(foreign.id)).to be true
+    end
+  end
+
+  describe "merge_albums" do
+    it "moves the source album's tracks to the target and deletes the source" do
+      target = create(:album, user: user, title: "Supernatural")
+      source = create(:album, user: user, title: "FULL ALBUM - SUPERNATURAL")
+      track = create(:track, user: user, artist: source.artist, album: source)
+
+      payload = tool_payload(call_tool("merge_albums",
+        {"target_album_id" => target.id, "source_album_id" => source.id}))
+
+      expect(track.reload.album).to eq(target)
+      expect(Album.exists?(source.id)).to be false
+      expect(payload["album"]["title"]).to eq("Supernatural")
+    end
+
+    it "refuses to merge an album into itself" do
+      album = create(:album, user: user)
+
+      body = call_tool("merge_albums",
+        {"target_album_id" => album.id, "source_album_id" => album.id})
+
+      expect(tool_error?(body)).to be true
+      expect(Album.exists?(album.id)).to be true
+    end
+
+    it "returns an error result for another user's album and leaves it alone" do
+      target = create(:album, user: user)
+      foreign = create(:album, user: other_user)
+
+      body = call_tool("merge_albums",
+        {"target_album_id" => target.id, "source_album_id" => foreign.id})
+
+      expect(tool_error?(body)).to be true
+      expect(Album.exists?(foreign.id)).to be true
+    end
+  end
 end
