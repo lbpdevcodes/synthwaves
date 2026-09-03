@@ -3,7 +3,7 @@ module AgentGateway
   # Synthwaves APIKeys have no scopes, so every tool is registered;
   # user scoping happens inside each tool via server_context.
   class Server
-    VERSION = "2.0.0"
+    VERSION = "2.1.0"
 
     INSTRUCTIONS = <<~TEXT.freeze
       Synthwaves is a self-hosted music streaming library. These tools manage
@@ -13,8 +13,8 @@ module AgentGateway
 
       Reads are safe. Writes mutate the real library immediately — creating,
       renaming, and deleting playlists, adding/removing/reordering playlist
-      tracks, favoriting, and uploading audio all take effect at once.
-      Deleting a playlist never deletes its tracks.
+      tracks, re-tagging tracks, favoriting, and uploading audio all take
+      effect at once. Deleting a playlist never deletes its tracks.
 
       Key facts:
       - All IDs are per-user. "Record not found" means the ID does not exist
@@ -27,6 +27,12 @@ module AgentGateway
         local process, so freshly imported music is not playable yet.
       - upload_track expects base64-encoded audio bytes. Embedded tags are
         read automatically; explicit metadata arguments override them.
+      - update_tracks repairs metadata on tracks that already exist. Name
+        artists and albums by NAME, not id; matching ignores case, so
+        "caifanes" joins an existing "CAIFANES" rather than making a second
+        artist. Changing a track's artist moves its album along, so the album
+        belongs to the artist that now owns the song. Each edit stands alone
+        and the reply reports every row, so a sheet is safe to re-send.
 
       Efficient workflow for large playlists (hundreds/thousands of tracks):
       - Read with get_playlist using compact=true and page/per_page (max 500
@@ -39,6 +45,10 @@ module AgentGateway
         so repeat the call until the edit is complete.
       - No tool takes a playlist's full contents. An agent cannot reliably
         emit thousands of ids in one call, so chunk the edit instead.
+
+      Repairing metadata in bulk: audit with get_playlist or list_tracks, then
+      send the whole correction sheet to update_tracks, at most 500 edits per
+      call — never one call per track.
     TEXT
 
     def self.for(api_key)

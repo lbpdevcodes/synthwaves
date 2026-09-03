@@ -23,5 +23,9 @@ class Artist < ApplicationRecord
     where("artists.name LIKE :q", q: "%#{query}%") if query.present?
   }
 
+  # Exact name match, ignoring case, so a repair joins the library's existing
+  # row ("CAIFANES") instead of spawning a near-duplicate beside it.
+  scope :named, ->(name) { where("LOWER(name) = ?", name.to_s.downcase) }
+
   private
 end
