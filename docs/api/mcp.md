@@ -63,8 +63,10 @@ All IDs are per-user. Every tool resolves records through the authenticated key'
 | `match_tracks` | Resolve many `"Artist - Title"` or bare-title queries to track IDs in one call (max 200 per call) |
 | `list_artists` | List artists (`q`, `category`, sort, limit)                                         |
 | `get_artist`   | One artist with their albums                                                        |
+| `update_artist`| Rename an artist, or change its category. Never merges                              |
 | `list_albums`  | List albums (`q`, `artist_id`, sort, limit)                                         |
 | `get_album`    | One album with tracks in disc/track order and total duration                        |
+| `update_album` | Edit an album's title, year, genre, or artist. Changing the artist moves its tracks  |
 | `list_tracks`  | List tracks (`q` full-text, `album_id`, `artist_id`, `genre`, sort, limit)          |
 | `get_track`    | One track with full detail (`has_audio`, lyrics, download status, loudness)         |
 | `update_tracks`| Re-tag existing tracks in bulk — artist, title, album, year (max 500 edits per call) |
@@ -104,6 +106,18 @@ All IDs are per-user. Every tool resolves records through the authenticated key'
 - **Upload size**: `upload_track` caps decoded audio at ~50 MB (≈67 MB of base64 in the JSON body). Reverse proxies may impose their own request-body limits.
 - **Writes take effect immediately.** Deleting a playlist never deletes its tracks.
 - The implementation lives in `app/services/agent_gateway/` (`AgentGatewayController` + `MCP::Server` from the `mcp` gem).
+
+### Editing artists and albums
+
+`update_artist` renames one artist in place. Tracks and albums keep pointing at it and the search index follows. It **never merges** — renaming onto a name the library already holds is refused, because two artists cannot share a name within one library. To fold one artist's work into another, retag the tracks with `update_tracks`.
+
+`update_album` edits one album's `title`, `year`, `genre`, or `artist`. The artist is named, not referenced by ID, and matched case-insensitively.
+
+> **Changing an album's artist moves every track on that album.** `Album` repoints its whole tracklist when its `artist_id` changes, so one call can move dozens of tracks. That is the fastest way to repair an import that filed a real album under the uploader's channel — and worth knowing before you make the call.
+
+Album titles are unique within an artist, so retitling onto a title that artist already holds is refused.
+
+**Nothing deletes an artist or an album.** An artist owns its tracks, so deleting one would destroy them; emptied rows are swept by `Maintenance::DeleteEmptyAlbumsTask` and `Maintenance::DeleteEmptyArtistsTask`, which a person runs.
 
 ### Re-tagging tracks
 

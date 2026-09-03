@@ -59,7 +59,7 @@ class TrackRetagService
   end
 
   def resolved_artist
-    user.artists.named(artist_name).first || user.artists.create!(name: artist_name)
+    Artist.find_or_create_named!(user, artist_name)
   end
 
   def resolved_album

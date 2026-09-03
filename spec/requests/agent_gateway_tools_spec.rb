@@ -989,4 +989,115 @@ RSpec.describe "MCP agent gateway tools", type: :request do
       expect(payload["tracks"].map { |t| t["id"] }).to include(track.id)
     end
   end
+
+  describe "update_artist" do
+    it "renames the artist" do
+      artist = create(:artist, user: user, name: "Mana")
+
+      payload = tool_payload(call_tool("update_artist", {"artist_id" => artist.id, "name" => "Maná"}))
+
+      expect(payload["name"]).to eq("Maná")
+      expect(artist.reload.name).to eq("Maná")
+    end
+
+    # Track.search reads the tracks_search FTS table, which denormalises
+    # artist_name. Artist's after_update_commit reindex is what keeps it true.
+    it "reindexes the artist's tracks so the new name is searchable" do
+      artist = create(:artist, user: user, name: "Diego Pradilla")
+      album = create(:album, user: user, artist: artist)
+      track = create(:track, user: user, artist: artist, album: album)
+
+      call_tool("update_artist", {"artist_id" => artist.id, "name" => "Shakira"})
+      payload = tool_payload(call_tool("list_tracks", {"q" => "Shakira"}))
+
+      expect(payload["tracks"].map { |t| t["id"] }).to include(track.id)
+    end
+
+    it "returns an error result for a blank name" do
+      artist = create(:artist, user: user, name: "Selena")
+
+      body = call_tool("update_artist", {"artist_id" => artist.id, "name" => ""})
+
+      expect(tool_error?(body)).to be true
+      expect(artist.reload.name).to eq("Selena")
+    end
+
+    it "refuses a rename onto a name the user already holds" do
+      create(:artist, user: user, name: "Santana")
+      artist = create(:artist, user: user, name: "Santana Live")
+
+      body = call_tool("update_artist", {"artist_id" => artist.id, "name" => "Santana"})
+
+      expect(tool_error?(body)).to be true
+      expect(artist.reload.name).to eq("Santana Live")
+    end
+
+    it "returns an error result for another user's artist" do
+      foreign = create(:artist, user: other_user, name: "Shakira")
+
+      body = call_tool("update_artist", {"artist_id" => foreign.id, "name" => "Hijacked"})
+
+      expect(tool_error?(body)).to be true
+      expect(foreign.reload.name).to eq("Shakira")
+    end
+  end
+
+  describe "update_album" do
+    it "retitles the album" do
+      album = create(:album, user: user, title: "FULL ALBUM - SUPERNATURAL (Santana) (1999)")
+
+      payload = tool_payload(call_tool("update_album", {"album_id" => album.id, "title" => "Supernatural"}))
+
+      expect(payload["title"]).to eq("Supernatural")
+      expect(album.reload.title).to eq("Supernatural")
+    end
+
+    it "sets the year and the genre" do
+      album = create(:album, user: user)
+
+      call_tool("update_album", {"album_id" => album.id, "year" => 1999, "genre" => "Latin Rock"})
+
+      expect(album.reload).to have_attributes(year: 1999, genre: "Latin Rock")
+    end
+
+    # Album#reassign_tracks_to_artist repoints every track on the album, so this
+    # one call moves the whole tracklist. That is a bigger effect than it looks.
+    it "moves the album's tracks when the album changes artist" do
+      channel = create(:artist, user: user, name: "PamelaGC")
+      album = create(:album, user: user, artist: channel, title: "Supernatural")
+      tracks = create_list(:track, 2, user: user, artist: channel, album: album)
+
+      call_tool("update_album", {"album_id" => album.id, "artist" => "Santana"})
+
+      expect(album.reload.artist.name).to eq("Santana")
+      expect(tracks.map { |t| t.reload.artist.name }).to all(eq("Santana"))
+    end
+
+    it "joins an artist that differs only in case instead of creating a twin" do
+      existing = create(:artist, user: user, name: "CAIFANES")
+      album = create(:album, user: user)
+
+      expect { call_tool("update_album", {"album_id" => album.id, "artist" => "Caifanes"}) }
+        .not_to change(Artist, :count)
+      expect(album.reload.artist).to eq(existing)
+    end
+
+    it "returns an error result for a blank title" do
+      album = create(:album, user: user, title: "El Kilo")
+
+      body = call_tool("update_album", {"album_id" => album.id, "title" => ""})
+
+      expect(tool_error?(body)).to be true
+      expect(album.reload.title).to eq("El Kilo")
+    end
+
+    it "returns an error result for another user's album" do
+      foreign = create(:album, user: other_user, title: "Private")
+
+      body = call_tool("update_album", {"album_id" => foreign.id, "title" => "Hijacked"})
+
+      expect(tool_error?(body)).to be true
+      expect(foreign.reload.title).to eq("Private")
+    end
+  end
 end

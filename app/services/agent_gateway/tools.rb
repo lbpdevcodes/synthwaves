@@ -4,8 +4,8 @@ module AgentGateway
   module Tools
     ALL = [
       Search, MatchTracks,
-      ListArtists, GetArtist,
-      ListAlbums, GetAlbum,
+      ListArtists, GetArtist, UpdateArtist,
+      ListAlbums, GetAlbum, UpdateAlbum,
       ListTracks, GetTrack, UpdateTracks,
       ListPlaylists, GetPlaylist,
       ListFavorites,
