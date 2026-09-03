@@ -67,6 +67,7 @@ All IDs are per-user. Every tool resolves records through the authenticated key'
 | `get_album`    | One album with tracks in disc/track order and total duration                        |
 | `list_tracks`  | List tracks (`q` full-text, `album_id`, `artist_id`, `genre`, sort, limit)          |
 | `get_track`    | One track with full detail (`has_audio`, lyrics, download status, loudness)         |
+| `update_tracks`| Re-tag existing tracks in bulk — artist, title, album, year (max 500 edits per call) |
 
 ### Playlists
 
@@ -103,6 +104,24 @@ All IDs are per-user. Every tool resolves records through the authenticated key'
 - **Upload size**: `upload_track` caps decoded audio at ~50 MB (≈67 MB of base64 in the JSON body). Reverse proxies may impose their own request-body limits.
 - **Writes take effect immediately.** Deleting a playlist never deletes its tracks.
 - The implementation lives in `app/services/agent_gateway/` (`AgentGatewayController` + `MCP::Server` from the `mcp` gem).
+
+### Re-tagging tracks
+
+`update_tracks` fixes metadata on tracks that already exist — the common case being a YouTube import that credited the uploader's channel as the artist. Send the whole correction sheet in one call, at most 500 edits, never one call per track.
+
+```json
+{"edits": [
+  {"track_id": 1695, "artist": "Shakira", "title": "Inevitable", "year": 1998},
+  {"track_id": 5948, "artist": "Santana", "album": "Supernatural", "year": 1999}
+]}
+```
+
+- **Artists and albums are named, not referenced by ID.** Matching ignores case, so `"caifanes"` joins an existing `CAIFANES` instead of creating a second artist. A name the library does not hold is created.
+- **Changing the artist moves the album with it.** The track's album ends up owned by the artist that now owns the song, so `track.artist` and `track.album.artist` stay in step. Name an `album` to move the track somewhere else; omit it and the current album title is kept under the new artist.
+- **Omitted fields are left alone.** An edit naming no field at all is reported as a failed row.
+- **Every edit stands alone.** The reply carries `updated`, `failed`, and one result per row, so a bad row never discards the good ones and a sheet is safe to re-send.
+- **Albums left empty by a move are not deleted.** Run `Maintenance::DeleteEmptyAlbumsTask` to sweep them.
+- **Setting `year` opts that track out of automatic year enrichment.** MusicBrainz only fills `release_year` when it is blank.
 
 ### Large playlists
 

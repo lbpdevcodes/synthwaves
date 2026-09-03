@@ -902,4 +902,91 @@ RSpec.describe "MCP agent gateway tools", type: :request do
       expect(tool_error_message(body)).to include("quota exceeded")
     end
   end
+
+  describe "update_tracks" do
+    # The YouTube-import shape this tool exists to repair: the channel owner
+    # credited as the artist, and the album named after the channel's upload.
+    # One channel artist owning one channel album, however many tracks hang off
+    # it -- Artist and Album both validate name/title uniqueness.
+    def channel_track(owner, title: "Shakira - Inevitable (Official HD Video)")
+      artist = owner.artists.find_or_create_by!(name: "Diego Pradilla")
+      album = owner.albums.find_or_create_by!(artist: artist, title: "90s Latin Music")
+      create(:track, user: owner, artist: artist, album: album, title: title)
+    end
+
+    it "applies several edits in one call" do
+      first = channel_track(user)
+      second = channel_track(user, title: "Selena - Amor Prohibido")
+
+      payload = tool_payload(call_tool("update_tracks", {"edits" => [
+        {"track_id" => first.id, "artist" => "Shakira", "title" => "Inevitable", "year" => 1998},
+        {"track_id" => second.id, "artist" => "Selena", "title" => "Amor Prohibido"}
+      ]}))
+
+      expect(payload["updated"]).to eq(2)
+      expect(first.reload.artist.name).to eq("Shakira")
+      expect(first.release_year).to eq(1998)
+      expect(second.reload.title).to eq("Amor Prohibido")
+    end
+
+    it "moves the album under the new artist" do
+      track = channel_track(user)
+
+      call_tool("update_tracks", {"edits" => [
+        {"track_id" => track.id, "artist" => "Santana", "album" => "Supernatural"}
+      ]})
+
+      expect(track.reload.album.title).to eq("Supernatural")
+      expect(track.album.artist).to eq(track.artist)
+    end
+
+    it "applies the good rows even when one row fails" do
+      good = channel_track(user)
+      bad = channel_track(user, title: "Keeps its title")
+
+      payload = tool_payload(call_tool("update_tracks", {"edits" => [
+        {"track_id" => good.id, "artist" => "Shakira", "title" => "Inevitable"},
+        {"track_id" => bad.id, "title" => ""}
+      ]}))
+
+      expect(payload["updated"]).to eq(1)
+      expect(payload["failed"]).to eq(1)
+      expect(good.reload.title).to eq("Inevitable")
+      expect(bad.reload.title).to eq("Keeps its title")
+    end
+
+    it "reports another user's track as failed and leaves it untouched" do
+      foreign = channel_track(other_user)
+
+      payload = tool_payload(call_tool("update_tracks", {"edits" => [
+        {"track_id" => foreign.id, "artist" => "Shakira"}
+      ]}))
+
+      expect(payload["failed"]).to eq(1)
+      expect(payload["results"].first["updated"]).to be false
+      expect(foreign.reload.artist.name).to eq("Diego Pradilla")
+    end
+
+    it "rejects more than 500 edits without changing anything" do
+      track = channel_track(user)
+      edits = Array.new(501) { {"track_id" => track.id, "artist" => "Shakira"} }
+
+      body = call_tool("update_tracks", {"edits" => edits})
+
+      expect(tool_error?(body)).to be true
+      expect(tool_error_message(body)).to include("500")
+      expect(track.reload.artist.name).to eq("Diego Pradilla")
+    end
+
+    it "keeps the search index in step with a renamed track" do
+      track = channel_track(user)
+
+      call_tool("update_tracks", {"edits" => [
+        {"track_id" => track.id, "artist" => "Shakira", "title" => "Inevitable"}
+      ]})
+      payload = tool_payload(call_tool("search", {"query" => "Inevitable"}))
+
+      expect(payload["tracks"].map { |t| t["id"] }).to include(track.id)
+    end
+  end
 end

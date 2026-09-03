@@ -42,10 +42,9 @@ class ChannelArtistRetag
 
   private
 
-  # Matches case-insensitively so a repair joins the library's existing entry
-  # ("CAIFANES") instead of spawning a near-duplicate beside it.
+  # Artist.named matches case-insensitively, so a repair joins the library's
+  # existing entry ("CAIFANES") instead of spawning a near-duplicate beside it.
   def artist_for(user, name)
-    user.artists.where("LOWER(name) = ?", name.downcase).first ||
-      user.artists.create!(name: name)
+    user.artists.named(name).first || user.artists.create!(name: name)
   end
 end

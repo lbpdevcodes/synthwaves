@@ -6,7 +6,7 @@ module AgentGateway
       Search, MatchTracks,
       ListArtists, GetArtist,
       ListAlbums, GetAlbum,
-      ListTracks, GetTrack,
+      ListTracks, GetTrack, UpdateTracks,
       ListPlaylists, GetPlaylist,
       ListFavorites,
       CreatePlaylist, UpdatePlaylist, DeletePlaylist,
