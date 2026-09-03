@@ -27,5 +27,12 @@ class Artist < ApplicationRecord
   # row ("CAIFANES") instead of spawning a near-duplicate beside it.
   scope :named, ->(name) { where("LOWER(name) = ?", name.to_s.downcase) }
 
+  # The one way to turn an artist name into a record. Scoped to the user, so a
+  # repair never borrows another library's artist, and case-insensitive, so it
+  # does not stack "Mana" beside "Maná".
+  def self.find_or_create_named!(user, name)
+    user.artists.named(name).first || user.artists.create!(name: name)
+  end
+
   private
 end

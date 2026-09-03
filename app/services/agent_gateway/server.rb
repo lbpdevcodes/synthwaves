@@ -3,7 +3,7 @@ module AgentGateway
   # Synthwaves APIKeys have no scopes, so every tool is registered;
   # user scoping happens inside each tool via server_context.
   class Server
-    VERSION = "2.1.0"
+    VERSION = "2.2.0"
 
     INSTRUCTIONS = <<~TEXT.freeze
       Synthwaves is a self-hosted music streaming library. These tools manage
@@ -33,6 +33,15 @@ module AgentGateway
         artist. Changing a track's artist moves its album along, so the album
         belongs to the artist that now owns the song. Each edit stands alone
         and the reply reports every row, so a sheet is safe to re-send.
+      - update_artist renames one artist in place; tracks and albums keep
+        pointing at it. It never merges: renaming onto a name the library
+        already holds is refused.
+      - update_album edits one album's title, year, genre or artist. Changing
+        the artist moves EVERY TRACK on that album too, so one call can move a
+        whole tracklist — the fastest way to repair an import filed under an
+        uploader's channel.
+      - Nothing deletes an artist or an album. Emptied rows are swept by a
+        maintenance task a person runs.
 
       Efficient workflow for large playlists (hundreds/thousands of tracks):
       - Read with get_playlist using compact=true and page/per_page (max 500
