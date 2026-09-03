@@ -64,9 +64,11 @@ All IDs are per-user. Every tool resolves records through the authenticated key'
 | `list_artists` | List artists (`q`, `category`, sort, limit)                                         |
 | `get_artist`   | One artist with their albums                                                        |
 | `update_artist`| Rename an artist, or change its category. Never merges                              |
+| `merge_artists`| Fold one artist into another and delete the source. Cannot be undone                |
 | `list_albums`  | List albums (`q`, `artist_id`, sort, limit)                                         |
 | `get_album`    | One album with tracks in disc/track order and total duration                        |
 | `update_album` | Edit an album's title, year, genre, or artist. Changing the artist moves its tracks  |
+| `merge_albums` | Fold one album into another and delete the source. Cannot be undone                 |
 | `list_tracks`  | List tracks (`q` full-text, `album_id`, `artist_id`, `genre`, sort, limit)          |
 | `get_track`    | One track with full detail (`has_audio`, lyrics, download status, loudness)         |
 | `update_tracks`| Re-tag existing tracks in bulk — artist, title, album, year (max 500 edits per call) |
@@ -117,7 +119,15 @@ All IDs are per-user. Every tool resolves records through the authenticated key'
 
 Album titles are unique within an artist, so retitling onto a title that artist already holds is refused.
 
-**Nothing deletes an artist or an album.** An artist owns its tracks, so deleting one would destroy them; emptied rows are swept by `Maintenance::DeleteEmptyAlbumsTask` and `Maintenance::DeleteEmptyArtistsTask`, which a person runs.
+### Merging duplicates
+
+`update_artist` renames but never merges, so a library holding `Mana` beside `Maná` needs `merge_artists`. It moves the source's albums, tracks and favorites onto the target, then deletes the source. An album whose title the target already uses is folded into that copy rather than duplicated, because album titles are unique within an artist.
+
+`merge_albums` does the same for one release held twice under different titles. The target keeps its own cover image, or inherits the source's when it has none.
+
+> **Neither can be undone.** Both take IDs, never names, so the agent has to look both records up first. Both report how many albums and tracks moved.
+
+Merging is the only way an artist or album row is removed by a tool. **Nothing deletes an artist or an album outright.** An artist owns its tracks, so deleting one would destroy them; emptied rows are swept by `Maintenance::DeleteEmptyAlbumsTask` and `Maintenance::DeleteEmptyArtistsTask`, which a person runs.
 
 ### Re-tagging tracks
 

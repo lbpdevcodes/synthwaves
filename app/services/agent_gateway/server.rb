@@ -3,7 +3,7 @@ module AgentGateway
   # Synthwaves APIKeys have no scopes, so every tool is registered;
   # user scoping happens inside each tool via server_context.
   class Server
-    VERSION = "2.2.0"
+    VERSION = "2.3.0"
 
     INSTRUCTIONS = <<~TEXT.freeze
       Synthwaves is a self-hosted music streaming library. These tools manage
@@ -40,8 +40,13 @@ module AgentGateway
         the artist moves EVERY TRACK on that album too, so one call can move a
         whole tracklist — the fastest way to repair an import filed under an
         uploader's channel.
-      - Nothing deletes an artist or an album. Emptied rows are swept by a
-        maintenance task a person runs.
+      - merge_artists and merge_albums fold a duplicate into the record that
+        survives and DELETE the source. They take ids, never names. Use them
+        for a genuine duplicate ("Mana" beside "Maná") that update_artist
+        cannot fix, because renaming onto a name already in use is refused.
+        Neither can be undone, so read both records first.
+      - Nothing else deletes an artist or an album. Rows left empty by a move
+        are swept by a maintenance task a person runs.
 
       Efficient workflow for large playlists (hundreds/thousands of tracks):
       - Read with get_playlist using compact=true and page/per_page (max 500
