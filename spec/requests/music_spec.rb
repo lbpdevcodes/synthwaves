@@ -70,6 +70,18 @@ RSpec.describe "Music", type: :request do
       expect(response.body).to include("My Chill Mix")
     end
 
+    it "pins a Favorites card on the playlists tab linking to the favorites playlist" do
+      user = create(:user)
+      login_user(user)
+      create_list(:track, 2, user: user).each { |track| create(:favorite, user: user, favorable: track) }
+
+      get music_path(tab: "playlists")
+
+      card = Nokogiri::HTML(response.body).at_css("a[href='#{smart_playlist_path(:favorites)}']")
+      expect(card).to be_present
+      expect(card.text.squish).to include("Favorites 2 tracks")
+    end
+
     it "does not show other users' playlists" do
       user = create(:user)
       other_user = create(:user)

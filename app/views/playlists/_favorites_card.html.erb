@@ -1,0 +1,13 @@
+<div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4 mb-4">
+  <%= link_to smart_playlist_path(:favorites), class: "group", data: { turbo_frame: "_top" } do %>
+    <div class="bg-gray-800 rounded-lg border border-gray-700 overflow-hidden hover:shadow-lg transition-shadow">
+      <div class="w-full aspect-square bg-neon-pink/20 flex items-center justify-center text-neon-pink">
+        <svg class="w-12 h-12" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clip-rule="evenodd"/></svg>
+      </div>
+      <div class="p-3">
+        <div class="font-medium text-white group-hover:text-neon-cyan truncate">Favorites</div>
+        <div class="text-sm text-gray-400"><%= pluralize(track_count, "track") %></div>
+      </div>
+    </div>
+  <% end %>
+</div>

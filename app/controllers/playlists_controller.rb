@@ -10,6 +10,7 @@ class PlaylistsController < ApplicationController
     scope = Current.user.playlists.search(@query).order(@sort => @direction)
     @pagy, @playlists = pagy(:offset, scope)
     @cover_albums_by_playlist = Playlist.preload_cover_albums(@playlists)
+    @favorite_tracks_count = Current.user.favorite_tracks.count
   end
 
   def show

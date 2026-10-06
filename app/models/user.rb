@@ -10,6 +10,8 @@ class User < ApplicationRecord
   has_many :tracks, dependent: :destroy
   has_many :playlists, dependent: :destroy
   has_many :favorites, dependent: :destroy
+  has_many :favorite_tracks, -> { order("favorites.created_at DESC, favorites.id DESC") },
+    through: :favorites, source: :favorable, source_type: "Track"
   has_many :play_histories, dependent: :destroy
   has_many :external_streams, dependent: :destroy
   has_many :radio_stations, dependent: :destroy

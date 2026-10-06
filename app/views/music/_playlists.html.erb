@@ -15,6 +15,9 @@
   <% c.with_actions do %>
     <%= render Button::Component.new(label: "New Playlist", behavior: :navigation, link_url: new_playlist_path, turbo_frame: "_top") %>
   <% end %>
+  <% c.with_before_grid do %>
+    <%= render "playlists/favorites_card", track_count: @favorite_tracks_count %>
+  <% end %>
   <% @playlists.each do |playlist| %>
     <% cover_albums = @cover_albums_by_playlist[playlist.id] || [] %>
     <%= link_to playlist_path(playlist), class: "group collection-card", data: { turbo_frame: "_top" } do %>

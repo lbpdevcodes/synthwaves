@@ -44,6 +44,16 @@ RSpec.describe "Playlists", type: :request do
       expect(response).to have_http_status(:ok)
     end
 
+    it "pins a Favorites card linking to the favorites playlist" do
+      create_list(:track, 2, user: user).each { |track| create(:favorite, user: user, favorable: track) }
+
+      get playlists_path
+
+      card = Nokogiri::HTML(response.body).at_css("a[href='#{smart_playlist_path(:favorites)}']")
+      expect(card).to be_present
+      expect(card.text.squish).to include("Favorites 2 tracks")
+    end
+
     it "renders playlists in a grid layout" do
       create(:playlist, user: user, name: "My Playlist")
       get playlists_path
