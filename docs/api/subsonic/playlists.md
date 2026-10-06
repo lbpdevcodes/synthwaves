@@ -1,6 +1,6 @@
 # Playlists
 
-synthwaves.fm includes two virtual playlists (`all` and `podcasts`) alongside user-created playlists. Virtual playlists cannot be modified or deleted.
+synthwaves.fm includes three virtual playlists (`all`, `podcasts` and `favorites`) alongside user-created playlists. Virtual playlists cannot be modified or deleted.
 
 ## `getPlaylists`
 
@@ -35,6 +35,14 @@ Returns all playlists, including virtual playlists.
           "public": false
         },
         {
+          "id": "favorites",
+          "name": "Favorites",
+          "songCount": 42,
+          "duration": 9800,
+          "owner": "user@example.com",
+          "public": false
+        },
+        {
           "id": "7",
           "name": "Road Trip",
           "songCount": 25,
@@ -50,7 +58,7 @@ Returns all playlists, including virtual playlists.
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `id` | string | Playlist ID (`all` and `podcasts` are virtual) |
+| `id` | string | Playlist ID (`all`, `podcasts` and `favorites` are virtual) |
 | `name` | string | Playlist name |
 | `songCount` | integer | Number of streamable tracks |
 | `duration` | integer | Total duration in seconds |
@@ -69,7 +77,7 @@ Returns a playlist with its tracks.
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| `id` | string | Yes | Playlist ID (numeric, `all`, or `podcasts`) |
+| `id` | string | Yes | Playlist ID (numeric, `all`, `podcasts`, or `favorites`) |
 
 ### Response
 
@@ -103,7 +111,7 @@ Returns a playlist with its tracks.
 }
 ```
 
-Entries use the standard [child shape](README.md#child-track). For user-created playlists, entries are ordered by position. The `all` virtual playlist returns all music tracks alphabetically. The `podcasts` virtual playlist returns the 5 most recent episodes per podcast, ordered by newest first.
+Entries use the standard [child shape](README.md#child-track). For user-created playlists, entries are ordered by position. The `all` virtual playlist returns all music tracks alphabetically. The `podcasts` virtual playlist returns the 5 most recent episodes per podcast, ordered by newest first. The `favorites` virtual playlist returns every streamable track the user has starred, most recently starred first. Starring or unstarring a song (`star` / `unstar`) changes it immediately.
 
 ### Errors
 
@@ -162,7 +170,7 @@ To update an existing playlist's tracks:
 | Code | Message | Cause |
 |------|---------|-------|
 | 70 | Playlist not found | Invalid `playlistId` |
-| 70 | Cannot modify a virtual playlist | `playlistId` is `all` or `podcasts` |
+| 70 | Cannot modify a virtual playlist | `playlistId` is `all`, `podcasts` or `favorites` |
 
 ---
 
@@ -197,4 +205,4 @@ Returns an empty success response.
 | Code | Message | Cause |
 |------|---------|-------|
 | 70 | Playlist not found | Invalid playlist ID |
-| 70 | Cannot delete a virtual playlist | ID is `all` or `podcasts` |
+| 70 | Cannot delete a virtual playlist | ID is `all`, `podcasts` or `favorites` |

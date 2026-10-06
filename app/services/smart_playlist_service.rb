@@ -1,5 +1,11 @@
 class SmartPlaylistService
   DEFINITIONS = {
+    favorites: {
+      name: "Favorites",
+      description: "Every track you've marked as a favorite",
+      icon: "heart",
+      color: "neon-pink"
+    },
     most_played: {
       name: "Most Played",
       description: "Your all-time most listened tracks",
@@ -53,6 +59,10 @@ class SmartPlaylistService
   end
 
   private
+
+  def favorites
+    @user.favorite_tracks.includes(:artist, :album)
+  end
 
   def most_played
     Track.music

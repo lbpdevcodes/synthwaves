@@ -39,6 +39,15 @@ RSpec.describe "SmartPlaylists", type: :request do
       expect(response.body).to include("Neon Highway")
     end
 
+    it "lists the user's favorited tracks on the Favorites playlist" do
+      create(:favorite, user: user, favorable: create(:track, title: "Starred Synth"))
+      create(:track, title: "Ignored Synth")
+
+      get smart_playlist_path(:favorites)
+      expect(response.body).to include("Starred Synth")
+      expect(response.body).not_to include("Ignored Synth")
+    end
+
     it "shows empty state when no tracks match" do
       get smart_playlist_path(:heavy_rotation)
       expect(response.body).to include("No tracks match this playlist yet")

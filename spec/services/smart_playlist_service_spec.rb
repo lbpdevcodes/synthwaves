@@ -8,7 +8,7 @@ RSpec.describe SmartPlaylistService do
   describe ".all_definitions" do
     it "returns all playlist definitions" do
       expect(described_class.all_definitions.keys).to contain_exactly(
-        :most_played, :recently_added, :unplayed, :heavy_rotation, :deep_cuts
+        :favorites, :most_played, :recently_added, :unplayed, :heavy_rotation, :deep_cuts
       )
     end
   end
@@ -109,6 +109,18 @@ RSpec.describe SmartPlaylistService do
       result = described_class.call(user: user, playlist_id: :deep_cuts)
       expect(result.map(&:id)).to include(deep.id)
       expect(result.map(&:id)).not_to include(popular.id)
+    end
+  end
+
+  describe "favorites" do
+    it "returns every favorited track, newest first, ignoring the limit" do
+      older = create(:track, album: album, artist: artist)
+      newer = create(:track, album: album, artist: artist)
+      create(:favorite, user: user, favorable: older, created_at: 2.days.ago)
+      create(:favorite, user: user, favorable: newer, created_at: 1.day.ago)
+
+      result = described_class.call(user: user, playlist_id: :favorites, limit: 1)
+      expect(result).to eq([newer, older])
     end
   end
 

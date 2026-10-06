@@ -1,8 +1,10 @@
 class API::Subsonic::PlaylistsController < API::Subsonic::BaseController
+  VIRTUAL_PLAYLIST_IDS = %w[all podcasts favorites].freeze
+
   def get_playlists
     playlists = current_user.playlists
     render_subsonic(playlists: {
-      playlist: [all_tracks_virtual_entry, podcasts_virtual_entry] + playlists.map { |p| playlist_to_entry(p) }
+      playlist: [all_tracks_virtual_entry, podcasts_virtual_entry, favorites_virtual_entry] + playlists.map { |p| playlist_to_entry(p) }
     })
   end
 
@@ -23,6 +25,14 @@ class API::Subsonic::PlaylistsController < API::Subsonic::BaseController
       return
     end
 
+    if params[:id] == "favorites"
+      tracks = streamable_favorite_tracks.includes(:album, :artist)
+      render_subsonic(playlist: favorites_virtual_entry.merge(
+        entry: tracks.map { |t| track_to_child(t) }
+      ))
+      return
+    end
+
     playlist = current_user.playlists.includes(playlist_tracks: {track: [:album, :artist, :audio_file_attachment]}).find(params[:id])
     render_subsonic(playlist: playlist_to_entry(playlist).merge(
       entry: playlist.playlist_tracks.order(:position).filter_map { |pt| track_to_child(pt.track) if pt.track.audio_file.attached? }
@@ -32,7 +42,7 @@ class API::Subsonic::PlaylistsController < API::Subsonic::BaseController
   end
 
   def create_playlist
-    if params[:playlistId].in?(%w[all podcasts])
+    if params[:playlistId].in?(VIRTUAL_PLAYLIST_IDS)
       render_subsonic_error(70, "Cannot modify a virtual playlist")
       return
     end
@@ -58,7 +68,7 @@ class API::Subsonic::PlaylistsController < API::Subsonic::BaseController
   end
 
   def delete_playlist
-    if params[:id].in?(%w[all podcasts])
+    if params[:id].in?(VIRTUAL_PLAYLIST_IDS)
       render_subsonic_error(70, "Cannot delete a virtual playlist")
       return
     end
@@ -93,6 +103,21 @@ class API::Subsonic::PlaylistsController < API::Subsonic::BaseController
       owner: current_user.email_address,
       public: false
     }
+  end
+
+  def favorites_virtual_entry
+    {
+      id: "favorites",
+      name: "Favorites",
+      songCount: streamable_favorite_tracks.count,
+      duration: streamable_favorite_tracks.sum(:duration).to_i,
+      owner: current_user.email_address,
+      public: false
+    }
+  end
+
+  def streamable_favorite_tracks
+    current_user.favorite_tracks.streamable
   end
 
   def recent_podcast_episodes

@@ -92,6 +92,27 @@ RSpec.describe User, type: :model do
     end
   end
 
+  describe "#favorite_tracks" do
+    let(:user) { create(:user) }
+
+    it "returns favorited tracks with the newest favorite first" do
+      older = create(:track)
+      newer = create(:track)
+      create(:favorite, user: user, favorable: older, created_at: 2.days.ago)
+      create(:favorite, user: user, favorable: newer, created_at: 1.day.ago)
+
+      expect(user.favorite_tracks).to eq([newer, older])
+    end
+
+    it "excludes tracks only another user favorited" do
+      mine = create(:track)
+      create(:favorite, user: user, favorable: mine)
+      create(:favorite, user: create(:user), favorable: create(:track))
+
+      expect(user.favorite_tracks).to eq([mine])
+    end
+  end
+
   describe "normalizes :email_address" do
     it "strips leading and trailing whitespace" do
       user = create(:user, email_address: "  padded@example.com  ")

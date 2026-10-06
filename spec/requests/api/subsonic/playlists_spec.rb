@@ -47,8 +47,16 @@ RSpec.describe "Subsonic Playlists API", type: :request do
       json = JSON.parse(response.body)
       playlists = json["subsonic-response"]["playlists"]["playlist"]
       # Only the virtual playlists should be present
-      expect(playlists.size).to eq(2)
-      expect(playlists.map { |p| p["id"] }).to eq(%w[all podcasts])
+      expect(playlists.map { |p| p["id"] }).to eq(%w[all podcasts favorites])
+    end
+
+    it "includes a Favorites virtual playlist counting the user's favorited tracks" do
+      create_list(:track, 3, user: user).first(2).each { |t| create(:favorite, user: user, favorable: t) }
+
+      get "/api/rest/getPlaylists.view", params: auth_params
+      playlists = JSON.parse(response.body)["subsonic-response"]["playlists"]["playlist"]
+      favorites = playlists.find { |p| p["id"] == "favorites" }
+      expect(favorites).to include("name" => "Favorites", "songCount" => 2)
     end
   end
 
@@ -135,6 +143,28 @@ RSpec.describe "Subsonic Playlists API", type: :request do
       playlist = json["subsonic-response"]["playlist"]
       expect(playlist["entry"].size).to eq(3)
       expect(playlist["songCount"]).to eq(3)
+    end
+
+    it "returns favorited tracks with the newest favorite first when id is 'favorites'" do
+      older = create(:track, title: "Older Favorite", user: user)
+      newer = create(:track, title: "Newer Favorite", user: user)
+      create(:track, title: "Not a Favorite", user: user)
+      create(:favorite, user: user, favorable: older, created_at: 2.days.ago)
+      create(:favorite, user: user, favorable: newer, created_at: 1.day.ago)
+
+      get "/api/rest/getPlaylist.view", params: auth_params.merge(id: "favorites")
+      playlist = JSON.parse(response.body)["subsonic-response"]["playlist"]
+      expect(playlist["id"]).to eq("favorites")
+      expect(playlist["entry"].map { |e| e["title"] }).to eq(["Newer Favorite", "Older Favorite"])
+    end
+
+    it "excludes favorited tracks without audio files from the 'favorites' playlist" do
+      create(:favorite, user: user, favorable: create(:track, title: "Streamable", user: user))
+      create(:favorite, user: user, favorable: create(:track, :youtube, title: "No Audio", user: user))
+
+      get "/api/rest/getPlaylist.view", params: auth_params.merge(id: "favorites")
+      playlist = JSON.parse(response.body)["subsonic-response"]["playlist"]
+      expect(playlist["entry"].map { |e| e["title"] }).to eq(["Streamable"])
     end
 
     it "excludes tracks without audio files from user playlists" do
@@ -224,6 +254,12 @@ RSpec.describe "Subsonic Playlists API", type: :request do
       expect(json["subsonic-response"]["status"]).to eq("failed")
       expect(json["subsonic-response"]["error"]["code"]).to eq(70)
     end
+
+    it "refuses to modify the Favorites playlist" do
+      get "/api/rest/createPlaylist.view", params: auth_params.merge(playlistId: "favorites", name: "Renamed")
+      error = JSON.parse(response.body)["subsonic-response"]["error"]
+      expect(error).to eq("code" => 70, "message" => "Cannot modify a virtual playlist")
+    end
   end
 
   describe "GET /api/rest/deletePlaylist.view" do
@@ -239,6 +275,12 @@ RSpec.describe "Subsonic Playlists API", type: :request do
       json = JSON.parse(response.body)
       expect(json["subsonic-response"]["status"]).to eq("failed")
       expect(json["subsonic-response"]["error"]["code"]).to eq(70)
+    end
+
+    it "refuses to delete the Favorites playlist" do
+      get "/api/rest/deletePlaylist.view", params: auth_params.merge(id: "favorites")
+      error = JSON.parse(response.body)["subsonic-response"]["error"]
+      expect(error).to eq("code" => 70, "message" => "Cannot delete a virtual playlist")
     end
 
     it "returns error when trying to delete the Podcasts playlist" do
