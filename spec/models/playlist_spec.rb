@@ -256,6 +256,31 @@ RSpec.describe Playlist, type: :model do
     end
   end
 
+  describe "#reorder!" do
+    let(:playlist) { create(:playlist) }
+    let(:tracks) { create_list(:track, 3, user: playlist.user) }
+
+    before { playlist.add_tracks(tracks) }
+
+    it "numbers the given entries 1..N in the order given" do
+      ids = playlist.playlist_tracks.order(:position).pluck(:id).reverse
+
+      playlist.reorder!(ids)
+
+      expect(playlist.playlist_tracks.reload.map(&:track)).to eq(tracks.reverse)
+      expect(playlist.playlist_tracks.pluck(:position)).to eq([1, 2, 3])
+    end
+
+    it "ignores ids from another playlist" do
+      foreign = create(:playlist_track)
+      ids = playlist.playlist_tracks.order(:position).pluck(:id)
+
+      playlist.reorder!(ids + [foreign.id])
+
+      expect(foreign.reload.playlist).not_to eq(playlist)
+    end
+  end
+
   describe "#replace_tracks" do
     let(:user) { create(:user) }
     let(:playlist) { create(:playlist, user: user) }
