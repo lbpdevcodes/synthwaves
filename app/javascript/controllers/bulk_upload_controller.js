@@ -3,6 +3,10 @@ import { DirectUpload } from "@rails/activestorage"
 
 export default class extends Controller {
   static targets = ["input", "preview", "list", "submit"]
+  static values = {
+    label: { type: String, default: "Upload Season" },
+    finishingLabel: { type: String, default: "Creating videos..." }
+  }
 
   filesChanged() {
     const files = this.inputTarget.files
@@ -42,7 +46,7 @@ export default class extends Controller {
 
     if (results.length === 0) {
       this.submitTarget.disabled = false
-      this.submitTarget.value = "Upload Season"
+      this.submitTarget.value = this.labelValue
       this.inputTarget.disabled = false
       return
     }
@@ -55,7 +59,7 @@ export default class extends Controller {
       form.appendChild(this.hiddenInput("filenames[]", filename))
     })
 
-    this.submitTarget.value = "Creating videos..."
+    this.submitTarget.value = this.finishingLabelValue
     this.uploadsComplete = true
     form.requestSubmit()
   }

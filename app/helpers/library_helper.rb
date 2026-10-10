@@ -1,10 +1,6 @@
 module LibraryHelper
-  def library_artists
-    Current.user.artists.order(:name)
-  end
-
   def library_artist_names
-    library_artists.pluck(:name)
+    Current.user.artists.order(:name).pluck(:name)
   end
 
   def library_album_titles

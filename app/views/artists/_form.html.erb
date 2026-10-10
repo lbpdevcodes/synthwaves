@@ -19,5 +19,5 @@
     <%= f.select :category, Artist::CATEGORIES.map { |c| [c.titleize, c] }, {}, class: "w-full rounded-lg bg-gray-800 border border-gray-700 px-3 py-2 text-white focus:outline-neon-cyan" %>
   </div>
 
-  <%= render "shared/form_actions", form: f, cancel_path: artist_path(artist) %>
+  <%= render "shared/form_actions", form: f, cancel_path: cancel_path %>
 <% end %>

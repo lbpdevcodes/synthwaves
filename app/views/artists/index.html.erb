@@ -1,5 +1,8 @@
 <div class="w-full">
-  <h1 class="text-3xl font-bold font-display mb-6">Artists</h1>
+  <div class="flex items-center justify-between gap-3 mb-6">
+    <h1 class="text-3xl font-bold font-display">Artists</h1>
+    <%= render Button::Component.new(label: "New artist", behavior: :navigation, link_url: new_artist_path, style: :secondary, size: :small, turbo_frame: "modal") %>
+  </div>
   <%= render CollectionLayout::Component.new(
     collection: @artists,
     page_key: "artists",

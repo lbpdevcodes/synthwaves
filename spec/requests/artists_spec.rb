@@ -159,6 +159,45 @@ RSpec.describe "Artists", type: :request do
     end
   end
 
+  describe "GET /artists/new" do
+    it "renders the form in an open modal when the modal frame asks for it" do
+      get new_artist_path, headers: {"Turbo-Frame" => "modal"}
+
+      form = Nokogiri::HTML(response.body).at_css("turbo-frame#modal dialog form[action='#{artists_path}']")
+      expect(form.at_css("input[name='artist[name]']")).to be_present
+    end
+
+    it "is offered from the artists index, opening in the modal" do
+      get artists_path
+      link = Nokogiri::HTML(response.body).at_css("a[href='#{new_artist_path}']")
+      expect(link["data-turbo-frame"]).to eq("modal")
+    end
+  end
+
+  describe "POST /artists" do
+    it "creates the artist in the owner's library and visits it" do
+      post artists_path, params: {artist: {name: "Brand New", category: "music"}}, headers: {"Turbo-Frame" => "modal"}
+
+      artist = user.artists.find_by!(name: "Brand New")
+      stream = Nokogiri::HTML(response.body).at_css("turbo-stream[action='visit']")
+      expect(stream["location"]).to eq(artist_path(artist))
+      expect(flash[:notice]).to eq("Artist created.")
+    end
+
+    it "redirects to the new artist when posted as a full page" do
+      post artists_path, params: {artist: {name: "Brand New"}}
+      expect(response).to redirect_to(artist_path(user.artists.find_by!(name: "Brand New")))
+    end
+
+    it "shows the errors inside the modal when the name is taken" do
+      create(:artist, name: "Taken", user: user)
+      post artists_path, params: {artist: {name: "Taken"}}, headers: {"Turbo-Frame" => "modal"}
+
+      expect(response).to have_http_status(:unprocessable_content)
+      expect(Nokogiri::HTML(response.body).at_css("turbo-frame#modal dialog").text).to include("Name has already been taken")
+    end
+  end
+
   describe "GET /artists/:id/edit" do
     it "lets the owner open the form" do
       artist = create(:artist, user: user)

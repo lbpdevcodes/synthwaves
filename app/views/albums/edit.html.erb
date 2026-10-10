@@ -1,4 +1,4 @@
 <%= render layout: "shared/modal_or_page", locals: {title: "Edit Album"} do %>
-  <%= render "form", album: @album %>
+  <%= render "form", album: @album, cancel_path: album_path(@album) %>
   <%= render "shared/delete_record", url: album_path(@album), confirm: album_delete_confirmation(@album) %>
 <% end %>

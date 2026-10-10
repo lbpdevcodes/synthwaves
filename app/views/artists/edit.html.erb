@@ -1,4 +1,4 @@
 <%= render layout: "shared/modal_or_page", locals: {title: "Edit Artist"} do %>
-  <%= render "form", artist: @artist %>
+  <%= render "form", artist: @artist, cancel_path: artist_path(@artist) %>
   <%= render "shared/delete_record", url: artist_path(@artist), confirm: artist_delete_confirmation(@artist) %>
 <% end %>
