@@ -10,5 +10,6 @@ class SmartPlaylistsController < ApplicationController
     return redirect_to smart_playlists_path unless @definition
 
     @tracks = SmartPlaylistService.call(user: Current.user, playlist_id: @playlist_id)
+    @favorited_track_ids = Current.user.favorited_ids_for("Track")
   end
 end
