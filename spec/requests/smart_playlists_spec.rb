@@ -48,6 +48,14 @@ RSpec.describe "SmartPlaylists", type: :request do
       expect(response.body).not_to include("Ignored Synth")
     end
 
+    it "lets the user un-favorite a track from the Favorites playlist" do
+      favorite = create(:favorite, user: user, favorable: create(:track, title: "Starred Synth"))
+
+      get smart_playlist_path(:favorites)
+      form = Nokogiri::HTML(response.body).at_css("form[action='#{favorite_path(favorite)}']")
+      expect(form&.at_css("input[name='_method'][value='delete']")).to be_present
+    end
+
     it "shows empty state when no tracks match" do
       get smart_playlist_path(:heavy_rotation)
       expect(response.body).to include("No tracks match this playlist yet")

@@ -18,7 +18,11 @@
         link_subtitle: true,
         show_album: true,
         show_duration: true
-      ) %>
+      ) do |c| %>
+        <% c.with_trailing do %>
+          <%= render TrackActions::Component.new(track: track, favorited: @favorited_track_ids.include?(track.id)) %>
+        <% end %>
+      <% end %>
     <% end %>
     <% if @tracks.empty? %>
       <div class="px-4 py-8 text-center text-gray-400 text-sm">No tracks match this playlist yet</div>

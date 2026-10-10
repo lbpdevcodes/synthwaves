@@ -38,6 +38,17 @@ RSpec.describe "Music", type: :request do
       expect(response.body).to include("Test Album")
     end
 
+    it "offers a download for tracks with audio on the tracks tab" do
+      user = create(:user)
+      login_user(user)
+      artist = create(:artist, category: :music, user: user)
+      track = create(:track, artist: artist, album: create(:album, artist: artist), user: user)
+
+      get music_path(tab: "tracks")
+
+      expect(Nokogiri::HTML(response.body).at_css("a[href='#{download_track_path(track)}']")).to be_present
+    end
+
     it "renders the tracks tab" do
       user = create(:user)
       login_user(user)

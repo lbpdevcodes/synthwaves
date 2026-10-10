@@ -18,6 +18,12 @@ RSpec.describe "Search", type: :request do
       expect(response.body).to include("The Beatles")
     end
 
+    it "offers a download for matching tracks with audio" do
+      track = create(:track, title: "Downloadable Anthem", user: user)
+      get search_path, params: {q: "Downloadable"}
+      expect(Nokogiri::HTML(response.body).at_css("a[href='#{download_track_path(track)}']")).to be_present
+    end
+
     it "filters by genre" do
       artist = create(:artist, name: "DJ Pulse", user: user)
       create(:album, title: "Electric Nights", artist: artist, genre: "Electronic")

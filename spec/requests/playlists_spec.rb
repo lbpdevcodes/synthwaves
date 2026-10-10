@@ -169,6 +169,11 @@ RSpec.describe "Playlists", type: :request do
       expect(response.body).to include('data-action="song-row#play"')
     end
 
+    it "offers to add each track to another playlist" do
+      row = Nokogiri::HTML(response.body).at_css("[data-controller~=song-row]")
+      expect(row.at_css("button[title='Add to playlist']")).to be_present
+    end
+
     it "renders stream URL value" do
       expect(response.body).to include("data-song-row-stream-url-value")
     end

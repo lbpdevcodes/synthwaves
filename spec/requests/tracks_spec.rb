@@ -11,6 +11,12 @@ RSpec.describe "Tracks", type: :request do
       expect(response).to have_http_status(:ok)
     end
 
+    it "offers a download for tracks with audio" do
+      track = create(:track, user: user)
+      get tracks_path
+      expect(Nokogiri::HTML(response.body).at_css("a[href='#{download_track_path(track)}']")).to be_present
+    end
+
     it "paginates results" do
       create_list(:track, 25, album: create(:album, artist: create(:artist, user: user)))
       get tracks_path
