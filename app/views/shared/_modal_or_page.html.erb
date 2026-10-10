@@ -1,0 +1,14 @@
+<%# A form view that opens in the layout's modal frame when Turbo asks for it,
+    and renders as a plain page when visited directly. %>
+<% if turbo_frame_request? %>
+  <%= turbo_frame_tag "modal" do %>
+    <%= render Modal::Component.new(title: title, open: true, remove_on_close: true) do %>
+      <%= yield %>
+    <% end %>
+  <% end %>
+<% else %>
+  <div class="w-full max-w-lg">
+    <h1 class="text-3xl font-bold font-display mb-6"><%= title %></h1>
+    <%= yield %>
+  </div>
+<% end %>

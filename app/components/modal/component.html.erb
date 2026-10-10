@@ -1,13 +1,13 @@
-<div data-controller="modal" data-modal-open-value="<%= open? %>">
+<div data-controller="modal" data-modal-open-value="<%= open? %>" data-modal-remove-on-close-value="<%= remove_on_close %>">
   <% if opener? %>
     <div data-action="click->modal#show">
       <%= opener %>
     </div>
   <% end %>
 
-  <dialog class="modal bg-gray-800 text-white border border-gray-700 rounded-lg shadow-xl max-w-lg w-full p-0 backdrop:bg-black/60"
+  <dialog class="modal m-auto bg-gray-800 text-white border border-gray-700 rounded-lg shadow-xl max-w-lg w-full p-0 backdrop:bg-black/60"
           data-modal-target="dialog"
-          <% if backdrop_cancellable? %>data-action="click->modal#backdropClick"<% end %>>
+          data-action="<%= dialog_actions %>">
     <div class="p-6">
       <% if header? || title || cancellable? %>
         <div class="flex items-center justify-between mb-4">

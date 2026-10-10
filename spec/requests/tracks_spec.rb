@@ -87,6 +87,25 @@ RSpec.describe "Tracks", type: :request do
     end
   end
 
+  describe "edit links" do
+    let(:track) { create(:track, user: user) }
+
+    it "gives each listed track one edit link, opening the modal" do
+      track
+      get tracks_path
+      links = Nokogiri::HTML(response.body).css("a[href='#{edit_track_path(track)}']")
+      expect(links.map { |l| l["data-turbo-frame"] }).to eq(["modal"])
+    end
+
+    it "opens Edit from the track page in the modal and confirms Delete by title" do
+      get track_path(track)
+      doc = Nokogiri::HTML(response.body)
+      expect(doc.css("a[href='#{edit_track_path(track)}']").map { |l| l["data-turbo-frame"] }.uniq).to eq(["modal"])
+      confirms = doc.css("form[action='#{track_path(track)}']:has(input[name='_method'][value='delete'])").map { |f| f["data-turbo-confirm"] }
+      expect(confirms).to all(include(track.title))
+    end
+  end
+
   describe "GET /tracks/:id" do
     let(:track) { create(:track, album: create(:album, artist: create(:artist, user: user))) }
 
@@ -239,8 +258,41 @@ RSpec.describe "Tracks", type: :request do
     end
   end
 
+  describe "GET /tracks/:id/edit" do
+    let(:track) { create(:track, user: user) }
+
+    it "renders the form in an open modal when the modal frame asks for it" do
+      get edit_track_path(track), headers: {"Turbo-Frame" => "modal"}
+
+      doc = Nokogiri::HTML(response.body)
+      expect(doc.at_css("turbo-frame#modal [data-controller='modal']")["data-modal-open-value"]).to eq("true")
+      expect(doc.at_css("turbo-frame#modal dialog form[action='#{track_path(track)}'] input[name='track[title]']")).to be_present
+    end
+
+    it "takes the artist and album as typed names, suggesting the owner's own" do
+      create(:artist, name: "Somebody Elses Artist")
+      get edit_track_path(track)
+
+      doc = Nokogiri::HTML(response.body)
+      artist_input = doc.at_css("input[name='track[artist_name]']")
+      expect(artist_input["value"]).to eq(track.artist.name)
+      suggestions = doc.css("datalist##{artist_input["list"]} option").map { |o| o["value"] }
+      expect(suggestions).to include(track.artist.name)
+      expect(suggestions).not_to include("Somebody Elses Artist")
+      expect(doc.at_css("input[name='track[album_title]']")["value"]).to eq(track.album.title)
+    end
+
+    it "offers Delete in the modal, confirmed and loaded as a full page" do
+      get edit_track_path(track), headers: {"Turbo-Frame" => "modal"}
+
+      form = Nokogiri::HTML(response.body).at_css("dialog form[action='#{track_path(track)}']:has(input[name='_method'][value='delete'])")
+      expect(form["data-turbo-frame"]).to eq("_top")
+      expect(form["data-turbo-confirm"]).to include(track.title)
+    end
+  end
+
   describe "PATCH /tracks/:id" do
-    let(:track) { create(:track, album: create(:album, artist: create(:artist, user: user))) }
+    let(:track) { create(:track, user: user) }
 
     it "updates the track" do
       patch track_path(track), params: {track: {title: "New Title"}}
@@ -253,29 +305,72 @@ RSpec.describe "Tracks", type: :request do
       expect(response).to have_http_status(:unprocessable_content)
     end
 
-    it "moves track to a different album" do
-      new_album = create(:album, title: "New Album", artist: create(:artist, user: user))
-      patch track_path(track), params: {track: {album_id: new_album.id}}
+    it "refreshes the page under the modal after a save from it" do
+      patch track_path(track), params: {track: {title: "New Title"}},
+        headers: {"Turbo-Frame" => "modal", "X-Turbo-Request-Id" => "req-1"}
 
-      expect(track.reload.album).to eq(new_album)
+      stream = Nokogiri::HTML(response.body).at_css("turbo-stream[action='refresh']")
+      expect(stream).to be_present
+      expect(stream["request-id"]).to be_nil
+      expect(flash[:notice]).to eq("Track updated.")
     end
 
-    it "moves track to a different artist" do
-      new_artist = create(:artist, name: "New Artist", user: user)
-      patch track_path(track), params: {track: {artist_id: new_artist.id}}
+    it "shows the errors inside the modal when the save fails" do
+      patch track_path(track), params: {track: {title: ""}}, headers: {"Turbo-Frame" => "modal"}
 
-      expect(track.reload.artist).to eq(new_artist)
+      expect(response).to have_http_status(:unprocessable_content)
+      expect(Nokogiri::HTML(response.body).at_css("turbo-frame#modal dialog").text).to include("Title can't be blank")
+    end
+
+    it "moves the track to another of the artist's albums by its title" do
+      other_album = create(:album, title: "B-Sides", artist: track.artist)
+      patch track_path(track), params: {track: {album_title: "B-Sides"}}
+
+      expect(track.reload.album).to eq(other_album)
+    end
+
+    it "files the track under a new album when the typed title is new" do
+      patch track_path(track), params: {track: {album_title: "Brand New Album"}}
+
+      expect(track.reload.album.title).to eq("Brand New Album")
+      expect(track.album.artist).to eq(track.artist)
+    end
+
+    it "creates a typed new artist and takes the album along" do
+      patch track_path(track), params: {track: {artist_name: "Freshly Typed"}}
+
+      track.reload
+      expect(track.artist.name).to eq("Freshly Typed")
+      expect(track.artist.user).to eq(user)
+      expect(track.album.artist).to eq(track.artist)
+    end
+
+    it "keeps the artist and album when their names come back unchanged" do
+      album = track.album
+      patch track_path(track), params: {track: {title: "Renamed", artist_name: track.artist.name, album_title: album.title}}
+
+      expect(track.reload.album).to eq(album)
+      expect(Album.count).to eq(1)
     end
   end
 
   describe "DELETE /tracks/:id" do
-    let!(:track) { create(:track, album: create(:album, artist: create(:artist, user: user))) }
+    let!(:track) { create(:track, user: user) }
 
     it "deletes the track" do
       expect {
         delete track_path(track)
       }.to change(Track, :count).by(-1)
-      expect(response).to redirect_to(tracks_path)
+    end
+
+    it "returns to the page the delete came from" do
+      delete track_path(track), headers: {"Referer" => tracks_url(q: "tr")}
+      expect(response).to redirect_to(tracks_url(q: "tr"))
+    end
+
+    it "goes to the album when deleted from its own page" do
+      delete track_path(track), headers: {"Referer" => track_url(track)}
+      expect(response).to redirect_to(album_path(track.album))
     end
   end
 
@@ -307,9 +402,8 @@ RSpec.describe "Tracks", type: :request do
       expect(foreign.reload.title).to eq("Foreign")
     end
 
-    it "refuses to move the track to another user's album" do
+    it "keeps the track in the owner's library when sent another user's album id" do
       patch track_path(track), params: {track: {album_id: create(:album).id}}
-      expect(response).to have_http_status(:unprocessable_content)
       expect(track.reload.album.user).to eq(owner)
     end
   end

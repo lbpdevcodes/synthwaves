@@ -1,0 +1,74 @@
+<% field_class = "w-full rounded-lg bg-gray-800 border border-gray-700 px-3 py-2 text-white focus:outline-neon-cyan" %>
+<%= form_with model: track, class: "space-y-5" do |f| %>
+  <% if track.errors.any? %>
+    <div class="bg-red-900/20 border border-red-800 rounded-lg p-4">
+      <ul class="text-sm text-red-400">
+        <% track.errors.full_messages.each do |msg| %>
+          <li><%= msg %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <div>
+    <%= f.label :title, class: "block text-sm font-medium text-gray-400 mb-1" %>
+    <%= f.text_field :title, class: field_class %>
+  </div>
+
+  <div>
+    <%= f.label :artist_name, "Artist", class: "block text-sm font-medium text-gray-400 mb-1" %>
+    <%= f.text_field :artist_name, value: track.artist&.name, list: "library-artist-names", autocomplete: "off", class: field_class %>
+    <datalist id="library-artist-names">
+      <% library_artist_names.each do |name| %>
+        <option value="<%= name %>"></option>
+      <% end %>
+    </datalist>
+  </div>
+
+  <div>
+    <%= f.label :album_title, "Album", class: "block text-sm font-medium text-gray-400 mb-1" %>
+    <%= f.text_field :album_title, value: track.album&.title, list: "library-album-titles", autocomplete: "off", class: field_class %>
+    <datalist id="library-album-titles">
+      <% library_album_titles.each do |title| %>
+        <option value="<%= title %>"></option>
+      <% end %>
+    </datalist>
+    <p class="text-xs text-gray-500 mt-1">Type a new name to create it. A new artist takes the album along.</p>
+  </div>
+
+  <div class="grid grid-cols-2 gap-4">
+    <div>
+      <%= f.label :track_number, class: "block text-sm font-medium text-gray-400 mb-1" %>
+      <%= f.number_field :track_number, class: field_class %>
+    </div>
+
+    <div>
+      <%= f.label :disc_number, class: "block text-sm font-medium text-gray-400 mb-1" %>
+      <%= f.number_field :disc_number, class: field_class %>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-2 gap-4">
+    <div>
+      <%= f.label :release_year, "Release Year", class: "block text-sm font-medium text-gray-400 mb-1" %>
+      <%= f.number_field :release_year, class: field_class, placeholder: "e.g. 2013" %>
+    </div>
+
+    <div>
+      <%= f.label :content_rating, "Content Rating", class: "block text-sm font-medium text-gray-400 mb-1" %>
+      <%= f.select :content_rating, [["Explicit", "explicit"], ["Clean", "clean"]], { include_blank: "Not rated", selected: track.content_rating }, class: field_class %>
+    </div>
+  </div>
+
+  <div>
+    <%= f.label :language, class: "block text-sm font-medium text-gray-400 mb-1" %>
+    <%= f.select :language, TracksHelper::LANGUAGE_NAMES.map { |code, name| [name, code] }.sort_by(&:first), { include_blank: "Not set", selected: track.language }, class: field_class %>
+  </div>
+
+  <div>
+    <%= f.label :lyrics, class: "block text-sm font-medium text-gray-400 mb-1" %>
+    <%= f.text_area :lyrics, rows: 6, class: "#{field_class} font-mono text-sm", placeholder: "Paste lyrics here..." %>
+  </div>
+
+  <%= render "shared/form_actions", form: f, cancel_path: track_path(track) %>
+<% end %>

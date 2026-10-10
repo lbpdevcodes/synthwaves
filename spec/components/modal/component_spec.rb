@@ -38,6 +38,17 @@ RSpec.describe Modal::Component, type: :component do
     expect(html.at_css("[data-controller='modal']")["data-modal-open-value"]).to eq("true")
   end
 
+  it "keeps the modal in the page after it closes by default" do
+    html = render_inline(described_class.new) { "Body" }
+    expect(html.at_css("[data-controller='modal']")["data-modal-remove-on-close-value"]).to eq("false")
+  end
+
+  it "removes the modal from the page once it closes when asked to" do
+    html = render_inline(described_class.new(remove_on_close: true)) { "Body" }
+    expect(html.at_css("[data-controller='modal']")["data-modal-remove-on-close-value"]).to eq("true")
+    expect(html.at_css("dialog")["data-action"]).to include("close->modal#closed")
+  end
+
   it "enables backdrop click by default" do
     html = render_inline(described_class.new) { "Body" }
     dialog = html.at_css("dialog")
@@ -47,7 +58,7 @@ RSpec.describe Modal::Component, type: :component do
   it "disables backdrop click when backdrop_cancellable is false" do
     html = render_inline(described_class.new(backdrop_cancellable: false)) { "Body" }
     dialog = html.at_css("dialog")
-    expect(dialog["data-action"]).to be_nil
+    expect(dialog["data-action"]).not_to include("modal#backdropClick")
   end
 
   it "renders the header slot" do

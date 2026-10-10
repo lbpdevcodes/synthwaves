@@ -54,8 +54,8 @@
           <% if @album.tracks.where.not(youtube_video_id: [nil, ""]).where.missing(:audio_file_attachment).any? %>
             <%= button_to "Download Audio", download_audio_album_path(@album), class: "block w-full text-left px-4 py-2 text-sm text-white hover:bg-gray-700 hover:text-neon-cyan" %>
           <% end %>
-          <%= render Button::Component.new(label: "Edit", behavior: :navigation, link_url: edit_album_path(@album), style: :menu_item) %>
-          <%= button_to "Delete", album_path(@album), method: :delete, class: "block w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-gray-700", data: { turbo_confirm: "Delete \"#{@album.title}\" and all its tracks? This cannot be undone." } %>
+          <%= render Button::Component.new(label: "Edit", behavior: :navigation, link_url: edit_album_path(@album), style: :menu_item, turbo_frame: "modal") %>
+          <%= button_to "Delete", album_path(@album), method: :delete, class: "block w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-gray-700", data: { turbo_confirm: album_delete_confirmation(@album) } %>
         <% end %>
       </div>
     </div>

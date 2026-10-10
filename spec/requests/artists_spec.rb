@@ -12,6 +12,20 @@ RSpec.describe "Artists", type: :request do
       expect(response).to have_http_status(:ok)
     end
 
+    it "puts an edit pencil on each artist card that opens the modal" do
+      artist = create(:artist, user: user)
+      get artists_path
+      link = Nokogiri::HTML(response.body).at_css("a[href='#{edit_artist_path(artist)}']")
+      expect(link["data-turbo-frame"]).to eq("modal")
+    end
+
+    it "carries an empty modal frame for edit forms to open in" do
+      get artists_path
+      frame = Nokogiri::HTML(response.body).at_css("turbo-frame#modal")
+      expect(frame).to be_present
+      expect(frame.children.to_s.strip).to be_empty
+    end
+
     it "displays album cover image as artist thumbnail" do
       artist = create(:artist, name: "Cover Artist", user: user)
       album = create(:album, artist: artist)
@@ -121,8 +135,16 @@ RSpec.describe "Artists", type: :request do
       get artist_path(artist)
 
       doc = Nokogiri::HTML(response.body)
-      expect(doc.at_css("a[href='#{edit_artist_path(artist)}']")).to be_present
+      expect(doc.at_css("a[href='#{edit_artist_path(artist)}']")["data-turbo-frame"]).to eq("modal")
       expect(doc.at_css("form[action='#{artist_path(artist)}'] input[name='_method'][value='delete']")).to be_present
+    end
+
+    it "puts an edit pencil on each album card that opens the modal" do
+      artist = create(:artist, user: user)
+      album = create(:album, artist: artist)
+      get artist_path(artist)
+      link = Nokogiri::HTML(response.body).at_css("a[href='#{edit_album_path(album)}']")
+      expect(link["data-turbo-frame"]).to eq("modal")
     end
 
     it "shows only the library's albums for an artist MusicBrainz knows" do
@@ -142,6 +164,34 @@ RSpec.describe "Artists", type: :request do
       artist = create(:artist, user: user)
       get edit_artist_path(artist)
       expect(response).to have_http_status(:ok)
+    end
+
+    it "renders the form in an open modal when the modal frame asks for it" do
+      artist = create(:artist, user: user)
+      get edit_artist_path(artist), headers: {"Turbo-Frame" => "modal"}
+
+      dialog = Nokogiri::HTML(response.body).at_css("turbo-frame#modal [data-controller='modal'] dialog")
+      modal = dialog.ancestors("[data-controller='modal']").first
+      expect(modal["data-modal-open-value"]).to eq("true")
+      expect(modal["data-modal-remove-on-close-value"]).to eq("true")
+      expect(dialog.at_css("form[action='#{artist_path(artist)}'] input[name='artist[name]']")).to be_present
+    end
+
+    it "closes the modal on Cancel instead of navigating away" do
+      artist = create(:artist, user: user)
+      get edit_artist_path(artist), headers: {"Turbo-Frame" => "modal"}
+
+      closers = Nokogiri::HTML(response.body).css("dialog button[data-action~='modal#close']")
+      expect(closers.map { |b| b.text.strip }).to include("Cancel")
+    end
+
+    it "offers Delete in the modal, confirmed and loaded as a full page" do
+      artist = create(:artist, user: user)
+      get edit_artist_path(artist), headers: {"Turbo-Frame" => "modal"}
+
+      form = Nokogiri::HTML(response.body).at_css("dialog form[action='#{artist_path(artist)}']:has(input[name='_method'][value='delete'])")
+      expect(form["data-turbo-frame"]).to eq("_top")
+      expect(form["data-turbo-confirm"]).to include(artist.name)
     end
 
     it "returns not found for another user's artist" do
@@ -176,6 +226,27 @@ RSpec.describe "Artists", type: :request do
       expect(response).to have_http_status(:unprocessable_content)
     end
 
+    it "refreshes the page under the modal after a save from it" do
+      artist = create(:artist, name: "Old Name", user: user)
+      patch artist_path(artist), params: {artist: {name: "New Name"}},
+        headers: {"Turbo-Frame" => "modal", "X-Turbo-Request-Id" => "req-1"}
+
+      stream = Nokogiri::HTML(response.body).at_css("turbo-stream[action='refresh']")
+      expect(stream).to be_present
+      expect(stream["request-id"]).to be_nil
+      expect(flash[:notice]).to eq("Artist updated.")
+    end
+
+    it "shows the errors inside the modal when the save fails" do
+      create(:artist, name: "Taken", user: user)
+      artist = create(:artist, name: "Other", user: user)
+
+      patch artist_path(artist), params: {artist: {name: "Taken"}}, headers: {"Turbo-Frame" => "modal"}
+
+      expect(response).to have_http_status(:unprocessable_content)
+      expect(Nokogiri::HTML(response.body).at_css("turbo-frame#modal dialog").text).to include("Name has already been taken")
+    end
+
     it "leaves another user's artist unchanged" do
       artist = create(:artist, name: "Original")
       patch artist_path(artist), params: {artist: {name: "Hacked"}}
@@ -196,6 +267,18 @@ RSpec.describe "Artists", type: :request do
         .and change(Album, :count).by(-1)
         .and change(Track, :count).by(-1)
 
+      expect(response).to redirect_to(artists_path)
+    end
+
+    it "returns to the page the delete came from" do
+      artist = create(:artist, user: user)
+      delete artist_path(artist), headers: {"Referer" => artists_url(q: "art")}
+      expect(response).to redirect_to(artists_url(q: "art"))
+    end
+
+    it "goes to the artists index when deleted from its own page" do
+      artist = create(:artist, user: user)
+      delete artist_path(artist), headers: {"Referer" => artist_url(artist)}
       expect(response).to redirect_to(artists_path)
     end
 
