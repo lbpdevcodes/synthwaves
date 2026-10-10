@@ -26,10 +26,10 @@
             <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M10 6a2 2 0 110-4 2 2 0 010 4zm0 6a2 2 0 110-4 2 2 0 010 4zm0 6a2 2 0 110-4 2 2 0 010 4z"/></svg>
           </span>
         <% end %>
-        <%= render Button::Component.new(label: "Edit", behavior: :navigation, link_url: edit_playlist_path(@playlist), style: :menu_item) %>
+        <%= render Button::Component.new(label: "Rename", behavior: :navigation, link_url: edit_playlist_path(@playlist), style: :menu_item, turbo_frame: "modal") %>
         <%= render Button::Component.new(label: "Copy track list", style: :menu_item, data: { clipboard_target: "button", action: "clipboard#copy" }) %>
         <%= button_to "Download", downloads_path(downloadable_type: "Playlist", downloadable_id: @playlist.id), class: "block w-full text-left px-4 py-2 text-sm text-white hover:bg-gray-700 hover:text-neon-cyan" %>
-        <%= button_to "Delete", playlist_path(@playlist), method: :delete, data: { turbo_confirm: "Delete this playlist?" }, class: "block w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-gray-700" %>
+        <%= button_to "Delete", playlist_path(@playlist), method: :delete, data: { turbo_confirm: playlist_delete_confirmation(@playlist) }, class: "block w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-gray-700" %>
       <% end %>
     </div>
   </div>

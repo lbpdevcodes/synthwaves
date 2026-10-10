@@ -27,5 +27,11 @@
     <% else %>
       <div class="px-4 py-2 text-sm text-gray-400">No playlists yet</div>
     <% end %>
+    <%= form_with url: playlists_path, class: "flex gap-2 p-2 border-t border-gray-700" do %>
+      <%= hidden_field_tag "track_ids[]", track.id, id: nil %>
+      <%= text_field_tag "playlist[name]", nil, id: nil, required: true, placeholder: "New playlist…", "aria-label": "New playlist name",
+            class: "min-w-0 flex-1 px-2 py-1 text-sm text-gray-200 bg-gray-900 border border-gray-600 rounded focus:outline-none focus:border-neon-cyan" %>
+      <button type="submit" class="px-2 py-1 text-sm text-neon-cyan hover:text-white">Create</button>
+    <% end %>
   </div>
 </div>

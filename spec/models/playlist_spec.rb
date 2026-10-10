@@ -237,6 +237,25 @@ RSpec.describe Playlist, type: :model do
     end
   end
 
+  describe "#remove_track" do
+    let(:playlist) { create(:playlist) }
+    let(:tracks) { create_list(:track, 4, user: playlist.user) }
+
+    before { playlist.add_tracks(tracks) }
+
+    it "closes the gap the removed track leaves in the positions" do
+      playlist.remove_track(playlist.playlist_tracks.find_by!(track: tracks[1]))
+
+      expect(playlist.playlist_tracks.reload.map { |pt| [pt.track, pt.position] })
+        .to eq([[tracks[0], 1], [tracks[2], 2], [tracks[3], 3]])
+    end
+
+    it "keeps the track count in step" do
+      playlist.remove_track(playlist.playlist_tracks.find_by!(track: tracks[0]))
+      expect(playlist.reload.playlist_tracks_count).to eq(3)
+    end
+  end
+
   describe "#replace_tracks" do
     let(:user) { create(:user) }
     let(:playlist) { create(:playlist, user: user) }

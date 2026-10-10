@@ -1,5 +1,7 @@
 class PlaylistsController < ApplicationController
   include Orderable
+  include ModalForm
+  include DestroyRedirect
 
   before_action :set_playlist, only: [:show, :edit, :update, :destroy, :merge]
 
@@ -35,8 +37,7 @@ class PlaylistsController < ApplicationController
   def create
     @playlist = Current.user.playlists.build(playlist_params)
     if @playlist.save
-      add_tracks_if_present
-      redirect_to @playlist, notice: "Playlist created."
+      respond_to_create add_tracks_if_present
     else
       render :new, status: :unprocessable_content
     end
@@ -47,7 +48,7 @@ class PlaylistsController < ApplicationController
 
   def update
     if @playlist.update(playlist_params)
-      redirect_to @playlist, notice: "Playlist updated."
+      respond_saved @playlist, notice: "Playlist updated."
     else
       render :edit, status: :unprocessable_content
     end
@@ -65,13 +66,23 @@ class PlaylistsController < ApplicationController
 
   def destroy
     @playlist.destroy
-    redirect_to playlists_path, notice: "Playlist deleted."
+    redirect_after_destroy playlist_path(@playlist), parent: playlists_path, notice: "Playlist deleted."
   end
 
   private
 
   def set_playlist
     @playlist = Current.user.playlists.find(params[:id])
+  end
+
+  # A playlist made from a track row (it arrives with track_ids) keeps the
+  # user on that page; one made from the New Playlist form opens.
+  def respond_to_create(added)
+    if added
+      respond_in_place "Created #{@playlist.name} with #{helpers.pluralize(added, "track")}.", fallback: @playlist
+    else
+      respond_created @playlist, notice: "Playlist created."
+    end
   end
 
   def add_tracks_if_present

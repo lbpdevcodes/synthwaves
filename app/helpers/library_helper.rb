@@ -18,4 +18,8 @@ module LibraryHelper
   def track_delete_confirmation(track)
     "Delete \"#{track.title}\"? This cannot be undone."
   end
+
+  def playlist_delete_confirmation(playlist)
+    "Delete \"#{playlist.name}\"? Its tracks stay in your library."
+  end
 end

@@ -176,6 +176,7 @@ Owners edit their own artists, albums and tracks in a modal over the current pag
 - Track edits go through `TrackUpdate`, which routes title/artist/album/year through `TrackRetagService` so a track and its album keep the same artist. Artist and album are typed names (find-or-create in the owner's library).
 - Album create and edit go through `AlbumSave`: the artist is a typed name resolved with `Artist.find_or_create_named!`, rolled back if the album fails to save.
 - `ModalForm#respond_created` answers a create from the modal with a custom `<turbo-stream action="visit" location="...">` (registered in `application.js`), landing on the new record.
+- Playlists use the same modal for New Playlist and Rename. Adding or removing a track, and "New playlist…" in a row's add menu, answer through `InPlaceRefresh#respond_in_place`: a Turbo request gets a flash ("Added to X.", "Already in X.", "Removed from X.") plus a refresh, so the user stays on the page. `Playlist#remove_track` closes the gap so positions stay 1..N.
 - "Upload tracks" (album More menu, artist page) opens `track_uploads/new`: `bulk_upload_controller.js` direct-uploads several files, then `TrackUpload` files them as tracks in one album (titled by file name) and enqueues `MetadataExtractionJob` to read the tags — except for `AudioConversionJob::CONVERTIBLE_FORMATS`, whose conversion reads them.
 
 ### ViewComponents

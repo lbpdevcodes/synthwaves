@@ -217,7 +217,7 @@ RSpec.describe "Playlists", type: :request do
 
     it "groups management actions in an overflow menu" do
       doc = Nokogiri::HTML(response.body)
-      menu = doc.css("[data-controller~='dropdown']").find { |d| d.text.include?("Edit") }
+      menu = doc.css("[data-controller~='dropdown']").find { |d| d.text.include?("Rename") }
       expect(menu).to be_present
       expect(menu.text).to include("Download", "Copy track list", "Delete")
     end
@@ -357,5 +357,69 @@ RSpec.describe "Playlists", type: :request do
         delete playlist_path(playlist)
       }.to change(Playlist, :count).by(-1)
     end
+  end
+end
+
+RSpec.describe "Playlists in the modal", type: :request do
+  let(:user) { create(:user) }
+  let(:playlist) { create(:playlist, name: "Mix", user: user) }
+  let(:modal) { {"Turbo-Frame" => "modal"} }
+
+  before { login_user(user) }
+
+  it "opens New Playlist from the index in the modal" do
+    get playlists_path
+    expect(Nokogiri::HTML(response.body).at_css("a[href='#{new_playlist_path}']")["data-turbo-frame"]).to eq("modal")
+
+    get new_playlist_path, headers: modal
+    expect(Nokogiri::HTML(response.body).at_css("turbo-frame#modal dialog form[action='#{playlists_path}'] input[name='playlist[name]']")).to be_present
+  end
+
+  it "visits a playlist created from the modal" do
+    post playlists_path, params: {playlist: {name: "Road Trip"}}, headers: modal
+
+    created = user.playlists.find_by!(name: "Road Trip")
+    expect(Nokogiri::HTML(response.body).at_css("turbo-stream[action='visit']")["location"]).to eq(playlist_path(created))
+  end
+
+  it "opens rename from the playlist page in the modal, with Delete" do
+    get playlist_path(playlist)
+    expect(Nokogiri::HTML(response.body).at_css("a[href='#{edit_playlist_path(playlist)}']")["data-turbo-frame"]).to eq("modal")
+
+    get edit_playlist_path(playlist), headers: modal
+    dialog = Nokogiri::HTML(response.body).at_css("turbo-frame#modal dialog")
+    expect(dialog.at_css("input[name='playlist[name]']")["value"]).to eq("Mix")
+    expect(dialog.at_css("form[action='#{playlist_path(playlist)}'][data-turbo-frame='_top']:has(input[value='delete'])")["data-turbo-confirm"]).to include("Mix")
+  end
+
+  it "refreshes the playlist page after a rename from the modal" do
+    patch playlist_path(playlist), params: {playlist: {name: "Renamed"}}, headers: modal
+
+    expect(Nokogiri::HTML(response.body).at_css("turbo-stream[action='refresh']:not([request-id])")).to be_present
+    expect(playlist.reload.name).to eq("Renamed")
+  end
+
+  it "goes to the playlists index when deleted from its own page" do
+    delete playlist_path(playlist), headers: {"Referer" => playlist_url(playlist)}
+    expect(response).to redirect_to(playlists_path)
+  end
+
+  it "creates a playlist from a track row and stays on the page" do
+    track = create(:track, user: user)
+    post playlists_path, params: {playlist: {name: "Road Trip"}, track_ids: [track.id]},
+      headers: {"Accept" => "text/vnd.turbo-stream.html, text/html"}
+
+    expect(user.playlists.find_by!(name: "Road Trip").tracks).to eq([track])
+    expect(Nokogiri::HTML(response.body).at_css("turbo-stream[action='refresh']:not([request-id])")).to be_present
+    expect(flash[:notice]).to eq("Created Road Trip with 1 track.")
+  end
+
+  it "offers New playlist in a track's add menu, even with no playlists yet" do
+    track = create(:track, user: user)
+    get album_path(track.album)
+
+    form = Nokogiri::HTML(response.body).at_css("[title='Add to playlist'] ~ div form[action='#{playlists_path}']")
+    expect(form.at_css("input[type='hidden'][name='track_ids[]']")["value"]).to eq(track.id.to_s)
+    expect(form.at_css("input[name='playlist[name]'][required]")).to be_present
   end
 end

@@ -1,4 +1,4 @@
-<div class="w-full max-w-lg">
-  <h1 class="text-3xl font-bold mb-6">Edit Playlist</h1>
-  <%= render "form", playlist: @playlist %>
-</div>
+<%= render layout: "shared/modal_or_page", locals: {title: "Rename Playlist"} do %>
+  <%= render "form", playlist: @playlist, cancel_path: playlist_path(@playlist) %>
+  <%= render "shared/delete_record", url: playlist_path(@playlist), confirm: playlist_delete_confirmation(@playlist) %>
+<% end %>
