@@ -40,6 +40,7 @@
     <% end %>
     <%= render 'navbar' unless turbo_native_app? %>
     <%= render 'alerts' %>
+    <%= turbo_frame_tag "modal" %>
     <%= render TvPlayer::Component.new %>
     <%= render PIP::Component.new %>
     <!-- Screensaver -->

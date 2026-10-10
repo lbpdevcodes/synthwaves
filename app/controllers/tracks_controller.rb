@@ -1,5 +1,7 @@
 class TracksController < ApplicationController
   include Orderable
+  include ModalForm
+  include DestroyRedirect
 
   allow_unauthenticated_access only: [:lyrics]
   before_action :set_track, only: [:show, :edit, :update, :destroy, :stream, :download, :enrich]
@@ -80,23 +82,19 @@ class TracksController < ApplicationController
   end
 
   def edit
-    @artists = Current.user.artists.order(:name)
-    @albums = Current.user.albums.includes(:artist).order(:title)
   end
 
   def update
-    if @track.update(track_params)
-      redirect_to @track, notice: "Track updated successfully."
+    if TrackUpdate.call(@track, track_params)
+      respond_saved @track, notice: "Track updated."
     else
-      @artists = Current.user.artists.order(:name)
-      @albums = Current.user.albums.includes(:artist).order(:title)
       render :edit, status: :unprocessable_content
     end
   end
 
   def destroy
     @track.destroy
-    redirect_to tracks_path, notice: "Track deleted."
+    redirect_after_destroy track_path(@track), parent: album_path(@track.album), notice: "Track deleted."
   end
 
   def stream
@@ -155,7 +153,7 @@ class TracksController < ApplicationController
   end
 
   def track_params
-    params.require(:track).permit(:title, :track_number, :disc_number, :lyrics, :album_id, :artist_id, :language, :release_year, :content_rating)
+    params.require(:track).permit(:title, :artist_name, :album_title, :release_year, :track_number, :disc_number, :language, :content_rating, :lyrics)
   end
 
   def cloud_storage?

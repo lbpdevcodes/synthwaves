@@ -34,6 +34,11 @@ RSpec.describe TrackActions::Component, type: :component do
     expect(form["action"]).to include("favorable_type=Track", "favorable_id=#{track.id}")
   end
 
+  it "opens the track's edit form in the modal" do
+    link = render_actions.at_css("a[href='#{edit_track_path(track)}']")
+    expect(link["data-turbo-frame"]).to eq("modal")
+  end
+
   it "offers to add the track to a playlist" do
     expect(render_actions.at_css("button[title='Add to playlist']")).to be_present
   end

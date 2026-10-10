@@ -9,3 +9,4 @@ pin_all_from "app/javascript/controllers", under: "controllers"
 pin_all_from "app/javascript/helpers", under: "helpers"
 pin "hls.js", to: "https://cdn.jsdelivr.net/npm/hls.js@1.5.17/dist/hls.min.js", preload: false
 pin "@hotwired/hotwire-native-bridge", to: "@hotwired--hotwire-native-bridge.js" # @1.2.2
+pin "sortablejs" # @1.15.7

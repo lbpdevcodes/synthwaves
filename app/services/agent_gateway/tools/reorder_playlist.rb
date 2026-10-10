@@ -1,8 +1,7 @@
 module AgentGateway
   module Tools
     # Rewrites a playlist's track order, mirroring
-    # PUT /api/v1/playlists/:id/track_order. The two-pass negative-position
-    # transaction avoids unique-index collisions on [playlist_id, position].
+    # PUT /api/v1/playlists/:id/track_order. Both go through Playlist#reorder!.
     class ReorderPlaylist < AgentGateway::Tool
       tool_name "reorder_playlist"
       description "Set the full track order of a playlist. Pass every playlist_track_id (from " \
@@ -19,14 +18,7 @@ module AgentGateway
       def self.perform(playlist_id:, playlist_track_ids:, server_context:)
         playlist = user(server_context).playlists.find(playlist_id)
 
-        ActiveRecord::Base.transaction do
-          playlist_track_ids.each_with_index do |id, index|
-            playlist.playlist_tracks.where(id: id).update_all(position: -(index + 1))
-          end
-          playlist_track_ids.each_with_index do |id, index|
-            playlist.playlist_tracks.where(id: id).update_all(position: index + 1)
-          end
-        end
+        playlist.reorder!(playlist_track_ids)
 
         json_response(reordered: playlist_track_ids.size)
       end

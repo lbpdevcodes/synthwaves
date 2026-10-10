@@ -197,3 +197,93 @@ RSpec.describe "PlaylistTracks", type: :request do
     end
   end
 end
+
+RSpec.describe "PlaylistTracks feedback", type: :request do
+  let(:user) { create(:user) }
+  let(:playlist) { create(:playlist, name: "Mix", user: user) }
+  let(:track) { create(:track, user: user) }
+  let(:turbo) { {"Accept" => "text/vnd.turbo-stream.html, text/html"} }
+
+  before { login_user(user) }
+
+  def refresh_stream
+    Nokogiri::HTML(response.body).at_css("turbo-stream[action='refresh']:not([request-id])")
+  end
+
+  it "refreshes the page in place and says where the track went" do
+    post playlist_tracks_path(playlist), params: {track_id: track.id}, headers: turbo
+
+    expect(refresh_stream).to be_present
+    expect(flash[:notice]).to eq("Added to Mix.")
+  end
+
+  it "says so when the track is already in the playlist" do
+    playlist.add_track(track)
+    post playlist_tracks_path(playlist), params: {track_id: track.id}, headers: turbo
+
+    expect(flash[:notice]).to eq("Already in Mix.")
+  end
+
+  it "counts the tracks added in bulk" do
+    tracks = create_list(:track, 2, user: user)
+    post playlist_tracks_path(playlist), params: {track_ids: tracks.map(&:id)}, headers: turbo
+
+    expect(flash[:notice]).to eq("Added 2 tracks to Mix.")
+  end
+
+  it "goes back with the message for a plain form post" do
+    post playlist_tracks_path(playlist), params: {track_id: track.id}, headers: {"Referer" => albums_url}
+
+    expect(response).to redirect_to(albums_url)
+    expect(flash[:notice]).to eq("Added to Mix.")
+  end
+
+  it "removes the track in place and closes the gap in the numbering" do
+    tracks = create_list(:track, 3, user: user)
+    playlist.add_tracks(tracks)
+
+    delete playlist_track_path(playlist, playlist.playlist_tracks.find_by!(track: tracks[0])), headers: turbo
+
+    expect(refresh_stream).to be_present
+    expect(flash[:notice]).to eq("Removed from Mix.")
+    expect(playlist.playlist_tracks.reload.pluck(:position)).to eq([1, 2])
+  end
+end
+
+RSpec.describe "PlaylistTracks reordering", type: :request do
+  let(:user) { create(:user) }
+  let(:playlist) { create(:playlist, name: "Mix", user: user) }
+  let(:tracks) { create_list(:track, 3, user: user) }
+  let(:turbo) { {"Accept" => "text/vnd.turbo-stream.html, text/html"} }
+
+  before do
+    login_user(user)
+    playlist.add_tracks(tracks)
+  end
+
+  def entry(track) = playlist.playlist_tracks.find_by!(track: track)
+  def order = playlist.playlist_tracks.reload.map(&:track)
+
+  it "moves a dragged track to the position it was dropped on and refreshes the page" do
+    patch playlist_track_path(playlist, entry(tracks[0])), params: {position: 3}, headers: turbo
+
+    expect(order).to eq([tracks[1], tracks[2], tracks[0]])
+    expect(Nokogiri::HTML(response.body).at_css("turbo-stream[action='refresh']:not([request-id])")).to be_present
+    expect(flash[:notice]).to be_nil
+  end
+
+  it "steps a track up or down with the buttons" do
+    patch playlist_track_path(playlist, entry(tracks[2])), params: {direction: "up"}, headers: turbo
+    expect(order).to eq([tracks[0], tracks[2], tracks[1]])
+
+    patch playlist_track_path(playlist, entry(tracks[0])), params: {direction: "down"}, headers: turbo
+    expect(order).to eq([tracks[2], tracks[0], tracks[1]])
+  end
+
+  it "returns not found for another user's playlist" do
+    foreign = create(:playlist)
+    foreign_entry = create(:playlist_track, playlist: foreign)
+    patch playlist_track_path(foreign, foreign_entry), params: {direction: "up"}
+    expect(response).to have_http_status(:not_found)
+  end
+end

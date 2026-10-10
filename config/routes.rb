@@ -13,8 +13,8 @@ Rails.application.routes.draw do
   end
   # Music routes
   get :music, to: "music#show"
-  resources :artists, only: [:index, :show, :edit, :update, :destroy]
-  resources :albums, only: [:index, :show, :edit, :update, :destroy] do
+  resources :artists, only: [:index, :show, :new, :create, :edit, :update, :destroy]
+  resources :albums, only: [:index, :show, :new, :create, :edit, :update, :destroy] do
     member do
       post :create_playlist
       post :merge
@@ -23,6 +23,7 @@ Rails.application.routes.draw do
       post :download_audio
     end
   end
+  resources :track_uploads, only: [:new, :create]
   resources :tracks, only: [:index, :show, :new, :create, :edit, :update, :destroy] do
     member do
       get :stream
@@ -36,7 +37,7 @@ Rails.application.routes.draw do
   end
   resources :playlists do
     post :merge, on: :member
-    resources :tracks, controller: "playlist_tracks", only: [:create, :destroy], as: :tracks
+    resources :tracks, controller: "playlist_tracks", only: [:create, :update, :destroy], as: :tracks
   end
   resources :podcasts, only: [:show]
   get "tv-guide", to: "public_tv_guide#index", as: :public_tv_guide

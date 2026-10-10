@@ -1,5 +1,7 @@
 class ArtistsController < ApplicationController
   include Orderable
+  include ModalForm
+  include DestroyRedirect
 
   def index
     @query = params[:q]
@@ -16,6 +18,19 @@ class ArtistsController < ApplicationController
     @albums = @artist.albums.includes(:tracks, cover_image_attachment: :blob).order(:year)
   end
 
+  def new
+    @artist = Current.user.artists.new
+  end
+
+  def create
+    @artist = Current.user.artists.new(artist_params)
+    if @artist.save
+      respond_created @artist, notice: "Artist created."
+    else
+      render :new, status: :unprocessable_content
+    end
+  end
+
   def edit
     @artist = Current.user.artists.find(params[:id])
   end
@@ -23,7 +38,7 @@ class ArtistsController < ApplicationController
   def update
     @artist = Current.user.artists.find(params[:id])
     if @artist.update(artist_params)
-      redirect_to @artist, notice: "Artist updated."
+      respond_saved @artist, notice: "Artist updated."
     else
       render :edit, status: :unprocessable_content
     end
@@ -32,7 +47,7 @@ class ArtistsController < ApplicationController
   def destroy
     @artist = Current.user.artists.find(params[:id])
     @artist.destroy
-    redirect_to artists_path, notice: "Artist deleted."
+    redirect_after_destroy artist_path(@artist), parent: artists_path, notice: "Artist deleted."
   end
 
   private

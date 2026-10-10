@@ -165,6 +165,21 @@ Constraints that shape the design:
 - `createMediaElementSource` is one-way per element and element `volume`/`muted` stop affecting routed audio — output goes through the graph's per-element gain node (`_setOutputVolume` in `player_controller.js`)
 - During AirPlay the device receives the element's flat feed; the local graph output is silenced so the two don't double up
 
+### Modal Editing
+
+Owners edit their own artists, albums and tracks in a modal over the current page:
+
+- The layout carries an empty `<turbo-frame id="modal">`. Edit links target it with `data-turbo-frame="modal"` (the pencil in `TrackActions::Component`, `shared/_card_edit_link` on cards, the show-page Edit buttons).
+- An edit view renders through `shared/_modal_or_page`: inside `Modal::Component` when `turbo_frame_request?`, as a plain page when visited directly. `shared/_form_actions` makes Cancel close the modal; `shared/_delete_record` submits Delete as a full page (`data-turbo-frame="_top"`).
+- `ModalForm#respond_saved` answers a save from the modal with `turbo_stream.refresh(request_id: nil)`, so the page under the modal morphs and the empty frame closes it. The `request_id: nil` matters: Turbo ignores a refresh carrying the id of its own request.
+- `DestroyRedirect#redirect_after_destroy` returns to the referring page, or to the parent when the delete came from the record's own page.
+- Track edits go through `TrackUpdate`, which routes title/artist/album/year through `TrackRetagService` so a track and its album keep the same artist. Artist and album are typed names (find-or-create in the owner's library).
+- Album create and edit go through `AlbumSave`: the artist is a typed name resolved with `Artist.find_or_create_named!`, rolled back if the album fails to save.
+- `ModalForm#respond_created` answers a create from the modal with a custom `<turbo-stream action="visit" location="...">` (registered in `application.js`), landing on the new record.
+- Playlists use the same modal for New Playlist and Rename. Adding or removing a track, and "New playlist…" in a row's add menu, answer through `InPlaceRefresh#respond_in_place`: a Turbo request gets a flash ("Added to X.", "Already in X.", "Removed from X.") plus a refresh, so the user stays on the page. `Playlist#remove_track` closes the gap so positions stay 1..N.
+- Playlist rows reorder by drag (`sortable_controller.js`, SortableJS pinned in `vendor/javascript`) or by Move up / Move down buttons. Both `PATCH /playlists/:id/tracks/:id` — a drag with the `position` it was dropped on (`Playlist#move_track!`), a button with a `direction` (`Playlist#step_track!`, which finds the real neighbour across pages and numbering gaps). Controls hide while the list is filtered. The API and MCP full-order rewrite share `Playlist#reorder!`.
+- "Upload tracks" (album More menu, artist page) opens `track_uploads/new`: `bulk_upload_controller.js` direct-uploads several files, then `TrackUpload` files them as tracks in one album (titled by file name) and enqueues `MetadataExtractionJob` to read the tags — except for `AudioConversionJob::CONVERTIBLE_FORMATS`, whose conversion reads them.
+
 ### ViewComponents
 
 `TrackRow::Component` renders a track in list views with configurable options: `link_title`, `link_subtitle`, `show_album`, `hide_artist_if`, `show_duration`, `number`.
@@ -267,6 +282,7 @@ bin/kamal app exec -r job --interactive 'bin/rails runner "RadioStation.find(ID)
 ## Routes
 
 - Standard RESTful: artists, albums, tracks, playlists, favorites, play_histories
+- `GET /track_uploads/new`, `POST /track_uploads` - Multi-file track upload into an album (`album_id`, or `artist_id` + `album_title`)
 - `POST /albums/:id/create_playlist` - Create playlist from album
 - `GET /tracks/:id/stream` - Audio streaming endpoint
 - `GET /search`, `GET /search/dropdown` - Search

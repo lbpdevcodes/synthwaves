@@ -1,5 +1,7 @@
 class AlbumsController < ApplicationController
   include Orderable
+  include ModalForm
+  include DestroyRedirect
 
   def index
     @query = params[:q]
@@ -31,16 +33,27 @@ class AlbumsController < ApplicationController
     @favorited_track_ids = Current.user.favorited_ids_for("Track")
   end
 
+  def new
+    @album = Current.user.albums.new(artist: prefilled_artist)
+  end
+
+  def create
+    @album = Current.user.albums.new
+    if AlbumSave.call(@album, album_params)
+      respond_created @album, notice: "Album created."
+    else
+      render :new, status: :unprocessable_content
+    end
+  end
+
   def edit
     @album = Current.user.albums.find(params[:id])
-    @artists = Current.user.artists.order(:name)
   end
 
   def destroy
     @album = Current.user.albums.find(params[:id])
-    artist = @album.artist
     @album.destroy
-    redirect_to artist_path(artist), notice: "Album deleted."
+    redirect_after_destroy album_path(@album), parent: artist_path(@album.artist), notice: "Album deleted."
   end
 
   def merge
@@ -98,10 +111,9 @@ class AlbumsController < ApplicationController
 
   def update
     @album = Current.user.albums.find(params[:id])
-    if @album.update(album_params)
-      redirect_to @album, notice: "Album updated."
+    if AlbumSave.call(@album, album_params)
+      respond_saved @album, notice: "Album updated."
     else
-      @artists = Current.user.artists.order(:name)
       render :edit, status: :unprocessable_content
     end
   end
@@ -129,6 +141,10 @@ class AlbumsController < ApplicationController
   private
 
   def album_params
-    params.require(:album).permit(:title, :year, :genre, :artist_id, :youtube_playlist_url, :cover_image)
+    params.require(:album).permit(:title, :artist_name, :year, :genre, :youtube_playlist_url, :cover_image)
+  end
+
+  def prefilled_artist
+    Current.user.artists.find(params[:artist_id]) if params[:artist_id].present?
   end
 end

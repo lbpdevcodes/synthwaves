@@ -13,7 +13,7 @@
   empty_label: "playlists"
 ) do |c| %>
   <% c.with_actions do %>
-    <%= render Button::Component.new(label: "New Playlist", behavior: :navigation, link_url: new_playlist_path, turbo_frame: "_top") %>
+    <%= render Button::Component.new(label: "New Playlist", behavior: :navigation, link_url: new_playlist_path, turbo_frame: "modal") %>
   <% end %>
   <% c.with_before_grid do %>
     <%= render "playlists/favorites_card", track_count: @favorite_tracks_count %>

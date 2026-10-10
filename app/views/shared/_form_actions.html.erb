@@ -1,0 +1,10 @@
+<%# Save and Cancel for a form rendered by shared/modal_or_page. In the modal,
+    Cancel closes it; on a full page, it goes back to cancel_path. %>
+<div class="flex items-center gap-3">
+  <%= form.submit "Save", class: "px-4 py-2 bg-neon-pink text-white rounded-lg hover:shadow-neon-pink cursor-pointer" %>
+  <% if turbo_frame_request? %>
+    <button type="button" data-action="modal#close" class="px-4 py-2 text-gray-300 hover:text-white rounded-lg">Cancel</button>
+  <% else %>
+    <%= render Button::Component.new(label: "Cancel", behavior: :navigation, link_url: cancel_path, style: :ghost) %>
+  <% end %>
+</div>

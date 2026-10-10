@@ -6,6 +6,13 @@ RSpec.describe "Albums", type: :request do
   before { login_user(user) }
 
   describe "GET /albums" do
+    it "puts an edit pencil on each album card that opens the modal" do
+      album = create(:album, user: user)
+      get albums_path
+      link = Nokogiri::HTML(response.body).at_css("a[href='#{edit_album_path(album)}']")
+      expect(link["data-turbo-frame"]).to eq("modal")
+    end
+
     it "returns success" do
       create(:album, artist: create(:artist, user: user))
       get albums_path
@@ -140,6 +147,7 @@ RSpec.describe "Albums", type: :request do
       menu = doc.css("[data-controller~='dropdown']").find { |d| d.text.include?("Export ZIP") }
       expect(menu).to be_present
       expect(menu.text).to include("Edit", "Delete")
+      expect(menu.at_css("a[href='#{edit_album_path(album)}']")["data-turbo-frame"]).to eq("modal")
     end
 
     it "offers only the owner's own albums to merge" do
@@ -387,6 +395,65 @@ RSpec.describe "Albums", type: :request do
     end
   end
 
+  describe "GET /albums/new" do
+    it "renders the form in an open modal when the modal frame asks for it" do
+      get new_album_path, headers: {"Turbo-Frame" => "modal"}
+
+      form = Nokogiri::HTML(response.body).at_css("turbo-frame#modal dialog form[action='#{albums_path}']")
+      expect(form.at_css("input[name='album[title]']")).to be_present
+    end
+
+    it "fills in the artist it was opened from" do
+      artist = create(:artist, name: "Prefilled", user: user)
+      get new_album_path(artist_id: artist.id)
+      expect(Nokogiri::HTML(response.body).at_css("input[name='album[artist_name]']")["value"]).to eq("Prefilled")
+    end
+
+    it "returns not found when opened from another user's artist" do
+      get new_album_path(artist_id: create(:artist).id)
+      expect(response).to have_http_status(:not_found)
+    end
+
+    it "is offered from the albums index and the artist page, opening in the modal" do
+      artist = create(:artist, user: user)
+      get albums_path
+      expect(Nokogiri::HTML(response.body).at_css("a[href='#{new_album_path}']")["data-turbo-frame"]).to eq("modal")
+
+      get artist_path(artist)
+      expect(Nokogiri::HTML(response.body).at_css("a[href='#{new_album_path(artist_id: artist.id)}']")["data-turbo-frame"]).to eq("modal")
+    end
+  end
+
+  describe "POST /albums" do
+    it "files the album under the owner's artist of that name and visits it" do
+      artist = create(:artist, name: "Existing", user: user)
+      post albums_path, params: {album: {title: "Fresh", artist_name: "existing", year: 2001}}, headers: {"Turbo-Frame" => "modal"}
+
+      album = user.albums.find_by!(title: "Fresh")
+      expect(album.artist).to eq(artist)
+      expect(album.year).to eq(2001)
+      expect(Nokogiri::HTML(response.body).at_css("turbo-stream[action='visit']")["location"]).to eq(album_path(album))
+      expect(flash[:notice]).to eq("Album created.")
+    end
+
+    it "creates the artist when the typed name is new" do
+      post albums_path, params: {album: {title: "Debut", artist_name: "Newcomer"}}
+
+      album = user.albums.find_by!(title: "Debut")
+      expect(album.artist.name).to eq("Newcomer")
+      expect(response).to redirect_to(album_path(album))
+    end
+
+    it "shows the errors in the modal and creates no artist when the title is blank" do
+      expect {
+        post albums_path, params: {album: {title: "", artist_name: "Never Saved"}}, headers: {"Turbo-Frame" => "modal"}
+      }.not_to change(Artist, :count)
+
+      expect(response).to have_http_status(:unprocessable_content)
+      expect(Nokogiri::HTML(response.body).at_css("turbo-frame#modal dialog").text).to include("Title can't be blank")
+    end
+  end
+
   describe "GET /albums/:id/edit" do
     it "lets the owner open the form" do
       album = create(:album, artist: create(:artist, user: user))
@@ -400,6 +467,37 @@ RSpec.describe "Albums", type: :request do
 
       doc = Nokogiri::HTML(response.body)
       expect(doc.at_css("input[name='album[youtube_playlist_url]']")).to be_present
+    end
+
+    it "renders the form in an open modal when the modal frame asks for it" do
+      album = create(:album, user: user)
+      get edit_album_path(album), headers: {"Turbo-Frame" => "modal"}
+
+      doc = Nokogiri::HTML(response.body)
+      expect(doc.at_css("turbo-frame#modal [data-controller='modal']")["data-modal-open-value"]).to eq("true")
+      expect(doc.at_css("turbo-frame#modal dialog form[action='#{album_path(album)}'] input[name='album[title]']")).to be_present
+    end
+
+    it "takes the artist as a typed name, suggesting the owner's own" do
+      album = create(:album, user: user)
+      create(:artist, name: "Somebody Elses Artist")
+      get edit_album_path(album)
+
+      doc = Nokogiri::HTML(response.body)
+      input = doc.at_css("input[name='album[artist_name]']")
+      expect(input["value"]).to eq(album.artist.name)
+      suggestions = doc.css("datalist##{input["list"]} option").map { |o| o["value"] }
+      expect(suggestions).to include(album.artist.name)
+      expect(suggestions).not_to include("Somebody Elses Artist")
+    end
+
+    it "offers Delete in the modal, confirmed and loaded as a full page" do
+      album = create(:album, user: user)
+      get edit_album_path(album), headers: {"Turbo-Frame" => "modal"}
+
+      form = Nokogiri::HTML(response.body).at_css("dialog form[action='#{album_path(album)}']:has(input[name='_method'][value='delete'])")
+      expect(form["data-turbo-frame"]).to eq("_top")
+      expect(form["data-turbo-confirm"]).to include(album.title)
     end
 
     it "returns not found for another user's album" do
@@ -424,11 +522,19 @@ RSpec.describe "Albums", type: :request do
       album = create(:album, artist: old_artist)
       track = create(:track, album: album, artist: old_artist)
 
-      patch album_path(album), params: {album: {artist_id: new_artist.id}}
+      patch album_path(album), params: {album: {artist_name: "new artist"}}
 
       album.reload
       expect(album.artist).to eq(new_artist)
       expect(track.reload.artist).to eq(new_artist)
+    end
+
+    it "moves the album to a typed new artist, creating it" do
+      album = create(:album, user: user)
+      patch album_path(album), params: {album: {artist_name: "Never Heard Of"}}
+
+      expect(album.reload.artist.name).to eq("Never Heard Of")
+      expect(album.artist.user).to eq(user)
     end
 
     it "renders edit on validation error" do
@@ -440,14 +546,33 @@ RSpec.describe "Albums", type: :request do
       expect(response).to have_http_status(:unprocessable_content)
     end
 
-    it "refuses to move the album to another user's artist" do
-      artist = create(:artist, user: user)
-      album = create(:album, artist: artist)
-      foreign_artist = create(:artist)
+    it "refreshes the page under the modal after a save from it" do
+      album = create(:album, title: "Old Title", user: user)
+      patch album_path(album), params: {album: {title: "New Title"}},
+        headers: {"Turbo-Frame" => "modal", "X-Turbo-Request-Id" => "req-1"}
 
-      patch album_path(album), params: {album: {artist_id: foreign_artist.id}}
+      stream = Nokogiri::HTML(response.body).at_css("turbo-stream[action='refresh']")
+      expect(stream).to be_present
+      expect(stream["request-id"]).to be_nil
+      expect(flash[:notice]).to eq("Album updated.")
+    end
+
+    it "shows the errors inside the modal when the save fails" do
+      existing = create(:album, title: "Taken", user: user)
+      album = create(:album, title: "Other", artist: existing.artist)
+
+      patch album_path(album), params: {album: {title: "Taken"}}, headers: {"Turbo-Frame" => "modal"}
 
       expect(response).to have_http_status(:unprocessable_content)
+      expect(Nokogiri::HTML(response.body).at_css("turbo-frame#modal dialog").text).to include("Title has already been taken")
+    end
+
+    it "keeps the album in the owner's library when sent another user's artist id" do
+      artist = create(:artist, user: user)
+      album = create(:album, artist: artist)
+
+      patch album_path(album), params: {album: {artist_id: create(:artist).id}}
+
       expect(album.reload.artist).to eq(artist)
     end
   end
@@ -461,6 +586,18 @@ RSpec.describe "Albums", type: :request do
         delete album_path(album)
       }.to change(Album, :count).by(-1).and change(Track, :count).by(-1)
 
+      expect(response).to redirect_to(artist_path(album.artist))
+    end
+
+    it "returns to the page the delete came from" do
+      album = create(:album, user: user)
+      delete album_path(album), headers: {"Referer" => albums_url(q: "al")}
+      expect(response).to redirect_to(albums_url(q: "al"))
+    end
+
+    it "goes to the artist when deleted from its own page" do
+      album = create(:album, user: user)
+      delete album_path(album), headers: {"Referer" => album_url(album)}
       expect(response).to redirect_to(artist_path(album.artist))
     end
 
