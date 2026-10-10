@@ -1,21 +1,20 @@
 class YoutubeAlbumImportService
-  def self.call(url:, user:, category: "music", playlist_id: nil, new_playlist_name: nil, artist: nil)
+  def self.call(url:, user:, category: "music", playlist_id: nil, new_playlist_name: nil)
     new(url: url, user: user, category: category, playlist_id: playlist_id,
-      new_playlist_name: new_playlist_name, artist: artist).call
+      new_playlist_name: new_playlist_name).call
   end
 
-  def initialize(url:, user:, category:, playlist_id:, new_playlist_name:, artist:)
+  def initialize(url:, user:, category:, playlist_id:, new_playlist_name:)
     @url = url
     @user = user
     @category = category
     @playlist_id = playlist_id
     @new_playlist_name = new_playlist_name
-    @artist = artist
   end
 
   def call
     album = YoutubePlaylistImportService.call(@url, category: @category,
-      api_key: @user.youtube_api_key, user: @user, artist: @artist)
+      api_key: @user.youtube_api_key, user: @user)
     add_tracks_to_playlist(album) if album
     album
   end

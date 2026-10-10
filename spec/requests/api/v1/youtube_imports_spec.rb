@@ -90,7 +90,7 @@ RSpec.describe "API::V1::YoutubeImports", type: :request do
 
         expect(YoutubePlaylistImportService).to have_received(:call)
           .with("https://www.youtube.com/playlist?list=PLtest123",
-            category: "podcast", api_key: user.youtube_api_key, user: user, artist: nil)
+            category: "podcast", api_key: user.youtube_api_key, user: user)
       end
 
       it "does not enqueue any MediaDownloadJob" do
