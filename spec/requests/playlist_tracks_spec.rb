@@ -197,3 +197,55 @@ RSpec.describe "PlaylistTracks", type: :request do
     end
   end
 end
+
+RSpec.describe "PlaylistTracks feedback", type: :request do
+  let(:user) { create(:user) }
+  let(:playlist) { create(:playlist, name: "Mix", user: user) }
+  let(:track) { create(:track, user: user) }
+  let(:turbo) { {"Accept" => "text/vnd.turbo-stream.html, text/html"} }
+
+  before { login_user(user) }
+
+  def refresh_stream
+    Nokogiri::HTML(response.body).at_css("turbo-stream[action='refresh']:not([request-id])")
+  end
+
+  it "refreshes the page in place and says where the track went" do
+    post playlist_tracks_path(playlist), params: {track_id: track.id}, headers: turbo
+
+    expect(refresh_stream).to be_present
+    expect(flash[:notice]).to eq("Added to Mix.")
+  end
+
+  it "says so when the track is already in the playlist" do
+    playlist.add_track(track)
+    post playlist_tracks_path(playlist), params: {track_id: track.id}, headers: turbo
+
+    expect(flash[:notice]).to eq("Already in Mix.")
+  end
+
+  it "counts the tracks added in bulk" do
+    tracks = create_list(:track, 2, user: user)
+    post playlist_tracks_path(playlist), params: {track_ids: tracks.map(&:id)}, headers: turbo
+
+    expect(flash[:notice]).to eq("Added 2 tracks to Mix.")
+  end
+
+  it "goes back with the message for a plain form post" do
+    post playlist_tracks_path(playlist), params: {track_id: track.id}, headers: {"Referer" => albums_url}
+
+    expect(response).to redirect_to(albums_url)
+    expect(flash[:notice]).to eq("Added to Mix.")
+  end
+
+  it "removes the track in place and closes the gap in the numbering" do
+    tracks = create_list(:track, 3, user: user)
+    playlist.add_tracks(tracks)
+
+    delete playlist_track_path(playlist, playlist.playlist_tracks.find_by!(track: tracks[0])), headers: turbo
+
+    expect(refresh_stream).to be_present
+    expect(flash[:notice]).to eq("Removed from Mix.")
+    expect(playlist.playlist_tracks.reload.pluck(:position)).to eq([1, 2])
+  end
+end

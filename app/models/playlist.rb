@@ -27,6 +27,19 @@ class Playlist < ApplicationRecord
     added
   end
 
+  # Removes one entry and closes the gap it leaves, so positions stay 1..N.
+  # The later rows go negative first, as the reorder code does: the unique
+  # [playlist_id, position] index is checked row by row, and the order an
+  # UPDATE visits rows in is up to the database.
+  def remove_track(playlist_track)
+    transaction do
+      playlist_track.destroy!
+      later = playlist_tracks.where("position > ?", playlist_track.position)
+      later.update_all("position = -(position - 1)")
+      playlist_tracks.where("position < 0").update_all("position = -position")
+    end
+  end
+
   # Sets the playlist's exact contents (positions 1..N, duplicates allowed).
   # delete_all + insert_all bypass counter_cache callbacks and the counter
   # column is read-only, so reset_counters writes it in the same transaction.
