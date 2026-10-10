@@ -19,19 +19,9 @@
     <% end %>
   </div>
 
-  <% if @artist.musicbrainz_artist_id.present? %>
-    <turbo-frame id="discography" src="<%= discography_artist_path(@artist) %>" loading="lazy">
-      <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
-        <% @albums.each do |album| %>
-          <%= render "artists/album_card", album: album %>
-        <% end %>
-      </div>
-    </turbo-frame>
-  <% else %>
-    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
-      <% @albums.each do |album| %>
-        <%= render "artists/album_card", album: album %>
-      <% end %>
-    </div>
-  <% end %>
+  <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
+    <% @albums.each do |album| %>
+      <%= render "artists/album_card", album: album %>
+    <% end %>
+  </div>
 </div>

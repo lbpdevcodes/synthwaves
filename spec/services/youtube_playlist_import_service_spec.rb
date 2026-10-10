@@ -46,16 +46,6 @@ RSpec.describe YoutubePlaylistImportService do
       expect(album.tracks.map { |track| track.artist.name }.uniq).to eq(["Test Channel"])
     end
 
-    it "keeps an explicitly named artist over one read from the playlist title" do
-      stub_playlist_api_calls(playlist_title: "Carlos Vives - El Amor De Mi Tierra (Full Album)")
-      chosen = create(:artist, user: user, name: "Chosen Artist")
-
-      album = described_class.call("https://www.youtube.com/playlist?list=PLtest123",
-        api_key: api_key, user: user, artist: chosen)
-
-      expect(album.tracks.map { |track| track.artist.name }.uniq).to eq(["Chosen Artist"])
-    end
-
     it "skips duplicate tracks on re-import" do
       stub_playlist_api_calls
 

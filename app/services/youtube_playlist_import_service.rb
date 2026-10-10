@@ -3,16 +3,15 @@ class YoutubePlaylistImportService
 
   class Error < StandardError; end
 
-  def self.call(url, api_key:, user:, category: "music", artist: nil)
-    new(url, category: category, api_key: api_key, user: user, artist: artist).call
+  def self.call(url, api_key:, user:, category: "music")
+    new(url, category: category, api_key: api_key, user: user).call
   end
 
-  def initialize(url, api_key:, user:, category: "music", artist: nil)
+  def initialize(url, api_key:, user:, category: "music")
     @url = url
     @category = category
     @api_key = api_key
     @user = user
-    @artist_override = artist
     @playlist_id = YoutubeUrlParser.extract_playlist_id(url)
     raise Error, "Invalid YouTube playlist URL" if @playlist_id.blank?
   end
@@ -31,7 +30,7 @@ class YoutubePlaylistImportService
   private
 
   def find_or_create_artist
-    @artist_override || @user.artists.find_or_create_by!(name: @playlist_info[:channel_name] || "Unknown Artist") do |a|
+    @user.artists.find_or_create_by!(name: @playlist_info[:channel_name] || "Unknown Artist") do |a|
       a.category = @category
     end
   end
@@ -66,11 +65,8 @@ class YoutubePlaylistImportService
     end
   end
 
-  # A caller who named the artist outranks one read out of the playlist title,
-  # but never outranks an artist named in the video title itself.
   def artist_for(enriched)
     return @artist if enriched[:source] == :channel
-    return @artist if enriched[:source] == :playlist && @artist_override
 
     @user.artists.find_or_create_by!(name: enriched[:artist]) { |a| a.category = @category }
   end
