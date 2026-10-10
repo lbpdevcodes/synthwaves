@@ -82,13 +82,7 @@
       <% @tracks.each do |track| %>
         <%= render TrackRow::Component.new(track: track, number: (@sort == "disc_number" ? track.track_number : nil), link_title: true, link_subtitle: true, show_album: false, hide_artist_if: @album.artist) do |c| %>
           <% c.with_trailing do %>
-            <% if track.audio_file.attached? %>
-              <%= link_to download_track_path(track), class: "text-gray-400 hover:text-neon-cyan", title: "Download" do %>
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
-              <% end %>
-            <% end %>
-            <%= render "favorites/button", favorable: track, favorited: @favorited_track_ids.include?(track.id) %>
-            <%= render "playlist_tracks/add_menu", track: track, playlists: current_user_playlists %>
+            <%= render TrackActions::Component.new(track: track, favorited: @favorited_track_ids.include?(track.id)) %>
           <% end %>
         <% end %>
       <% end %>
