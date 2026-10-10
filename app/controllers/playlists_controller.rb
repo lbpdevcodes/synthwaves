@@ -77,7 +77,7 @@ class PlaylistsController < ApplicationController
   def add_tracks_if_present
     return unless params[:track_ids].present?
 
-    tracks = Track.where(id: params[:track_ids])
+    tracks = Current.user.tracks.where(id: params[:track_ids])
     ordered = params[:track_ids].map(&:to_i).filter_map { |id| tracks.find { |t| t.id == id } }
     @playlist.add_tracks(ordered)
   end

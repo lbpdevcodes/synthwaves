@@ -132,16 +132,24 @@ RSpec.describe "Albums", type: :request do
       expect(menu.text).to include("Fetch cover", "Refresh from YouTube")
     end
 
-    it "groups admin actions in the overflow menu for admins" do
-      admin = create(:user, admin: true)
-      login_user(admin)
-      album = create(:album, artist: create(:artist, user: admin))
+    it "groups Edit and Delete in the overflow menu for the owner" do
+      album = create(:album, artist: create(:artist, user: user))
       get album_path(album)
 
       doc = Nokogiri::HTML(response.body)
       menu = doc.css("[data-controller~='dropdown']").find { |d| d.text.include?("Export ZIP") }
       expect(menu).to be_present
       expect(menu.text).to include("Edit", "Delete")
+    end
+
+    it "offers only the owner's own albums to merge" do
+      album = create(:album, title: "Mine", artist: create(:artist, user: user))
+      create(:album, title: "Sibling Album", artist: album.artist)
+      create(:album, title: "Somebody Elses Album")
+      get album_path(album)
+
+      expect(response.body).to include("Sibling Album")
+      expect(response.body).not_to include("Somebody Elses Album")
     end
 
     it "does not render the YouTube playlist URL field" do
@@ -380,39 +388,30 @@ RSpec.describe "Albums", type: :request do
   end
 
   describe "GET /albums/:id/edit" do
-    let(:admin) { create(:user, admin: true) }
-
-    before { login_user(admin) }
-
-    it "returns success for admin" do
-      album = create(:album, artist: create(:artist, user: admin))
+    it "lets the owner open the form" do
+      album = create(:album, artist: create(:artist, user: user))
       get edit_album_path(album)
       expect(response).to have_http_status(:ok)
     end
 
     it "renders the YouTube playlist URL field" do
-      album = create(:album, artist: create(:artist, user: admin))
+      album = create(:album, artist: create(:artist, user: user))
       get edit_album_path(album)
 
       doc = Nokogiri::HTML(response.body)
       expect(doc.at_css("input[name='album[youtube_playlist_url]']")).to be_present
     end
 
-    it "redirects non-admin" do
-      login_user(user)
-      album = create(:album, artist: create(:artist, user: user))
+    it "returns not found for another user's album" do
+      album = create(:album)
       get edit_album_path(album)
-      expect(response).to redirect_to(root_path)
+      expect(response).to have_http_status(:not_found)
     end
   end
 
-  describe "PATCH /albums/:id (admin edit)" do
-    let(:admin) { create(:user, admin: true) }
-
-    before { login_user(admin) }
-
+  describe "PATCH /albums/:id (edit form)" do
     it "updates album title" do
-      album = create(:album, title: "Old Title", artist: create(:artist, user: admin))
+      album = create(:album, title: "Old Title", artist: create(:artist, user: user))
       patch album_path(album), params: {album: {title: "New Title"}}
 
       expect(album.reload.title).to eq("New Title")
@@ -420,8 +419,8 @@ RSpec.describe "Albums", type: :request do
     end
 
     it "updates album artist" do
-      old_artist = create(:artist, name: "Old Artist", user: admin)
-      new_artist = create(:artist, name: "New Artist", user: admin)
+      old_artist = create(:artist, name: "Old Artist", user: user)
+      new_artist = create(:artist, name: "New Artist", user: user)
       album = create(:album, artist: old_artist)
       track = create(:track, album: album, artist: old_artist)
 
@@ -433,22 +432,29 @@ RSpec.describe "Albums", type: :request do
     end
 
     it "renders edit on validation error" do
-      existing = create(:album, title: "Taken", artist: create(:artist, name: "Same", user: admin))
+      existing = create(:album, title: "Taken", artist: create(:artist, name: "Same", user: user))
       album = create(:album, title: "Other", artist: existing.artist)
 
       patch album_path(album), params: {album: {title: "Taken"}}
 
       expect(response).to have_http_status(:unprocessable_content)
     end
+
+    it "refuses to move the album to another user's artist" do
+      artist = create(:artist, user: user)
+      album = create(:album, artist: artist)
+      foreign_artist = create(:artist)
+
+      patch album_path(album), params: {album: {artist_id: foreign_artist.id}}
+
+      expect(response).to have_http_status(:unprocessable_content)
+      expect(album.reload.artist).to eq(artist)
+    end
   end
 
   describe "DELETE /albums/:id" do
-    let(:admin) { create(:user, admin: true) }
-
-    before { login_user(admin) }
-
     it "deletes the album and its tracks" do
-      album = create(:album, artist: create(:artist, user: admin))
+      album = create(:album, artist: create(:artist, user: user))
       create(:track, album: album)
 
       expect {
@@ -458,23 +464,18 @@ RSpec.describe "Albums", type: :request do
       expect(response).to redirect_to(artist_path(album.artist))
     end
 
-    it "redirects non-admin" do
-      login_user(user)
-      album = create(:album, artist: create(:artist, user: user))
+    it "keeps another user's album" do
+      album = create(:album)
       delete album_path(album)
-      expect(response).to redirect_to(root_path)
+      expect(response).to have_http_status(:not_found)
       expect(Album.exists?(album.id)).to be true
     end
   end
 
   describe "POST /albums/:id/merge" do
-    let(:admin) { create(:user, admin: true) }
-
-    before { login_user(admin) }
-
     it "merges source album into target" do
-      target = create(:album, title: "Target", artist: create(:artist, user: admin))
-      source = create(:album, title: "Source", artist: create(:artist, user: admin))
+      target = create(:album, title: "Target", artist: create(:artist, user: user))
+      source = create(:album, title: "Source", artist: create(:artist, user: user))
       track = create(:track, album: source, artist: source.artist)
 
       post merge_album_path(target), params: {source_album_id: source.id}
@@ -485,7 +486,7 @@ RSpec.describe "Albums", type: :request do
     end
 
     it "rejects self-merge" do
-      album = create(:album, artist: create(:artist, user: admin))
+      album = create(:album, artist: create(:artist, user: user))
       post merge_album_path(album), params: {source_album_id: album.id}
 
       expect(response).to redirect_to(album_path(album))
@@ -493,12 +494,12 @@ RSpec.describe "Albums", type: :request do
       expect(response.body).to include("Cannot merge an album into itself")
     end
 
-    it "redirects non-admin" do
-      login_user(user)
+    it "keeps another user's album out of the merge" do
       album = create(:album, artist: create(:artist, user: user))
-      source = create(:album, artist: create(:artist, user: user))
+      source = create(:album)
       post merge_album_path(album), params: {source_album_id: source.id}
-      expect(response).to redirect_to(root_path)
+      expect(response).to have_http_status(:not_found)
+      expect(Album.exists?(source.id)).to be true
     end
   end
 

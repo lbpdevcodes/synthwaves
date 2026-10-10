@@ -14,6 +14,7 @@ class Track < ApplicationRecord
   has_many :tags, through: :taggings
 
   validates :title, presence: true
+  validate :album_and_artist_in_same_library, if: :library_links_changing?
 
   scope :music, -> { joins(:artist).merge(Artist.music) }
   scope :podcast, -> { joins(:artist).merge(Artist.podcast) }
@@ -81,6 +82,15 @@ class Track < ApplicationRecord
   after_destroy_commit :remove_from_search_index
 
   private
+
+  def library_links_changing?
+    will_save_change_to_album_id? || will_save_change_to_artist_id? || will_save_change_to_user_id?
+  end
+
+  def album_and_artist_in_same_library
+    errors.add(:album, "must be in the same library") if album && album.user_id != user_id
+    errors.add(:artist, "must be in the same library") if artist && artist.user_id != user_id
+  end
 
   def queue_enrichment
     MusicBrainzEnrichmentJob.perform_later(id)

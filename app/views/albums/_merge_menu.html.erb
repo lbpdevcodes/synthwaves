@@ -11,7 +11,7 @@
              class="w-full px-2 py-1 text-sm text-gray-200 bg-gray-900 border border-gray-600 rounded focus:outline-none focus:border-neon-cyan">
     </div>
     <div class="max-h-64 overflow-y-auto">
-      <% Album.where.not(id: album.id).includes(:artist).order(:title).each do |source| %>
+      <% Current.user.albums.where.not(id: album.id).includes(:artist).order(:title).each do |source| %>
         <div data-playlist-menu-target="item" data-playlist-name="<%= source.title %> <%= source.artist.name %>">
           <%= button_to merge_album_path(album),
                 params: { source_album_id: source.id },

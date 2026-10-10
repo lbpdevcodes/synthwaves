@@ -121,8 +121,8 @@ RSpec.describe "Playlists", type: :request do
     end
 
     it "creates a playlist and populates with tracks when track_ids present" do
-      track1 = create(:track)
-      track2 = create(:track)
+      track1 = create(:track, user: user)
+      track2 = create(:track, user: user)
 
       expect {
         post playlists_path, params: {playlist: {name: "Bulk Playlist"}, track_ids: [track1.id, track2.id]}
@@ -132,6 +132,15 @@ RSpec.describe "Playlists", type: :request do
       expect(playlist.name).to eq("Bulk Playlist")
       expect(playlist.tracks).to eq([track1, track2])
       expect(playlist.playlist_tracks.order(:position).pluck(:position)).to eq([1, 2])
+    end
+
+    it "leaves another user's tracks out of the new playlist" do
+      mine = create(:track, user: user)
+      theirs = create(:track)
+
+      post playlists_path, params: {playlist: {name: "Mixed"}, track_ids: [mine.id, theirs.id]}
+
+      expect(Playlist.last.tracks).to eq([mine])
     end
 
     it "creates a playlist without tracks when track_ids absent" do

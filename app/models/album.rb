@@ -14,6 +14,7 @@ class Album < ApplicationRecord
   }.freeze
 
   validates :title, presence: true, uniqueness: {scope: :artist_id}
+  validate :artist_in_same_library, if: :library_links_changing?
 
   after_update_commit :reassign_tracks_to_artist, if: :saved_change_to_artist_id?
   after_update_commit :reindex_tracks_search, if: -> {
@@ -28,6 +29,14 @@ class Album < ApplicationRecord
   }
 
   private
+
+  def library_links_changing?
+    will_save_change_to_artist_id? || will_save_change_to_user_id?
+  end
+
+  def artist_in_same_library
+    errors.add(:artist, "must be in the same library") if artist && artist.user_id != user_id
+  end
 
   def reassign_tracks_to_artist
     tracks.update_all(artist_id: artist_id, user_id: user_id)

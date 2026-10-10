@@ -279,27 +279,38 @@ RSpec.describe "Tracks", type: :request do
     end
   end
 
-  describe "authorization" do
-    let(:non_admin) { create(:user, admin: false) }
-    let(:track) { create(:track, album: create(:album, artist: create(:artist, user: non_admin))) }
+  describe "ownership" do
+    let(:owner) { create(:user, admin: false) }
+    let(:track) { create(:track, user: owner, title: "Original") }
 
-    before { login_user(non_admin) }
+    before { login_user(owner) }
 
-    it "redirects non-admin from edit" do
+    it "lets a non-admin owner open the edit form" do
       get edit_track_path(track)
-      expect(response).to redirect_to(root_path)
+      expect(response).to have_http_status(:ok)
     end
 
-    it "redirects non-admin from update" do
-      patch track_path(track), params: {track: {title: "Hacked"}}
-      expect(response).to redirect_to(root_path)
-      expect(track.reload.title).not_to eq("Hacked")
+    it "lets a non-admin owner update the track" do
+      patch track_path(track), params: {track: {title: "Renamed"}}
+      expect(track.reload.title).to eq("Renamed")
     end
 
-    it "redirects non-admin from destroy" do
+    it "lets a non-admin owner delete the track" do
       delete track_path(track)
-      expect(response).to redirect_to(root_path)
-      expect(Track.exists?(track.id)).to be true
+      expect(Track.exists?(track.id)).to be false
+    end
+
+    it "returns not found for another user's track" do
+      foreign = create(:track, title: "Foreign")
+      patch track_path(foreign), params: {track: {title: "Hacked"}}
+      expect(response).to have_http_status(:not_found)
+      expect(foreign.reload.title).to eq("Foreign")
+    end
+
+    it "refuses to move the track to another user's album" do
+      patch track_path(track), params: {track: {album_id: create(:album).id}}
+      expect(response).to have_http_status(:unprocessable_content)
+      expect(track.reload.album.user).to eq(owner)
     end
   end
 

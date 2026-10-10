@@ -141,7 +141,7 @@ RSpec.describe SearchService, type: :service do
     end
 
     context "favorites only filter" do
-      let(:user) { create(:user) }
+      let(:user) { artist.user }
       let!(:fav_album) { create(:album, title: "Loved Album", artist: artist, user: user) }
       let!(:unfav_album) { create(:album, title: "Unloved Album", artist: artist, user: user) }
       let!(:fav_track) { create(:track, title: "Loved Song", album: fav_album, artist: artist, user: user) }
@@ -180,7 +180,7 @@ RSpec.describe SearchService, type: :service do
     end
 
     context "combined filters" do
-      let(:user) { create(:user) }
+      let(:user) { artist.user }
       let!(:matching_album) { create(:album, title: "Perfect Match", artist: artist, genre: "Electronic", year: 2022, user: user) }
       let!(:wrong_genre_album) { create(:album, title: "Perfect Miss", artist: artist, genre: "Rock", year: 2022, user: user) }
       let!(:wrong_year_album) { create(:album, title: "Perfect Old", artist: artist, genre: "Electronic", year: 2010, user: user) }

@@ -205,7 +205,7 @@ RSpec.describe TrackRow::Component, type: :component do
     end
 
     it "shows artist when it differs from hide_artist_if" do
-      other_artist = create(:artist, name: "Other Artist")
+      other_artist = create(:artist, name: "Other Artist", user: album.user)
       other_track = create(:track, title: "Other Song", artist: other_artist, album: album, duration: 100)
       html = render_inline(described_class.new(track: other_track, hide_artist_if: artist, show_album: false))
       subtitle = html.at_css(".text-sm.text-gray-400")
