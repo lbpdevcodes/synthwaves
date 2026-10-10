@@ -101,6 +101,18 @@ RSpec.describe "Albums", type: :request do
       expect(response).to have_http_status(:ok)
     end
 
+    it "shows only the library's tracks for an album MusicBrainz knows" do
+      artist = create(:artist, user: user)
+      album = create(:album, artist: artist, musicbrainz_release_id: "mb-release-1")
+      create(:track, album: album, artist: artist, title: "Enjoy the Silence")
+
+      get album_path(album)
+
+      doc = Nokogiri::HTML(response.body)
+      expect(doc.text).to include("Enjoy the Silence")
+      expect(doc.at_css("turbo-frame#album-tracks-merged")).to be_nil
+    end
+
     it "keeps Play All as the single primary action" do
       album = create(:album, artist: create(:artist, user: user))
       get album_path(album)

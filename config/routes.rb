@@ -13,14 +13,7 @@ Rails.application.routes.draw do
   end
   # Music routes
   get :music, to: "music#show"
-  resources :artists, only: [:index, :show, :edit, :update, :destroy] do
-    member do
-      get :discography
-      get :missing_album
-      get :import_search
-      post :import_album
-    end
-  end
+  resources :artists, only: [:index, :show, :edit, :update, :destroy]
   resources :albums, only: [:index, :show, :edit, :update, :destroy] do
     member do
       post :create_playlist
@@ -28,9 +21,6 @@ Rails.application.routes.draw do
       post :refresh
       post :fetch_cover
       post :download_audio
-      get :missing_tracks
-      post :import_track
-      post :import_missing_tracks
     end
   end
   resources :tracks, only: [:index, :show, :new, :create, :edit, :update, :destroy] do

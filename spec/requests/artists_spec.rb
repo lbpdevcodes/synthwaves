@@ -115,6 +115,17 @@ RSpec.describe "Artists", type: :request do
       get artist_path(artist)
       expect(response).to have_http_status(:ok)
     end
+
+    it "shows only the library's albums for an artist MusicBrainz knows" do
+      artist = create(:artist, user: user, musicbrainz_artist_id: "mb-artist-1")
+      create(:album, artist: artist, title: "Violator")
+
+      get artist_path(artist)
+
+      doc = Nokogiri::HTML(response.body)
+      expect(doc.text).to include("Violator")
+      expect(doc.at_css("turbo-frame#discography")).to be_nil
+    end
   end
 
   describe "GET /artists/:id/edit" do

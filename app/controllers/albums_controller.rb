@@ -121,42 +121,6 @@ class AlbumsController < ApplicationController
     end
   end
 
-  def missing_tracks
-    @album = Current.user.albums.includes(:artist, tracks: :artist).find(params[:id])
-    service = AlbumTrackImportService.new(album: @album, user: Current.user)
-    @entries = service.find_missing_tracks
-  rescue MusicBrainzService::Error => e
-    Rails.logger.error("Missing tracks fetch failed for album #{@album.id}: #{e.message}")
-    @entries = []
-  end
-
-  def import_track
-    @album = Current.user.albums.includes(:artist).find(params[:id])
-    title = params[:track_title].to_s.strip
-    service = AlbumTrackImportService.new(album: @album, user: Current.user)
-
-    track = service.import_track(title)
-    if track
-      redirect_to @album, notice: "Downloading \"#{title}\"..."
-    else
-      redirect_to @album, alert: "No YouTube results found for \"#{title}\"."
-    end
-  end
-
-  def import_missing_tracks
-    @album = Current.user.albums.includes(:artist, tracks: :artist).find(params[:id])
-    service = AlbumTrackImportService.new(album: @album, user: Current.user)
-
-    imported = service.import_missing_tracks
-    if imported == 0
-      redirect_to @album, notice: "No missing tracks to download."
-    else
-      redirect_to @album, notice: "Downloading #{imported} missing #{"track".pluralize(imported)}..."
-    end
-  rescue AlbumTrackImportService::Error => e
-    redirect_to @album, alert: e.message
-  end
-
   def create_playlist
     album = Current.user.albums.find(params[:id])
     playlist = Current.user.playlists.create!(name: album.title)
