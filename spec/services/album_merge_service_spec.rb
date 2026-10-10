@@ -4,7 +4,7 @@ RSpec.describe AlbumMergeService do
   describe ".call" do
     it "moves tracks from source to target album" do
       target = create(:album, title: "Target")
-      source = create(:album, title: "Source")
+      source = create(:album, title: "Source", user: target.user)
       track = create(:track, album: source, artist: source.artist)
 
       described_class.call(target: target, source: source)
@@ -69,7 +69,7 @@ RSpec.describe AlbumMergeService do
 
     it "reassigns tracks to the target artist" do
       artist_a = create(:artist, name: "Artist A")
-      artist_b = create(:artist, name: "Artist B")
+      artist_b = create(:artist, name: "Artist B", user: artist_a.user)
       target = create(:album, artist: artist_a)
       source = create(:album, artist: artist_b)
       track = create(:track, album: source, artist: artist_b)

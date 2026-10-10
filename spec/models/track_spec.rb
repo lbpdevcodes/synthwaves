@@ -13,6 +13,22 @@ RSpec.describe Track, type: :model do
 
   describe "validations" do
     it { should validate_presence_of(:title) }
+
+    it "rejects an album from another user's library" do
+      track = build(:track)
+      track.album = create(:album)
+
+      expect(track).not_to be_valid
+      expect(track.errors[:album]).to include("must be in the same library")
+    end
+
+    it "rejects an artist from another user's library" do
+      track = build(:track)
+      track.artist = create(:artist)
+
+      expect(track).not_to be_valid
+      expect(track.errors[:artist]).to include("must be in the same library")
+    end
   end
 
   describe ".search" do
@@ -139,7 +155,7 @@ RSpec.describe Track, type: :model do
   describe "search index update on move" do
     it "reindexes when album_id changes" do
       track = create(:track, title: "Movable Song")
-      new_album = create(:album, title: "Destination Album")
+      new_album = create(:album, title: "Destination Album", user: track.user)
 
       track.update!(album: new_album)
 
@@ -149,7 +165,7 @@ RSpec.describe Track, type: :model do
 
     it "reindexes when artist_id changes" do
       track = create(:track, title: "Transferable Song")
-      new_artist = create(:artist, name: "Receiving Artist")
+      new_artist = create(:artist, name: "Receiving Artist", user: track.user)
 
       track.update!(artist: new_artist)
 

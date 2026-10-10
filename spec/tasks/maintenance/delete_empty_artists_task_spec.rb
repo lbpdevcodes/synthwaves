@@ -11,7 +11,7 @@ RSpec.describe Maintenance::DeleteEmptyArtistsTask do
 
     it "includes artists with no albums but with tracks in other artists' albums" do
       artist = create(:artist)
-      album = create(:album)
+      album = create(:album, user: artist.user)
       create(:track, artist: artist, album: album)
       expect(task.collection).to include(artist)
     end
@@ -42,7 +42,7 @@ RSpec.describe Maintenance::DeleteEmptyArtistsTask do
 
     it "reassigns orphaned tracks to their album's artist before destroying" do
       orphan_artist = create(:artist)
-      album_owner = create(:artist)
+      album_owner = create(:artist, user: orphan_artist.user)
       album = create(:album, artist: album_owner)
       track = create(:track, artist: orphan_artist, album: album)
 
@@ -54,7 +54,7 @@ RSpec.describe Maintenance::DeleteEmptyArtistsTask do
 
     it "does not delete any tracks" do
       orphan_artist = create(:artist)
-      album = create(:album)
+      album = create(:album, user: orphan_artist.user)
       create(:track, artist: orphan_artist, album: album)
 
       expect { task.process(orphan_artist) }.not_to change(Track, :count)

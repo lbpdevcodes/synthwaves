@@ -1,15 +1,23 @@
 FactoryBot.define do
   factory :track do
     sequence(:title) { |n| "Track #{n}" }
-    album
-    artist { album.artist }
-    user { album.user }
+    album { nil }
+    artist { nil }
+    user { nil }
     duration { 180.0 }
     track_number { 1 }
     disc_number { 1 }
     file_format { "mp3" }
     file_size { 5_000_000 }
     bitrate { 320 }
+
+    # A track, its album and its artist live in one library. Fill whatever
+    # the caller left out from what they gave: user, artist or album.
+    after(:build) do |track|
+      track.user ||= track.album&.user || track.artist&.user || build(:user)
+      track.artist ||= track.album&.artist || build(:artist, user: track.user)
+      track.album ||= build(:album, artist: track.artist, user: track.user)
+    end
 
     after(:build) do |track|
       unless track.youtube_video_id.present? || track.audio_file.attached?

@@ -116,6 +116,15 @@ RSpec.describe "Artists", type: :request do
       expect(response).to have_http_status(:ok)
     end
 
+    it "offers Edit and Delete to the owner" do
+      artist = create(:artist, user: user)
+      get artist_path(artist)
+
+      doc = Nokogiri::HTML(response.body)
+      expect(doc.at_css("a[href='#{edit_artist_path(artist)}']")).to be_present
+      expect(doc.at_css("form[action='#{artist_path(artist)}'] input[name='_method'][value='delete']")).to be_present
+    end
+
     it "shows only the library's albums for an artist MusicBrainz knows" do
       artist = create(:artist, user: user, musicbrainz_artist_id: "mb-artist-1")
       create(:album, artist: artist, title: "Violator")
@@ -129,31 +138,22 @@ RSpec.describe "Artists", type: :request do
   end
 
   describe "GET /artists/:id/edit" do
-    let(:admin) { create(:user, admin: true) }
-
-    before { login_user(admin) }
-
-    it "returns success for admin" do
-      artist = create(:artist, user: admin)
+    it "lets the owner open the form" do
+      artist = create(:artist, user: user)
       get edit_artist_path(artist)
       expect(response).to have_http_status(:ok)
     end
 
-    it "redirects non-admin" do
-      login_user(user)
-      artist = create(:artist, user: user)
+    it "returns not found for another user's artist" do
+      artist = create(:artist)
       get edit_artist_path(artist)
-      expect(response).to redirect_to(root_path)
+      expect(response).to have_http_status(:not_found)
     end
   end
 
   describe "PATCH /artists/:id" do
-    let(:admin) { create(:user, admin: true) }
-
-    before { login_user(admin) }
-
     it "updates artist name" do
-      artist = create(:artist, name: "Old Name", user: admin)
+      artist = create(:artist, name: "Old Name", user: user)
       patch artist_path(artist), params: {artist: {name: "New Name"}}
 
       expect(artist.reload.name).to eq("New Name")
@@ -161,37 +161,32 @@ RSpec.describe "Artists", type: :request do
     end
 
     it "updates artist category" do
-      artist = create(:artist, category: "music", user: admin)
+      artist = create(:artist, category: "music", user: user)
       patch artist_path(artist), params: {artist: {category: "podcast"}}
 
       expect(artist.reload.category).to eq("podcast")
     end
 
     it "renders edit on validation error" do
-      create(:artist, name: "Taken", user: admin)
-      artist = create(:artist, name: "Other", user: admin)
+      create(:artist, name: "Taken", user: user)
+      artist = create(:artist, name: "Other", user: user)
 
       patch artist_path(artist), params: {artist: {name: "Taken"}}
 
       expect(response).to have_http_status(:unprocessable_content)
     end
 
-    it "redirects non-admin" do
-      login_user(user)
-      artist = create(:artist, name: "Original", user: user)
+    it "leaves another user's artist unchanged" do
+      artist = create(:artist, name: "Original")
       patch artist_path(artist), params: {artist: {name: "Hacked"}}
-      expect(response).to redirect_to(root_path)
+      expect(response).to have_http_status(:not_found)
       expect(artist.reload.name).to eq("Original")
     end
   end
 
   describe "DELETE /artists/:id" do
-    let(:admin) { create(:user, admin: true) }
-
-    before { login_user(admin) }
-
     it "deletes the artist and cascades to albums and tracks" do
-      artist = create(:artist, user: admin)
+      artist = create(:artist, user: user)
       album = create(:album, artist: artist)
       create(:track, album: album, artist: artist)
 
@@ -204,11 +199,10 @@ RSpec.describe "Artists", type: :request do
       expect(response).to redirect_to(artists_path)
     end
 
-    it "redirects non-admin" do
-      login_user(user)
-      artist = create(:artist, user: user)
+    it "keeps another user's artist" do
+      artist = create(:artist)
       delete artist_path(artist)
-      expect(response).to redirect_to(root_path)
+      expect(response).to have_http_status(:not_found)
       expect(Artist.exists?(artist.id)).to be true
     end
   end

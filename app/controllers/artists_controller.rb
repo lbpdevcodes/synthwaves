@@ -1,8 +1,5 @@
 class ArtistsController < ApplicationController
   include Orderable
-  include AdminAuthorization
-
-  before_action :require_admin, only: [:edit, :update, :destroy]
 
   def index
     @query = params[:q]

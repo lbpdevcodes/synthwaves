@@ -1,11 +1,9 @@
 class TracksController < ApplicationController
   include Orderable
-  include AdminAuthorization
 
   allow_unauthenticated_access only: [:lyrics]
   before_action :set_track, only: [:show, :edit, :update, :destroy, :stream, :download, :enrich]
   before_action :set_track_public, only: [:lyrics]
-  before_action :require_admin, only: [:edit, :update, :destroy]
 
   def index
     @query = params[:q]

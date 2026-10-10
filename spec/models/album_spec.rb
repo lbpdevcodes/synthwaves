@@ -13,6 +13,13 @@ RSpec.describe Album, type: :model do
 
     it { should validate_presence_of(:title) }
     it { should validate_uniqueness_of(:title).scoped_to(:artist_id) }
+
+    it "rejects an artist from another user's library" do
+      album = build(:album, user: create(:user), artist: create(:artist))
+
+      expect(album).not_to be_valid
+      expect(album.errors[:artist]).to include("must be in the same library")
+    end
   end
 
   describe ".search" do
@@ -66,8 +73,9 @@ RSpec.describe Album, type: :model do
 
   describe "artist change cascade" do
     it "reassigns all tracks to the new artist when artist_id changes" do
-      old_artist = create(:artist, name: "Old Artist")
-      new_artist = create(:artist, name: "New Artist")
+      user = create(:user)
+      old_artist = create(:artist, name: "Old Artist", user: user)
+      new_artist = create(:artist, name: "New Artist", user: user)
       album = create(:album, artist: old_artist)
       track = create(:track, album: album, artist: old_artist)
 
@@ -77,8 +85,9 @@ RSpec.describe Album, type: :model do
     end
 
     it "reindexes tracks search when artist changes" do
-      old_artist = create(:artist, name: "Old Artist")
-      new_artist = create(:artist, name: "New Artist")
+      user = create(:user)
+      old_artist = create(:artist, name: "Old Artist", user: user)
+      new_artist = create(:artist, name: "New Artist", user: user)
       album = create(:album, artist: old_artist)
       track = create(:track, album: album, artist: old_artist, title: "Cascade Song")
 
