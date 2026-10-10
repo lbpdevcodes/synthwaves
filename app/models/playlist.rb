@@ -27,6 +27,20 @@ class Playlist < ApplicationRecord
     added
   end
 
+  # Numbers the given entries 1..N in the order given. Ids from another
+  # playlist are ignored. Each entry goes to a negative position first, so the
+  # unique [playlist_id, position] index never sees two rows on one position.
+  def reorder!(playlist_track_ids)
+    transaction do
+      playlist_track_ids.each_with_index do |id, index|
+        playlist_tracks.where(id: id).update_all(position: -(index + 1))
+      end
+      playlist_track_ids.each_with_index do |id, index|
+        playlist_tracks.where(id: id).update_all(position: index + 1)
+      end
+    end
+  end
+
   # Removes one entry and closes the gap it leaves, so positions stay 1..N.
   # The later rows go negative first, as the reorder code does: the unique
   # [playlist_id, position] index is checked row by row, and the order an
