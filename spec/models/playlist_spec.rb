@@ -281,6 +281,56 @@ RSpec.describe Playlist, type: :model do
     end
   end
 
+  describe "moving one track" do
+    let(:playlist) { create(:playlist) }
+    let(:tracks) { create_list(:track, 4, user: playlist.user) }
+    let(:a) { entry(0) }
+    let(:d) { entry(3) }
+
+    before { playlist.add_tracks(tracks) }
+
+    def entry(index) = playlist.playlist_tracks.find_by!(track: tracks[index])
+    def order = playlist.playlist_tracks.reload.map { |pt| tracks.index(pt.track) }
+    def positions = playlist.playlist_tracks.reload.map(&:position)
+
+    it "moves a track down to the position it is dropped on" do
+      playlist.move_track!(a, to: 3)
+      expect(order).to eq([1, 2, 0, 3])
+      expect(positions).to eq([1, 2, 3, 4])
+    end
+
+    it "moves a track up to the position it is dropped on" do
+      playlist.move_track!(d, to: 2)
+      expect(order).to eq([0, 3, 1, 2])
+      expect(positions).to eq([1, 2, 3, 4])
+    end
+
+    it "moves a track to the very top and the very bottom" do
+      playlist.move_track!(d, to: 1)
+      expect(order).to eq([3, 0, 1, 2])
+      playlist.move_track!(entry(3), to: 4)
+      expect(order).to eq([0, 1, 2, 3])
+    end
+
+    it "keeps a dropped track inside the playlist's positions" do
+      playlist.move_track!(a, to: 99)
+      expect(order).to eq([1, 2, 3, 0])
+      expect(positions).to eq([1, 2, 3, 4])
+    end
+
+    it "steps a track up past its neighbour, across a gap in the numbering" do
+      d.update_columns(position: 9)
+      playlist.step_track!(d, :up)
+      expect(order).to eq([0, 1, 3, 2])
+    end
+
+    it "leaves the first track alone when stepped up and the last when stepped down" do
+      playlist.step_track!(a, :up)
+      playlist.step_track!(d, :down)
+      expect(order).to eq([0, 1, 2, 3])
+    end
+  end
+
   describe "#replace_tracks" do
     let(:user) { create(:user) }
     let(:playlist) { create(:playlist, user: user) }

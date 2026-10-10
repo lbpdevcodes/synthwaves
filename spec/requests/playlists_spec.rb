@@ -423,3 +423,36 @@ RSpec.describe "Playlists in the modal", type: :request do
     expect(form.at_css("input[name='playlist[name]'][required]")).to be_present
   end
 end
+
+RSpec.describe "Playlist reordering controls", type: :request do
+  let(:user) { create(:user) }
+  let(:playlist) { create(:playlist, user: user) }
+  let(:tracks) { create_list(:track, 2, user: user) }
+
+  before do
+    login_user(user)
+    playlist.add_tracks(tracks)
+  end
+
+  it "lets each row be dragged by a handle or stepped with Move up and Move down" do
+    get playlist_path(playlist)
+
+    doc = Nokogiri::HTML(response.body)
+    list = doc.at_css("[data-controller~='sortable']")
+    first = playlist.playlist_tracks.first
+    row = list.at_css("[data-sortable-url='#{playlist_track_path(playlist, first)}']")
+    expect(row["data-position"]).to eq("1")
+    expect(row.at_css("button[data-sortable-handle]")).to be_present
+    directions = row.css("form[action='#{playlist_track_path(playlist, first)}']:has(input[name='_method'][value='patch']) input[name='direction']").map { |i| i["value"] }
+    expect(directions).to contain_exactly("up", "down")
+  end
+
+  it "offers no reordering while the list is filtered by a search" do
+    get playlist_path(playlist, q: tracks.first.title)
+
+    doc = Nokogiri::HTML(response.body)
+    expect(doc.at_css("[data-controller~='sortable']")).to be_nil
+    expect(doc.at_css("button[data-sortable-handle]")).to be_nil
+    expect(doc.at_css("input[name='direction']")).to be_nil
+  end
+end

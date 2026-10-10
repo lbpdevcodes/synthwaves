@@ -231,4 +231,19 @@ RSpec.describe TrackRow::Component, type: :component do
       expect(html.at_css(".extra").text).to eq("Edit")
     end
   end
+
+  describe "leading slot and row data" do
+    it "renders the leading slot before the play button" do
+      html = render_inline(described_class.new(track: create(:track))) { |c| c.with_leading { "<span id='grip'></span>".html_safe } }
+      row = html.at_css("[data-controller~='song-row']")
+      expect(row.at_css("#grip")).to be_present
+      in_order = row.css("#grip, button[data-action='song-row#play']").map { |node| node["id"] || "play" }
+      expect(in_order).to eq(["grip", "play"])
+    end
+
+    it "adds the given data attributes to the row" do
+      html = render_inline(described_class.new(track: create(:track), row_data: {position: 7}))
+      expect(html.at_css("[data-controller~='song-row']")["data-position"]).to eq("7")
+    end
+  end
 end

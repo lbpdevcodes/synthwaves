@@ -37,7 +37,7 @@ Rails.application.routes.draw do
   end
   resources :playlists do
     post :merge, on: :member
-    resources :tracks, controller: "playlist_tracks", only: [:create, :destroy], as: :tracks
+    resources :tracks, controller: "playlist_tracks", only: [:create, :update, :destroy], as: :tracks
   end
   resources :podcasts, only: [:show]
   get "tv-guide", to: "public_tv_guide#index", as: :public_tv_guide

@@ -1,0 +1,18 @@
+<%# Drag handle plus Move up / Move down for one playlist row. The buttons
+    work without JavaScript and from the keyboard; the handle needs the
+    sortable controller on the list. %>
+<div class="flex items-center gap-0.5 text-gray-500">
+  <button type="button" data-sortable-handle title="Drag to reorder" aria-label="Drag to reorder"
+          class="p-1 coarse:p-2 cursor-grab active:cursor-grabbing touch-none hover:text-neon-cyan">
+    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M7 4a1.5 1.5 0 110 3 1.5 1.5 0 010-3zm6 0a1.5 1.5 0 110 3 1.5 1.5 0 010-3zM7 8.5a1.5 1.5 0 110 3 1.5 1.5 0 010-3zm6 0a1.5 1.5 0 110 3 1.5 1.5 0 010-3zM7 13a1.5 1.5 0 110 3 1.5 1.5 0 010-3zm6 0a1.5 1.5 0 110 3 1.5 1.5 0 010-3z"/></svg>
+  </button>
+  <div class="flex flex-col">
+    <% {"up" => "M5 12l5-5 5 5", "down" => "M5 8l5 5 5-5"}.each do |direction, path| %>
+      <%= button_to playlist_track_path(playlist, playlist_track), method: :patch, params: { direction: direction },
+            title: "Move #{direction}", "aria-label": "Move #{direction}",
+            class: "block px-1 leading-none hover:text-neon-cyan" do %>
+        <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 20 20"><path stroke-linecap="round" stroke-linejoin="round" d="<%= path %>"/></svg>
+      <% end %>
+    <% end %>
+  </div>
+</div>

@@ -40,9 +40,16 @@
              data-search-target="input" data-action="input->search#submit">
     </form>
     <% if @playlist_tracks.any? %>
-      <div class="bg-gray-800 rounded-lg border border-gray-700">
+      <% reorderable = @query.blank? %>
+      <div class="bg-gray-800 rounded-lg border border-gray-700" <%= tag.attributes(data: {controller: ("sortable" if reorderable)}) %>>
         <% @playlist_tracks.each do |pt| %>
-          <%= render TrackRow::Component.new(track: pt.track, number: pt.position, link_title: true, link_subtitle: true) do |c| %>
+          <%= render TrackRow::Component.new(track: pt.track, number: pt.position, link_title: true, link_subtitle: true,
+                row_data: reorderable ? {sortable_url: playlist_track_path(@playlist, pt), position: pt.position} : {}) do |c| %>
+            <% if reorderable %>
+              <% c.with_leading do %>
+                <%= render "playlist_tracks/reorder_controls", playlist: @playlist, playlist_track: pt %>
+              <% end %>
+            <% end %>
             <% c.with_trailing do %>
               <%= render TrackActions::Component.new(track: pt.track, favorited: @favorited_track_ids.include?(pt.track.id)) %>
               <%= button_to playlist_track_path(@playlist, pt),
