@@ -1,0 +1,3 @@
+<%= render layout: "shared/modal_or_page", locals: {title: "New Album"} do %>
+  <%= render "form", album: @album, cancel_path: albums_path %>
+<% end %>

@@ -14,6 +14,8 @@
     <h1 class="text-3xl font-bold font-display"><%= @artist.name %></h1>
     <%= render "favorites/button", favorable: @artist, favorited: Current.user.favorites.exists?(favorable: @artist) %>
     <%= render Button::Component.new(label: "Edit", behavior: :navigation, link_url: edit_artist_path(@artist), style: :secondary, size: :small, turbo_frame: "modal") %>
+    <%= render Button::Component.new(label: "New album", behavior: :navigation, link_url: new_album_path(artist_id: @artist.id), style: :secondary, size: :small, turbo_frame: "modal") %>
+    <%= render Button::Component.new(label: "Upload tracks", behavior: :navigation, link_url: new_track_upload_path(artist_id: @artist.id), style: :secondary, size: :small, turbo_frame: "modal") %>
     <%= button_to "Delete", artist_path(@artist), method: :delete, class: "inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-red-400 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors", data: { turbo_confirm: artist_delete_confirmation(@artist) } %>
   </div>
 

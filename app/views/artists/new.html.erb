@@ -1,0 +1,3 @@
+<%= render layout: "shared/modal_or_page", locals: {title: "New Artist"} do %>
+  <%= render "form", artist: @artist, cancel_path: artists_path %>
+<% end %>

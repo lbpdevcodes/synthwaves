@@ -3,6 +3,8 @@
 # the refreshed modal frame comes back empty. A form visited as a full page
 # keeps the plain redirect.
 #
+# A record created from the modal answers with a visit to its own page.
+#
 # The refresh carries no request id. Turbo ignores a refresh whose id matches
 # a request it sent itself, and by default turbo-rails stamps the id of the
 # form submission that is being answered.
@@ -15,6 +17,15 @@ module ModalForm
     if turbo_frame_request?
       flash[:notice] = notice
       render turbo_stream: turbo_stream.refresh(request_id: nil)
+    else
+      redirect_to location, notice: notice
+    end
+  end
+
+  def respond_created(location, notice:)
+    if turbo_frame_request?
+      flash[:notice] = notice
+      render turbo_stream: helpers.turbo_stream_action_tag(:visit, location: polymorphic_path(location))
     else
       redirect_to location, notice: notice
     end

@@ -18,6 +18,19 @@ class ArtistsController < ApplicationController
     @albums = @artist.albums.includes(:tracks, cover_image_attachment: :blob).order(:year)
   end
 
+  def new
+    @artist = Current.user.artists.new
+  end
+
+  def create
+    @artist = Current.user.artists.new(artist_params)
+    if @artist.save
+      respond_created @artist, notice: "Artist created."
+    else
+      render :new, status: :unprocessable_content
+    end
+  end
+
   def edit
     @artist = Current.user.artists.find(params[:id])
   end

@@ -46,6 +46,7 @@
               <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M10 6a2 2 0 110-4 2 2 0 010 4zm0 6a2 2 0 110-4 2 2 0 010 4zm0 6a2 2 0 110-4 2 2 0 010 4z"/></svg>
             </span>
           <% end %>
+          <%= render Button::Component.new(label: "Upload tracks", behavior: :navigation, link_url: new_track_upload_path(album_id: @album.id), style: :menu_item, turbo_frame: "modal") %>
           <%= button_to "Export ZIP", downloads_path(downloadable_type: "Album", downloadable_id: @album.id), class: "block w-full text-left px-4 py-2 text-sm text-white hover:bg-gray-700 hover:text-neon-cyan" %>
           <%= button_to "Fetch cover", fetch_cover_album_path(@album), class: "block w-full text-left px-4 py-2 text-sm text-white hover:bg-gray-700 hover:text-neon-cyan" %>
           <% if @album.youtube_playlist_url.present? %>

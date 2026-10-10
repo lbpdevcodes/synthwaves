@@ -174,6 +174,9 @@ Owners edit their own artists, albums and tracks in a modal over the current pag
 - `ModalForm#respond_saved` answers a save from the modal with `turbo_stream.refresh(request_id: nil)`, so the page under the modal morphs and the empty frame closes it. The `request_id: nil` matters: Turbo ignores a refresh carrying the id of its own request.
 - `DestroyRedirect#redirect_after_destroy` returns to the referring page, or to the parent when the delete came from the record's own page.
 - Track edits go through `TrackUpdate`, which routes title/artist/album/year through `TrackRetagService` so a track and its album keep the same artist. Artist and album are typed names (find-or-create in the owner's library).
+- Album create and edit go through `AlbumSave`: the artist is a typed name resolved with `Artist.find_or_create_named!`, rolled back if the album fails to save.
+- `ModalForm#respond_created` answers a create from the modal with a custom `<turbo-stream action="visit" location="...">` (registered in `application.js`), landing on the new record.
+- "Upload tracks" (album More menu, artist page) opens `track_uploads/new`: `bulk_upload_controller.js` direct-uploads several files, then `TrackUpload` files them as tracks in one album (titled by file name) and enqueues `MetadataExtractionJob` to read the tags — except for `AudioConversionJob::CONVERTIBLE_FORMATS`, whose conversion reads them.
 
 ### ViewComponents
 
@@ -277,6 +280,7 @@ bin/kamal app exec -r job --interactive 'bin/rails runner "RadioStation.find(ID)
 ## Routes
 
 - Standard RESTful: artists, albums, tracks, playlists, favorites, play_histories
+- `GET /track_uploads/new`, `POST /track_uploads` - Multi-file track upload into an album (`album_id`, or `artist_id` + `album_title`)
 - `POST /albums/:id/create_playlist` - Create playlist from album
 - `GET /tracks/:id/stream` - Audio streaming endpoint
 - `GET /search`, `GET /search/dropdown` - Search

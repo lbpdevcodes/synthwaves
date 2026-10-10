@@ -16,13 +16,7 @@
   </div>
 
   <div>
-    <%= f.label :artist_name, "Artist", class: "block text-sm font-medium text-gray-400 mb-1" %>
-    <%= f.text_field :artist_name, value: track.artist&.name, list: "library-artist-names", autocomplete: "off", class: field_class %>
-    <datalist id="library-artist-names">
-      <% library_artist_names.each do |name| %>
-        <option value="<%= name %>"></option>
-      <% end %>
-    </datalist>
+    <%= render "shared/artist_name_field", form: f, value: track.artist&.name %>
   </div>
 
   <div>
