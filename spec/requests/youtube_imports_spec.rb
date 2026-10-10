@@ -174,7 +174,7 @@ RSpec.describe "YoutubeImports", type: :request do
         end
 
         it "adds the track to an existing playlist when playlist_id is given" do
-          album = create(:album)
+          album = create(:album, user: user)
           track = create(:track, album: album, youtube_video_id: "R-FxmoVM7X4", user: user)
           playlist = create(:playlist, user: user)
           allow(YoutubeVideoImportService).to receive(:call).and_return(track)
@@ -185,7 +185,7 @@ RSpec.describe "YoutubeImports", type: :request do
         end
 
         it "creates a new playlist and adds the track when playlist_id is 'new'" do
-          album = create(:album)
+          album = create(:album, user: user)
           track = create(:track, album: album, youtube_video_id: "R-FxmoVM7X4", user: user)
           allow(YoutubeVideoImportService).to receive(:call).and_return(track)
 
