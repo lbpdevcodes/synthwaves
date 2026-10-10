@@ -165,6 +165,16 @@ Constraints that shape the design:
 - `createMediaElementSource` is one-way per element and element `volume`/`muted` stop affecting routed audio — output goes through the graph's per-element gain node (`_setOutputVolume` in `player_controller.js`)
 - During AirPlay the device receives the element's flat feed; the local graph output is silenced so the two don't double up
 
+### Modal Editing
+
+Owners edit their own artists, albums and tracks in a modal over the current page:
+
+- The layout carries an empty `<turbo-frame id="modal">`. Edit links target it with `data-turbo-frame="modal"` (the pencil in `TrackActions::Component`, `shared/_card_edit_link` on cards, the show-page Edit buttons).
+- An edit view renders through `shared/_modal_or_page`: inside `Modal::Component` when `turbo_frame_request?`, as a plain page when visited directly. `shared/_form_actions` makes Cancel close the modal; `shared/_delete_record` submits Delete as a full page (`data-turbo-frame="_top"`).
+- `ModalForm#respond_saved` answers a save from the modal with `turbo_stream.refresh(request_id: nil)`, so the page under the modal morphs and the empty frame closes it. The `request_id: nil` matters: Turbo ignores a refresh carrying the id of its own request.
+- `DestroyRedirect#redirect_after_destroy` returns to the referring page, or to the parent when the delete came from the record's own page.
+- Track edits go through `TrackUpdate`, which routes title/artist/album/year through `TrackRetagService` so a track and its album keep the same artist. Artist and album are typed names (find-or-create in the owner's library).
+
 ### ViewComponents
 
 `TrackRow::Component` renders a track in list views with configurable options: `link_title`, `link_subtitle`, `show_album`, `hide_artist_if`, `show_duration`, `number`.

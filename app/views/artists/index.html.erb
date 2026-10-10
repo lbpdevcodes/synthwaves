@@ -16,24 +16,27 @@
     empty_label: "artists"
   ) do %>
     <% @artists.each do |artist| %>
-      <%= link_to artist_path(artist), class: "group collection-card", data: { turbo_frame: "_top" } do %>
-        <div class="bg-gray-800 rounded-lg border border-gray-700 p-4 hover:shadow-lg transition-shadow collection-card-inner">
-          <div class="collection-card-image collection-card-image-round">
-            <% last_album = artist.albums.max_by(&:created_at) %>
-            <% if last_album&.cover_image&.attached? %>
-              <%= image_tag last_album.cover_image, class: "w-full aspect-square rounded-full object-cover mb-3", loading: "lazy" %>
-            <% else %>
-              <div class="w-full aspect-square rounded-full bg-gray-700 flex items-center justify-center mb-3">
-                <svg class="w-12 h-12 text-gray-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"/></svg>
-              </div>
-            <% end %>
+      <div class="relative group/card">
+        <%= render "shared/card_edit_link", url: edit_artist_path(artist), name: artist.name %>
+        <%= link_to artist_path(artist), class: "group collection-card", data: { turbo_frame: "_top" } do %>
+          <div class="bg-gray-800 rounded-lg border border-gray-700 p-4 hover:shadow-lg transition-shadow collection-card-inner">
+            <div class="collection-card-image collection-card-image-round">
+              <% last_album = artist.albums.max_by(&:created_at) %>
+              <% if last_album&.cover_image&.attached? %>
+                <%= image_tag last_album.cover_image, class: "w-full aspect-square rounded-full object-cover mb-3", loading: "lazy" %>
+              <% else %>
+                <div class="w-full aspect-square rounded-full bg-gray-700 flex items-center justify-center mb-3">
+                  <svg class="w-12 h-12 text-gray-400" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"/></svg>
+                </div>
+              <% end %>
+            </div>
+            <div class="text-center collection-card-body">
+              <div class="font-medium text-white group-hover:text-neon-cyan truncate"><%= artist.name %></div>
+              <div class="text-sm text-gray-400"><%= pluralize(artist.albums.size, "album") %></div>
+            </div>
           </div>
-          <div class="text-center collection-card-body">
-            <div class="font-medium text-white group-hover:text-neon-cyan truncate"><%= artist.name %></div>
-            <div class="text-sm text-gray-400"><%= pluralize(artist.albums.size, "album") %></div>
-          </div>
-        </div>
-      <% end %>
+        <% end %>
+      </div>
     <% end %>
   <% end %>
 </div>
