@@ -29,6 +29,13 @@ RSpec.describe Track, type: :model do
       expect(track).not_to be_valid
       expect(track.errors[:artist]).to include("must be in the same library")
     end
+
+    it "still saves other changes on a track already filed across libraries" do
+      track = create(:track)
+      track.update_columns(album_id: create(:album).id)
+
+      expect(track.update(title: "Renamed")).to be true
+    end
   end
 
   describe ".search" do

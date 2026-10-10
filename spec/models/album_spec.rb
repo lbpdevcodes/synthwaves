@@ -20,6 +20,13 @@ RSpec.describe Album, type: :model do
       expect(album).not_to be_valid
       expect(album.errors[:artist]).to include("must be in the same library")
     end
+
+    it "still saves other changes on an album already filed across libraries" do
+      album = create(:album)
+      album.update_columns(artist_id: create(:artist).id)
+
+      expect(album.update(title: "Renamed")).to be true
+    end
   end
 
   describe ".search" do
