@@ -1,5 +1,7 @@
 class AlbumsController < ApplicationController
   include Orderable
+  include ModalForm
+  include DestroyRedirect
 
   def index
     @query = params[:q]
@@ -33,14 +35,12 @@ class AlbumsController < ApplicationController
 
   def edit
     @album = Current.user.albums.find(params[:id])
-    @artists = Current.user.artists.order(:name)
   end
 
   def destroy
     @album = Current.user.albums.find(params[:id])
-    artist = @album.artist
     @album.destroy
-    redirect_to artist_path(artist), notice: "Album deleted."
+    redirect_after_destroy album_path(@album), parent: artist_path(@album.artist), notice: "Album deleted."
   end
 
   def merge
@@ -99,9 +99,8 @@ class AlbumsController < ApplicationController
   def update
     @album = Current.user.albums.find(params[:id])
     if @album.update(album_params)
-      redirect_to @album, notice: "Album updated."
+      respond_saved @album, notice: "Album updated."
     else
-      @artists = Current.user.artists.order(:name)
       render :edit, status: :unprocessable_content
     end
   end
