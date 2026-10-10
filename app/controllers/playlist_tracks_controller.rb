@@ -7,6 +7,18 @@ class PlaylistTracksController < ApplicationController
     respond_in_place added_notice(add_tracks), fallback: @playlist
   end
 
+  # A drag sends the position the track was dropped on; the Move up and
+  # Move down buttons send a direction.
+  def update
+    playlist_track = @playlist.playlist_tracks.find(params[:id])
+    if params[:direction].present?
+      @playlist.step_track!(playlist_track, params[:direction])
+    else
+      @playlist.move_track!(playlist_track, to: params[:position])
+    end
+    respond_in_place nil, fallback: @playlist
+  end
+
   def destroy
     @playlist.remove_track(@playlist.playlist_tracks.find(params[:id]))
     respond_in_place "Removed from #{@playlist.name}.", fallback: @playlist

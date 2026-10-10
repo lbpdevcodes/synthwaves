@@ -41,6 +41,28 @@ class Playlist < ApplicationRecord
     end
   end
 
+  # Moves one entry to the position another entry holds now, shifting the
+  # entries in between by one. A position past either end lands at that end.
+  # The moving entry waits at 0 while the others shift through negatives.
+  def move_track!(playlist_track, to:)
+    from = playlist_track.position
+    target = to.to_i.clamp(*position_bounds)
+    return if target == from
+
+    transaction do
+      playlist_track.update_columns(position: 0)
+      shift_between(from, target)
+      playlist_track.update_columns(position: target)
+    end
+  end
+
+  # Swaps an entry with its neighbour above or below, wherever that neighbour
+  # sits: on another page, or past a gap in the numbering.
+  def step_track!(playlist_track, direction)
+    neighbour = neighbour_of(playlist_track, direction)
+    move_track!(playlist_track, to: neighbour.position) if neighbour
+  end
+
   # Removes one entry and closes the gap it leaves, so positions stay 1..N.
   # The later rows go negative first, as the reorder code does: the unique
   # [playlist_id, position] index is checked row by row, and the order an
@@ -124,4 +146,25 @@ class Playlist < ApplicationRecord
   scope :search, ->(query) {
     where("playlists.name LIKE :q", q: "%#{query}%") if query.present?
   }
+
+  private
+
+  def position_bounds
+    playlist_tracks.unscope(:order).pick(Arel.sql("MIN(position)"), Arel.sql("MAX(position)"))
+  end
+
+  def neighbour_of(playlist_track, direction)
+    if direction.to_s == "up"
+      playlist_tracks.where("position < ?", playlist_track.position).last
+    else
+      playlist_tracks.where("position > ?", playlist_track.position).first
+    end
+  end
+
+  # Closes the slot a moving entry left at `from` and opens one at `to`.
+  def shift_between(from, to)
+    range, step = (from < to) ? [(from + 1)..to, -1] : [to..(from - 1), 1]
+    playlist_tracks.where(position: range).update_all(["position = -(position + ?)", step])
+    playlist_tracks.where("position < 0").update_all("position = -position")
+  end
 end

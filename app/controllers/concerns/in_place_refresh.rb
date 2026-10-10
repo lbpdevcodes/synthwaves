@@ -18,7 +18,7 @@ module InPlaceRefresh
   end
 
   def refresh_with_notice(notice)
-    flash[:notice] = notice
+    flash[:notice] = notice if notice
     render turbo_stream: turbo_stream.refresh(request_id: nil)
   end
 end

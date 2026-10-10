@@ -2,10 +2,11 @@ module TrackRow
   class Component < ViewComponent::Base
     include TracksHelper
 
+    renders_one :leading
     renders_one :trailing
 
     def initialize(track:, number: nil, link_title: false, link_subtitle: false,
-      show_album: true, hide_artist_if: nil, show_duration: true)
+      show_album: true, hide_artist_if: nil, show_duration: true, row_data: {})
       @track = track
       @number = number
       @link_title = link_title
@@ -13,11 +14,12 @@ module TrackRow
       @show_album = show_album
       @hide_artist_if = hide_artist_if
       @show_duration = show_duration
+      @row_data = row_data
     end
 
     private
 
-    attr_reader :track, :number, :show_album, :hide_artist_if
+    attr_reader :track, :number, :show_album, :hide_artist_if, :row_data
 
     def link_title? = @link_title
     def link_subtitle? = @link_subtitle
