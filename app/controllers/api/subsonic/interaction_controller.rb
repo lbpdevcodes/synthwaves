@@ -42,13 +42,23 @@ class API::Subsonic::InteractionController < API::Subsonic::BaseController
 
   def scrobble
     track = current_user.tracks.find(params[:id])
-    current_user.play_histories.create!(track: track, played_at: Time.current)
+    current_user.play_histories.create!(track: track, played_at: played_at) if submission?
     render_subsonic
   rescue ActiveRecord::RecordNotFound
     render_subsonic_error(70, "Song not found")
   end
 
   private
+
+  # Subsonic sends submission=false for a "now playing" notification.
+  def submission?
+    ActiveModel::Type::Boolean.new.cast(params.fetch(:submission, true))
+  end
+
+  # Subsonic's time is milliseconds since the epoch.
+  def played_at
+    params[:time].present? ? Time.zone.at(0, params[:time].to_i, :millisecond) : Time.current
+  end
 
   def star_items(ids, type)
     return if ids.blank?

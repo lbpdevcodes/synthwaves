@@ -158,5 +158,25 @@ RSpec.describe "Subsonic Interaction API", type: :request do
         get "/api/rest/scrobble.view", params: auth_params.merge(id: track.id)
       }.to change(PlayHistory, :count).by(1)
     end
+
+    it "records no play for a now-playing notification" do
+      track = create(:track, user: user)
+
+      expect {
+        get "/api/rest/scrobble.view", params: auth_params.merge(id: track.id, submission: "false")
+      }.not_to change(PlayHistory, :count)
+
+      json = JSON.parse(response.body)
+      expect(json["subsonic-response"]["status"]).to eq("ok")
+    end
+
+    it "records the play at the time the client reports" do
+      track = create(:track, user: user)
+      played_at = Time.utc(2026, 10, 1, 8, 30)
+
+      get "/api/rest/scrobble.view", params: auth_params.merge(id: track.id, time: (played_at.to_f * 1000).to_i)
+
+      expect(user.play_histories.last.played_at).to eq(played_at)
+    end
   end
 end
