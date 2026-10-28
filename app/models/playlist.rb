@@ -2,7 +2,6 @@ class Playlist < ApplicationRecord
   belongs_to :user
   has_many :playlist_tracks, -> { order(:position) }, dependent: :destroy
   has_many :tracks, through: :playlist_tracks
-  has_one :radio_station, dependent: :destroy
 
   validates :name, presence: true
 

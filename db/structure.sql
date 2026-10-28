@@ -208,36 +208,6 @@ CREATE INDEX "index_tracks_on_isrc" ON "tracks" ("isrc") /*application='SynthWav
 CREATE INDEX "index_tracks_on_language" ON "tracks" ("language") /*application='SynthWaves'*/;
 CREATE INDEX "index_tracks_on_release_year" ON "tracks" ("release_year") /*application='SynthWaves'*/;
 CREATE INDEX "index_tracks_on_enrichment_status" ON "tracks" ("enrichment_status") /*application='SynthWaves'*/;
-CREATE TABLE IF NOT EXISTS "radio_queue_tracks" ("id" integer PRIMARY KEY AUTOINCREMENT NOT NULL, "radio_station_id" integer NOT NULL, "track_id" integer NOT NULL, "position" integer NOT NULL, "played_at" datetime(6), "created_at" datetime(6) NOT NULL, "updated_at" datetime(6) NOT NULL, CONSTRAINT "fk_rails_66f11d7da4"
-FOREIGN KEY ("radio_station_id")
-  REFERENCES "radio_stations" ("id")
-, CONSTRAINT "fk_rails_3b368b8783"
-FOREIGN KEY ("track_id")
-  REFERENCES "tracks" ("id")
-);
-CREATE INDEX "index_radio_queue_tracks_on_radio_station_id" ON "radio_queue_tracks" ("radio_station_id") /*application='SynthWaves'*/;
-CREATE INDEX "index_radio_queue_tracks_on_track_id" ON "radio_queue_tracks" ("track_id") /*application='SynthWaves'*/;
-CREATE UNIQUE INDEX "index_radio_queue_tracks_on_radio_station_id_and_position" ON "radio_queue_tracks" ("radio_station_id", "position") /*application='SynthWaves'*/;
-CREATE INDEX "index_radio_queue_tracks_on_radio_station_id_and_played_at" ON "radio_queue_tracks" ("radio_station_id", "played_at") /*application='SynthWaves'*/;
-CREATE TABLE IF NOT EXISTS "radio_stations" ("id" integer PRIMARY KEY AUTOINCREMENT NOT NULL, "playlist_id" integer NOT NULL, "user_id" integer NOT NULL, "status" varchar DEFAULT 'stopped' NOT NULL, "mount_point" varchar NOT NULL, "playback_mode" varchar DEFAULT 'shuffle' NOT NULL, "bitrate" integer DEFAULT 192 NOT NULL, "crossfade" boolean DEFAULT TRUE NOT NULL, "crossfade_duration" float DEFAULT 3.0 NOT NULL, "current_track_id" integer, "listener_count" integer DEFAULT 0, "error_message" text, "started_at" datetime(6), "last_track_at" datetime(6), "created_at" datetime(6) NOT NULL, "updated_at" datetime(6) NOT NULL, "queued_track_id" integer, "favorites_weight" float DEFAULT 2.0 NOT NULL /*application='SynthWaves'*/, CONSTRAINT "fk_rails_a5b9b61969"
-FOREIGN KEY ("playlist_id")
-  REFERENCES "playlists" ("id")
-, CONSTRAINT "fk_rails_0b9af78719"
-FOREIGN KEY ("user_id")
-  REFERENCES "users" ("id")
-, CONSTRAINT "fk_rails_030bf29ea1"
-FOREIGN KEY ("current_track_id")
-  REFERENCES "tracks" ("id")
-, CONSTRAINT "fk_rails_7aec4f103b"
-FOREIGN KEY ("queued_track_id")
-  REFERENCES "tracks" ("id")
-);
-CREATE UNIQUE INDEX "index_radio_stations_on_playlist_id" ON "radio_stations" ("playlist_id") /*application='SynthWaves'*/;
-CREATE INDEX "index_radio_stations_on_user_id" ON "radio_stations" ("user_id") /*application='SynthWaves'*/;
-CREATE INDEX "index_radio_stations_on_current_track_id" ON "radio_stations" ("current_track_id") /*application='SynthWaves'*/;
-CREATE UNIQUE INDEX "index_radio_stations_on_mount_point" ON "radio_stations" ("mount_point") /*application='SynthWaves'*/;
-CREATE INDEX "index_radio_stations_on_status" ON "radio_stations" ("status") /*application='SynthWaves'*/;
-CREATE INDEX "index_radio_stations_on_queued_track_id" ON "radio_stations" ("queued_track_id") /*application='SynthWaves'*/;
 CREATE INDEX "index_tracks_on_musicbrainz_recording_id" ON "tracks" ("musicbrainz_recording_id") /*application='SynthWaves'*/;
 CREATE INDEX "index_tracks_on_musicbrainz_enrichment_status" ON "tracks" ("musicbrainz_enrichment_status") /*application='SynthWaves'*/;
 CREATE INDEX "index_albums_on_musicbrainz_release_id" ON "albums" ("musicbrainz_release_id") /*application='SynthWaves'*/;
@@ -245,6 +215,7 @@ CREATE INDEX "index_artists_on_musicbrainz_artist_id" ON "artists" ("musicbrainz
 CREATE TABLE IF NOT EXISTS "maintenance_tasks_runs" ("id" integer PRIMARY KEY AUTOINCREMENT NOT NULL, "task_name" varchar NOT NULL, "started_at" datetime(6), "ended_at" datetime(6), "time_running" float DEFAULT 0.0 NOT NULL, "tick_count" bigint DEFAULT 0 NOT NULL, "tick_total" bigint, "job_id" varchar, "cursor" varchar, "status" varchar DEFAULT 'enqueued' NOT NULL, "error_class" varchar, "error_message" varchar, "backtrace" text, "created_at" datetime(6) NOT NULL, "updated_at" datetime(6) NOT NULL, "arguments" text, "lock_version" integer DEFAULT 0 NOT NULL, "metadata" text);
 CREATE INDEX "index_maintenance_tasks_runs" ON "maintenance_tasks_runs" ("task_name", "status", "created_at" DESC) /*application='SynthWaves'*/;
 INSERT INTO "schema_migrations" (version) VALUES
+('20261028003748'),
 ('20261028003434'),
 ('20260902195740'),
 ('20260731111258'),
