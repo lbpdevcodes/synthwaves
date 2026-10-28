@@ -4,7 +4,7 @@ class PodcastsController < ApplicationController
   end
 
   def show
-    @artist = Artist.podcast.find(params[:id])
+    @artist = Current.user.artists.podcast.find(params[:id])
     @albums = @artist.albums.includes(:tracks).order(:year)
   end
 end

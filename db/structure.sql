@@ -30,36 +30,6 @@ FOREIGN KEY ("blob_id")
   REFERENCES "active_storage_blobs" ("id")
 );
 CREATE UNIQUE INDEX "index_active_storage_variant_records_uniqueness" ON "active_storage_variant_records" ("blob_id", "variation_digest") /*application='GroovyTunes'*/;
-CREATE TABLE IF NOT EXISTS "models" ("id" integer PRIMARY KEY AUTOINCREMENT NOT NULL, "model_id" varchar NOT NULL, "name" varchar NOT NULL, "provider" varchar NOT NULL, "family" varchar, "model_created_at" datetime(6), "context_window" integer, "max_output_tokens" integer, "knowledge_cutoff" date, "modalities" json DEFAULT '{}', "capabilities" json DEFAULT '[]', "pricing" json DEFAULT '{}', "metadata" json DEFAULT '{}', "created_at" datetime(6) NOT NULL, "updated_at" datetime(6) NOT NULL);
-CREATE UNIQUE INDEX "index_models_on_provider_and_model_id" ON "models" ("provider", "model_id") /*application='GroovyTunes'*/;
-CREATE INDEX "index_models_on_provider" ON "models" ("provider") /*application='GroovyTunes'*/;
-CREATE INDEX "index_models_on_family" ON "models" ("family") /*application='GroovyTunes'*/;
-CREATE TABLE IF NOT EXISTS "chats" ("id" integer PRIMARY KEY AUTOINCREMENT NOT NULL, "created_at" datetime(6) NOT NULL, "updated_at" datetime(6) NOT NULL, "model_id" integer, CONSTRAINT "fk_rails_1835d93df1"
-FOREIGN KEY ("model_id")
-  REFERENCES "models" ("id")
-);
-CREATE INDEX "index_chats_on_model_id" ON "chats" ("model_id") /*application='GroovyTunes'*/;
-CREATE TABLE IF NOT EXISTS "tool_calls" ("id" integer PRIMARY KEY AUTOINCREMENT NOT NULL, "tool_call_id" varchar NOT NULL, "name" varchar NOT NULL, "thought_signature" varchar, "arguments" json DEFAULT '{}', "created_at" datetime(6) NOT NULL, "updated_at" datetime(6) NOT NULL, "message_id" integer NOT NULL, CONSTRAINT "fk_rails_9c8daee481"
-FOREIGN KEY ("message_id")
-  REFERENCES "messages" ("id")
-);
-CREATE UNIQUE INDEX "index_tool_calls_on_tool_call_id" ON "tool_calls" ("tool_call_id") /*application='GroovyTunes'*/;
-CREATE INDEX "index_tool_calls_on_name" ON "tool_calls" ("name") /*application='GroovyTunes'*/;
-CREATE INDEX "index_tool_calls_on_message_id" ON "tool_calls" ("message_id") /*application='GroovyTunes'*/;
-CREATE TABLE IF NOT EXISTS "messages" ("id" integer PRIMARY KEY AUTOINCREMENT NOT NULL, "role" varchar NOT NULL, "content" text, "content_raw" json, "thinking_text" text, "thinking_signature" text, "thinking_tokens" integer, "input_tokens" integer, "output_tokens" integer, "cached_tokens" integer, "cache_creation_tokens" integer, "created_at" datetime(6) NOT NULL, "updated_at" datetime(6) NOT NULL, "chat_id" integer NOT NULL, "model_id" integer, "tool_call_id" integer, CONSTRAINT "fk_rails_c02b47ad97"
-FOREIGN KEY ("model_id")
-  REFERENCES "models" ("id")
-, CONSTRAINT "fk_rails_0f670de7ba"
-FOREIGN KEY ("chat_id")
-  REFERENCES "chats" ("id")
-, CONSTRAINT "fk_rails_552873cb52"
-FOREIGN KEY ("tool_call_id")
-  REFERENCES "tool_calls" ("id")
-);
-CREATE INDEX "index_messages_on_role" ON "messages" ("role") /*application='GroovyTunes'*/;
-CREATE INDEX "index_messages_on_chat_id" ON "messages" ("chat_id") /*application='GroovyTunes'*/;
-CREATE INDEX "index_messages_on_model_id" ON "messages" ("model_id") /*application='GroovyTunes'*/;
-CREATE INDEX "index_messages_on_tool_call_id" ON "messages" ("tool_call_id") /*application='GroovyTunes'*/;
 CREATE TABLE IF NOT EXISTS "ahoy_visits" ("id" integer PRIMARY KEY AUTOINCREMENT NOT NULL, "visit_token" varchar, "visitor_token" varchar, "user_id" integer, "ip" varchar, "user_agent" text, "referrer" text, "referring_domain" varchar, "landing_page" text, "browser" varchar, "os" varchar, "device_type" varchar, "country" varchar, "region" varchar, "city" varchar, "latitude" float, "longitude" float, "utm_source" varchar, "utm_medium" varchar, "utm_term" varchar, "utm_content" varchar, "utm_campaign" varchar, "app_version" varchar, "os_version" varchar, "platform" varchar, "started_at" datetime(6));
 CREATE INDEX "index_ahoy_visits_on_user_id" ON "ahoy_visits" ("user_id") /*application='GroovyTunes'*/;
 CREATE UNIQUE INDEX "index_ahoy_visits_on_visit_token" ON "ahoy_visits" ("visit_token") /*application='GroovyTunes'*/;
@@ -238,36 +208,6 @@ CREATE INDEX "index_tracks_on_isrc" ON "tracks" ("isrc") /*application='SynthWav
 CREATE INDEX "index_tracks_on_language" ON "tracks" ("language") /*application='SynthWaves'*/;
 CREATE INDEX "index_tracks_on_release_year" ON "tracks" ("release_year") /*application='SynthWaves'*/;
 CREATE INDEX "index_tracks_on_enrichment_status" ON "tracks" ("enrichment_status") /*application='SynthWaves'*/;
-CREATE TABLE IF NOT EXISTS "radio_queue_tracks" ("id" integer PRIMARY KEY AUTOINCREMENT NOT NULL, "radio_station_id" integer NOT NULL, "track_id" integer NOT NULL, "position" integer NOT NULL, "played_at" datetime(6), "created_at" datetime(6) NOT NULL, "updated_at" datetime(6) NOT NULL, CONSTRAINT "fk_rails_66f11d7da4"
-FOREIGN KEY ("radio_station_id")
-  REFERENCES "radio_stations" ("id")
-, CONSTRAINT "fk_rails_3b368b8783"
-FOREIGN KEY ("track_id")
-  REFERENCES "tracks" ("id")
-);
-CREATE INDEX "index_radio_queue_tracks_on_radio_station_id" ON "radio_queue_tracks" ("radio_station_id") /*application='SynthWaves'*/;
-CREATE INDEX "index_radio_queue_tracks_on_track_id" ON "radio_queue_tracks" ("track_id") /*application='SynthWaves'*/;
-CREATE UNIQUE INDEX "index_radio_queue_tracks_on_radio_station_id_and_position" ON "radio_queue_tracks" ("radio_station_id", "position") /*application='SynthWaves'*/;
-CREATE INDEX "index_radio_queue_tracks_on_radio_station_id_and_played_at" ON "radio_queue_tracks" ("radio_station_id", "played_at") /*application='SynthWaves'*/;
-CREATE TABLE IF NOT EXISTS "radio_stations" ("id" integer PRIMARY KEY AUTOINCREMENT NOT NULL, "playlist_id" integer NOT NULL, "user_id" integer NOT NULL, "status" varchar DEFAULT 'stopped' NOT NULL, "mount_point" varchar NOT NULL, "playback_mode" varchar DEFAULT 'shuffle' NOT NULL, "bitrate" integer DEFAULT 192 NOT NULL, "crossfade" boolean DEFAULT TRUE NOT NULL, "crossfade_duration" float DEFAULT 3.0 NOT NULL, "current_track_id" integer, "listener_count" integer DEFAULT 0, "error_message" text, "started_at" datetime(6), "last_track_at" datetime(6), "created_at" datetime(6) NOT NULL, "updated_at" datetime(6) NOT NULL, "queued_track_id" integer, "favorites_weight" float DEFAULT 2.0 NOT NULL /*application='SynthWaves'*/, CONSTRAINT "fk_rails_a5b9b61969"
-FOREIGN KEY ("playlist_id")
-  REFERENCES "playlists" ("id")
-, CONSTRAINT "fk_rails_0b9af78719"
-FOREIGN KEY ("user_id")
-  REFERENCES "users" ("id")
-, CONSTRAINT "fk_rails_030bf29ea1"
-FOREIGN KEY ("current_track_id")
-  REFERENCES "tracks" ("id")
-, CONSTRAINT "fk_rails_7aec4f103b"
-FOREIGN KEY ("queued_track_id")
-  REFERENCES "tracks" ("id")
-);
-CREATE UNIQUE INDEX "index_radio_stations_on_playlist_id" ON "radio_stations" ("playlist_id") /*application='SynthWaves'*/;
-CREATE INDEX "index_radio_stations_on_user_id" ON "radio_stations" ("user_id") /*application='SynthWaves'*/;
-CREATE INDEX "index_radio_stations_on_current_track_id" ON "radio_stations" ("current_track_id") /*application='SynthWaves'*/;
-CREATE UNIQUE INDEX "index_radio_stations_on_mount_point" ON "radio_stations" ("mount_point") /*application='SynthWaves'*/;
-CREATE INDEX "index_radio_stations_on_status" ON "radio_stations" ("status") /*application='SynthWaves'*/;
-CREATE INDEX "index_radio_stations_on_queued_track_id" ON "radio_stations" ("queued_track_id") /*application='SynthWaves'*/;
 CREATE INDEX "index_tracks_on_musicbrainz_recording_id" ON "tracks" ("musicbrainz_recording_id") /*application='SynthWaves'*/;
 CREATE INDEX "index_tracks_on_musicbrainz_enrichment_status" ON "tracks" ("musicbrainz_enrichment_status") /*application='SynthWaves'*/;
 CREATE INDEX "index_albums_on_musicbrainz_release_id" ON "albums" ("musicbrainz_release_id") /*application='SynthWaves'*/;
@@ -275,6 +215,8 @@ CREATE INDEX "index_artists_on_musicbrainz_artist_id" ON "artists" ("musicbrainz
 CREATE TABLE IF NOT EXISTS "maintenance_tasks_runs" ("id" integer PRIMARY KEY AUTOINCREMENT NOT NULL, "task_name" varchar NOT NULL, "started_at" datetime(6), "ended_at" datetime(6), "time_running" float DEFAULT 0.0 NOT NULL, "tick_count" bigint DEFAULT 0 NOT NULL, "tick_total" bigint, "job_id" varchar, "cursor" varchar, "status" varchar DEFAULT 'enqueued' NOT NULL, "error_class" varchar, "error_message" varchar, "backtrace" text, "created_at" datetime(6) NOT NULL, "updated_at" datetime(6) NOT NULL, "arguments" text, "lock_version" integer DEFAULT 0 NOT NULL, "metadata" text);
 CREATE INDEX "index_maintenance_tasks_runs" ON "maintenance_tasks_runs" ("task_name", "status", "created_at" DESC) /*application='SynthWaves'*/;
 INSERT INTO "schema_migrations" (version) VALUES
+('20261028003748'),
+('20261028003434'),
 ('20260902195740'),
 ('20260731111258'),
 ('20260404002732'),

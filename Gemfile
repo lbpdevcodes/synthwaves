@@ -80,8 +80,6 @@ gem "flipper-active_record"
 
 gem "flipper-ui"
 
-gem "ruby_llm"
-
 gem "ahoy_matey"
 
 gem "quarterdeck"

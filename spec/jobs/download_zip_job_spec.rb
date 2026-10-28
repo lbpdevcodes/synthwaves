@@ -50,7 +50,7 @@ RSpec.describe DownloadZipJob, type: :job do
 
   describe "library download" do
     it "creates a zip with all tracks that have audio files" do
-      track = create(:track, title: "Library Track")
+      track = create(:track, user: user, title: "Library Track")
       attach_audio(track)
       download = create(:download, :for_library, user: user)
 
@@ -59,6 +59,16 @@ RSpec.describe DownloadZipJob, type: :job do
       download.reload
       expect(download.status).to eq("ready")
       expect(download.file).to be_attached
+    end
+
+    it "leaves out other users' tracks" do
+      attach_audio(create(:track, user: user, title: "Mine"))
+      attach_audio(create(:track, title: "Someone Else's"))
+      download = create(:download, :for_library, user: user)
+
+      DownloadZipJob.perform_now(download.id)
+
+      expect(download.reload.total_tracks).to eq(1)
     end
   end
 
@@ -107,7 +117,8 @@ RSpec.describe DownloadZipJob, type: :job do
 
     it "marks download as failed on unexpected errors" do
       download = create(:download, :for_library, user: user)
-      allow(Track).to receive(:includes).and_raise(StandardError.new("boom"))
+      allow(Download).to receive(:find).with(download.id).and_return(download)
+      allow(download).to receive(:user).and_raise(StandardError.new("boom"))
 
       expect {
         DownloadZipJob.perform_now(download.id)

@@ -3,14 +3,6 @@ Rails.application.routes.draw do
     mount Quarterdeck::Engine => "/quarterdeck"
   end
 
-  resources :chats do
-    resources :messages, only: [:create]
-  end
-  resources :models, only: [:index, :show] do
-    collection do
-      post :refresh
-    end
-  end
   # Music routes
   get :music, to: "music#show"
   resources :artists, only: [:index, :show, :new, :create, :edit, :update, :destroy]

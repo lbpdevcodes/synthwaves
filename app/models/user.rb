@@ -14,7 +14,6 @@ class User < ApplicationRecord
     through: :favorites, source: :favorable, source_type: "Track"
   has_many :play_histories, dependent: :destroy
   has_many :external_streams, dependent: :destroy
-  has_many :radio_stations, dependent: :destroy
   has_many :taggings, dependent: :destroy
   has_many :downloads, dependent: :destroy
   has_many :videos, dependent: :destroy

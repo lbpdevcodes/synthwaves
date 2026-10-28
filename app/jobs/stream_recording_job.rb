@@ -13,12 +13,16 @@ class StreamRecordingJob < ApplicationJob
 
     output_path = Rails.root.join("tmp", "recordings", "recording_#{recording.id}.mp4").to_s
     FileUtils.mkdir_p(File.dirname(output_path))
+    cancelled = -> { recording.reload.cancelled? }
 
     result = StreamRecorderService.call(
       stream_url: recording.iptv_channel.stream_url,
       duration_seconds: remaining.to_i,
-      output_path: output_path
+      output_path: output_path,
+      cancelled: cancelled
     )
+
+    return if cancelled.call
 
     if result.error
       mark_failed(recording, result.error)

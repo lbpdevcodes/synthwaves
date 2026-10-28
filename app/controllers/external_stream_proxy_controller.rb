@@ -2,9 +2,9 @@ class ExternalStreamProxyController < ApplicationController
   include ActionController::Live
 
   def show
-    station = ExternalStream.find(params[:external_stream_id])
+    station = Current.user.external_streams.find_by(id: params[:external_stream_id])
 
-    unless station.stream?
+    unless station&.stream?
       head :not_found
       return
     end

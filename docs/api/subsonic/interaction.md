@@ -124,7 +124,7 @@ Each item includes a `starred` field (ISO 8601 timestamp) in addition to the sta
 
 ## `scrobble`
 
-Records a play event for a track, creating a play history entry.
+Records a play event for a track, creating a play history entry. A now-playing notification (`submission=false`) records nothing.
 
 **Path:** `/rest/scrobble`
 
@@ -133,6 +133,8 @@ Records a play event for a track, creating a play history entry.
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
 | `id` | string | Yes | Track ID |
+| `time` | integer | No | When the track was played, in milliseconds since the epoch. Defaults to now. |
+| `submission` | boolean | No | `false` marks a now-playing notification, which records no play. Defaults to `true`. |
 
 ### Response
 

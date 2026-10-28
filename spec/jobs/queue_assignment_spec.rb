@@ -10,7 +10,6 @@ RSpec.describe "Queue assignments" do
     VideoDownloadJob => "imports",
     YoutubeImportJob => "imports",
 
-    ChatResponseJob => "default",
     CoverArtAttachJob => "default",
     CoverArtSearchJob => "default",
     MetadataExtractionJob => "default",

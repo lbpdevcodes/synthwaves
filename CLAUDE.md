@@ -39,7 +39,6 @@ bundle exec brakeman     # Security scan
 
 ### Key Gems
 
-- **ruby_llm** - AI chat integration with streaming via ActionCable
 - **wahwah** - Audio metadata extraction
 - **ffmpeg** - Audio format conversion (handled by AudioConversionJob)
 - **ahoy_matey** - Analytics/event tracking
@@ -77,13 +76,6 @@ User
   has_many :playlists, :favorites, :play_histories, :api_keys, :sessions
   has_secure_password
   theme (string, default: "synthwave") — validated against Themeable::THEMES
-
-RadioStation
-  belongs_to :playlist
-  belongs_to :user
-  belongs_to :current_track (optional)
-  status: stopped|starting|active|idle|error
-  mount_point, playback_mode, bitrate, crossfade settings
 
 Favorite  -- polymorphic (favorable: Track | Album | Artist)
 PlayHistory  -- records play events per user/track
@@ -189,8 +181,6 @@ Owners edit their own artists, albums and tracks in a modal over the current pag
 - `JWTService` - Encode/decode JWT tokens
 - `MetadataExtractor` - Parse audio file tags via WahWah (title, artist, album, year, genre, track_number, duration, bitrate, cover_art)
 - `SearchService` - Text search across artists, albums, and tracks using LIKE patterns
-- `NextTrackService` - Selects next track (shuffle/sequential) for radio stations, returns signed S3 URL
-- `LiquidsoapConfigService` - Generates Liquidsoap `.liq` config from active radio stations
 
 ### Background Jobs (app/jobs/)
 
@@ -198,85 +188,11 @@ Three Solid Queue queues isolate work by resource profile (configured in `config
 
 - **conversion** (2 threads) — CPU-heavy ffmpeg work: `AudioConversionJob`, `VideoConversionJob`, `StreamRecordingJob`
 - **imports** (2 threads) — long-running network downloads: `MediaDownloadJob`, `VideoDownloadJob`, `YoutubeImportJob`
-- **default** (3 threads) — everything else: `ChatResponseJob`, `MetadataExtractionJob`, `StationControlJob`, `StationListenerSyncJob`, `DownloadZipJob`, and other lightweight/quick jobs
+- **default** (3 threads) — everything else: `MetadataExtractionJob`, `DownloadZipJob`, and other lightweight/quick jobs
 
 When adding a new job, assign it to the appropriate queue via `queue_as` in the job class. Default is `:default` if omitted.
 
-## Radio Stations (Icecast + Liquidsoap)
-
-Playlist-based radio stations that stream continuously via Icecast.
-
-### How It Works
-
-```
-User creates station from playlist
-  -> RadioStation record (status: stopped)
-  -> User clicks Start
-  -> StationControlJob: generates Liquidsoap config, restarts Liquidsoap container
-  -> Liquidsoap calls GET /api/internal/radio_stations/:id/next_track
-  -> NextTrackService returns signed S3 URL
-  -> Liquidsoap decodes + streams to Icecast mount point
-  -> Listeners connect to https://radio.synthwaves.fm/<mount>.mp3
-```
-
-### Infrastructure
-
-- **Icecast** (`moul/icecast`) — accepts source connections from Liquidsoap, serves streams to listeners. Reads `ICECAST_SOURCE_PASSWORD` and `ICECAST_ADMIN_PASSWORD` from env vars directly.
-- **Liquidsoap** (`savonet/liquidsoap:v2.3.2`) — fetches tracks from Rails via internal API, transcodes to MP3, pushes to Icecast. Config is generated at `storage/liquidsoap/radio.liq`.
-- Both run as Kamal accessories defined in `config/deploy.yml`.
-
-### Key Files
-
-- `app/models/radio_station.rb` — status tracking, mount points, crossfade settings
-- `app/services/next_track_service.rb` — shuffle/sequential track selection with signed S3 URLs
-- `app/services/liquidsoap_config_service.rb` — generates `.liq` config from active stations
-- `app/controllers/api/internal/base_controller.rb` — Bearer token auth for Liquidsoap->Rails
-- `app/controllers/api/internal/radio_stations_controller.rb` — next_track, notify, active endpoints
-- `app/jobs/station_control_job.rb` — start/stop/skip lifecycle, restarts Liquidsoap via Docker socket
-- `app/jobs/station_listener_sync_job.rb` — polls Icecast stats every 30s for listener counts
-
-### Required Environment Variables
-
-Set these in your shell before deploying (Kamal reads them via `.kamal/secrets`):
-
-- `LIQUIDSOAP_API_TOKEN` — Bearer token for Liquidsoap->Rails internal API
-- `ICECAST_SOURCE_PASSWORD` — Liquidsoap->Icecast authentication
-- `ICECAST_ADMIN_PASSWORD` — Icecast admin interface
-
-### Common Operations
-
-```bash
-# Restart Liquidsoap (picks up new config)
-bin/kamal accessory stop liquidsoap
-ssh <DEPLOY_HOST> "docker rm synthwaves_fm-liquidsoap"
-bin/kamal accessory boot liquidsoap
-
-# Regenerate Liquidsoap config from active stations
-bin/kamal app exec -r job --interactive 'bin/rails runner "LiquidsoapConfigService.call"'
-
-# Check Liquidsoap logs
-bin/kamal accessory logs liquidsoap --lines 50
-
-# Check Icecast logs
-bin/kamal accessory logs icecast --lines 50
-
-# Check if Liquidsoap can reach Icecast
-bin/kamal accessory logs liquidsoap --lines 50 2>&1 | grep -i "error\|fail\|401"
-
-# Verify config inside Liquidsoap container
-ssh <DEPLOY_HOST> "docker exec synthwaves_fm-liquidsoap cat /rails/storage/liquidsoap/radio.liq"
-
-# Fix stuck station status
-bin/kamal app exec -r job --interactive 'bin/rails runner "RadioStation.find(ID).update(status: :active)"'
-```
-
-### Gotchas
-
-- **Liquidsoap caches scripts.** If you update the config, you must destroy and recreate the container (stop + rm + boot), not just restart it.
-- **Docker socket is scoped to the job role only.** The web server does not have Docker access. `StationControlJob` restarts Liquidsoap via the Docker socket.
 - **Solid Queue runs only on the job server.** `SOLID_QUEUE_IN_PUMA` is not set — the web server does not process jobs.
-- **Liquidsoap normalizes URLs by default**, which breaks S3 signed URLs with special characters. The config disables this with `settings.http.normalize_url.set(false)`.
-- **All three env vars must be set in your shell when deploying.** If missing, Kamal writes empty strings into the container env files, causing auth failures between Liquidsoap, Icecast, and Rails.
 - **After deploying, restart the job server** if you changed job classes: `bin/kamal app stop -r job && bin/kamal app boot -r job`.
 
 ## Routes

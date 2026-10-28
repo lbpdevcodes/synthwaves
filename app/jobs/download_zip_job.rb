@@ -40,7 +40,7 @@ class DownloadZipJob < ApplicationJob
     when "Playlist"
       @download.downloadable.playlist_tracks.includes(track: [:artist, :album]).map(&:track)
     when "Library"
-      Track.includes(:artist, :album).order(:title)
+      @download.user.tracks.includes(:artist, :album).order(:title)
     end
   end
 

@@ -29,11 +29,11 @@
     },
     {
       "warning_type": "File Access",
-      "fingerprint": "8250b899642220a664a3cdf21a4bcc47ab1e620c7888728b71bfbd0a5efb3539",
+      "fingerprint": "b7ab8130eb4318350ecb87f68b24e52cc36b8d8b565a9cff2f704a659be2a129",
       "check_name": "FileAccess",
       "message": "Model attribute used in file name",
       "file": "app/jobs/stream_recording_job.rb",
-      "line": 32,
+      "line": 36,
       "note": "Path uses recording.id (integer primary key), not user input"
     },
     {

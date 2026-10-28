@@ -8,7 +8,7 @@ RSpec.describe StreamRecorderService do
 
   describe ".call" do
     it "returns a successful result when ffmpeg succeeds" do
-      allow_any_instance_of(StreamRecorderService).to receive(:system).and_return(true)
+      allow(CancellableCommand).to receive(:run).and_return(:succeeded)
       FileUtils.mkdir_p(File.dirname(output_path))
       File.write(output_path, "fake video data")
       allow_any_instance_of(StreamRecorderService).to receive(:`).and_return("120.5\n")
@@ -22,7 +22,7 @@ RSpec.describe StreamRecorderService do
     end
 
     it "returns an error result when ffmpeg fails" do
-      allow_any_instance_of(StreamRecorderService).to receive(:system).and_return(false)
+      allow(CancellableCommand).to receive(:run).and_return(:failed)
 
       result = described_class.call(stream_url:, duration_seconds: 3600, output_path:)
 
@@ -32,7 +32,7 @@ RSpec.describe StreamRecorderService do
     end
 
     it "handles missing ffprobe duration gracefully" do
-      allow_any_instance_of(StreamRecorderService).to receive(:system).and_return(true)
+      allow(CancellableCommand).to receive(:run).and_return(:succeeded)
       FileUtils.mkdir_p(File.dirname(output_path))
       File.write(output_path, "fake video data")
       allow_any_instance_of(StreamRecorderService).to receive(:`).and_return("")
@@ -41,6 +41,15 @@ RSpec.describe StreamRecorderService do
 
       expect(result.error).to be_nil
       expect(result.duration).to be_nil
+    end
+
+    it "stops ffmpeg when the cancel check fires" do
+      check = -> { true }
+      expect(CancellableCommand).to receive(:run).with(any_args, cancelled: check).and_return(:cancelled)
+
+      result = described_class.call(stream_url:, duration_seconds: 60, output_path:, cancelled: check)
+
+      expect(result.error).to eq("recording cancelled")
     end
   end
 end
