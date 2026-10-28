@@ -39,7 +39,6 @@ bundle exec brakeman     # Security scan
 
 ### Key Gems
 
-- **ruby_llm** - AI chat integration with streaming via ActionCable
 - **wahwah** - Audio metadata extraction
 - **ffmpeg** - Audio format conversion (handled by AudioConversionJob)
 - **ahoy_matey** - Analytics/event tracking
@@ -198,7 +197,7 @@ Three Solid Queue queues isolate work by resource profile (configured in `config
 
 - **conversion** (2 threads) — CPU-heavy ffmpeg work: `AudioConversionJob`, `VideoConversionJob`, `StreamRecordingJob`
 - **imports** (2 threads) — long-running network downloads: `MediaDownloadJob`, `VideoDownloadJob`, `YoutubeImportJob`
-- **default** (3 threads) — everything else: `ChatResponseJob`, `MetadataExtractionJob`, `StationControlJob`, `StationListenerSyncJob`, `DownloadZipJob`, and other lightweight/quick jobs
+- **default** (3 threads) — everything else: `MetadataExtractionJob`, `StationControlJob`, `StationListenerSyncJob`, `DownloadZipJob`, and other lightweight/quick jobs
 
 When adding a new job, assign it to the appropriate queue via `queue_as` in the job class. Default is `:default` if omitted.
 
