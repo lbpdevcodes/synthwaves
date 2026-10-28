@@ -14,6 +14,13 @@ RSpec.describe "Profiles", type: :request do
       get profile_path
       expect(response).to have_http_status(:success)
     end
+
+    it "links to the API keys page" do
+      login_user(create(:user))
+
+      get profile_path
+      expect(response.body).to include(%(href="#{api_keys_path}"))
+    end
   end
 
   describe "GET /profile/edit" do
