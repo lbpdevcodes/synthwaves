@@ -54,6 +54,32 @@ RSpec.describe StreamRecordingJob, type: :job do
       described_class.perform_now(recording.id)
     end
 
+    it "keeps a recording cancelled mid-recording cancelled, with no file" do
+      allow(StreamRecorderService).to receive(:call) do
+        Recording.find(recording.id).update!(status: "cancelled")
+        success_result
+      end
+
+      described_class.perform_now(recording.id)
+
+      recording.reload
+      expect(recording.status).to eq("cancelled")
+      expect(recording.file).not_to be_attached
+    end
+
+    it "lets the recorder see the recording being cancelled" do
+      cancel_check = nil
+      allow(StreamRecorderService).to receive(:call) do |cancelled:, **|
+        cancel_check = cancelled
+        success_result
+      end
+
+      described_class.perform_now(recording.id)
+      Recording.find(recording.id).update!(status: "cancelled")
+
+      expect(cancel_check.call).to be(true)
+    end
+
     it "marks as failed when recording window has passed" do
       recording.update!(ends_at: 1.minute.ago)
 
