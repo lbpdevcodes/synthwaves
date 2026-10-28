@@ -2,7 +2,7 @@ require "rails_helper"
 
 RSpec.describe SmartPlaylistService do
   let(:user) { create(:user) }
-  let(:artist) { create(:artist) }
+  let(:artist) { create(:artist, user: user) }
   let(:album) { create(:album, artist: artist) }
 
   describe ".all_definitions" do
@@ -53,6 +53,13 @@ RSpec.describe SmartPlaylistService do
       result = described_class.call(user: user, playlist_id: :recently_added)
       expect(result.map(&:id)).to eq([recent.id])
     end
+
+    it "leaves out other users' tracks" do
+      someone_elses = create(:track, created_at: 5.days.ago)
+
+      result = described_class.call(user: user, playlist_id: :recently_added)
+      expect(result.map(&:id)).not_to include(someone_elses.id)
+    end
   end
 
   describe "unplayed" do
@@ -73,6 +80,22 @@ RSpec.describe SmartPlaylistService do
 
       result = described_class.call(user: user, playlist_id: :unplayed)
       expect(result.map(&:id)).to include(track.id)
+    end
+
+    it "leaves out other users' tracks" do
+      someone_elses = create(:track)
+
+      result = described_class.call(user: user, playlist_id: :unplayed)
+      expect(result.map(&:id)).not_to include(someone_elses.id)
+    end
+
+    it "leaves out a track the user played, even when someone else played it too" do
+      track = create(:track, album: album, artist: artist)
+      create(:play_history, user: user, track: track)
+      create(:play_history, user: create(:user), track: track)
+
+      result = described_class.call(user: user, playlist_id: :unplayed)
+      expect(result.map(&:id)).not_to include(track.id)
     end
   end
 

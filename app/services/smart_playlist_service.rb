@@ -74,22 +74,15 @@ class SmartPlaylistService
   end
 
   def recently_added
-    Track.music
+    @user.tracks.music
       .where("tracks.created_at >= ?", 30.days.ago)
       .order(created_at: :desc)
       .limit(@limit)
   end
 
   def unplayed
-    Track.music
-      .left_joins(:play_histories)
-      .where(play_histories: {id: nil})
-      .or(
-        Track.music
-          .left_joins(:play_histories)
-          .where.not(play_histories: {user_id: @user.id})
-      )
-      .distinct
+    @user.tracks.music
+      .where.not(id: @user.play_histories.select(:track_id))
       .order(created_at: :desc)
       .limit(@limit)
   end

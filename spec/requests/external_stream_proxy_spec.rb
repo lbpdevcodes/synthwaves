@@ -8,6 +8,15 @@ RSpec.describe "ExternalStreamProxy", type: :request do
   end
 
   describe "GET /external_streams/:id/stream" do
+    it "returns 404 for another user's stream" do
+      station = create(:external_stream, :stream, stream_url: "https://radio.example.com/theirs")
+      stub_request(:get, "https://radio.example.com/theirs").to_return(status: 200, body: "their audio")
+
+      get external_stream_stream_path(station)
+
+      expect(response).to have_http_status(:not_found)
+    end
+
     it "returns 404 for youtube-type stations" do
       station = create(:external_stream, user: user, source_type: "youtube")
 

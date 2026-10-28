@@ -7,25 +7,31 @@ RSpec.describe "Podcasts", type: :request do
 
   describe "GET /podcasts/:id" do
     it "returns success for a podcast artist" do
-      artist = create(:artist, :podcast)
+      artist = create(:artist, :podcast, user: user)
       get podcast_path(artist)
       expect(response).to have_http_status(:ok)
     end
 
     it "links back to the TV podcasts tab" do
-      artist = create(:artist, :podcast)
+      artist = create(:artist, :podcast, user: user)
       get podcast_path(artist)
       expect(response.body).to include(tv_path(tab: "podcasts"))
     end
 
     it "returns not found for a music artist" do
-      artist = create(:artist, category: "music")
+      artist = create(:artist, category: "music", user: user)
+      get podcast_path(artist)
+      expect(response).to have_http_status(:not_found)
+    end
+
+    it "returns not found for another user's podcast" do
+      artist = create(:artist, :podcast)
       get podcast_path(artist)
       expect(response).to have_http_status(:not_found)
     end
 
     it "displays the podcast's albums" do
-      artist = create(:artist, :podcast)
+      artist = create(:artist, :podcast, user: user)
       create(:album, title: "Season 1", artist: artist)
 
       get podcast_path(artist)
