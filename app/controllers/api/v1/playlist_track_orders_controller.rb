@@ -8,6 +8,10 @@ class API::V1::PlaylistTrackOrdersController < API::V1::BaseController
       return render_error("playlist_track_ids array required")
     end
 
+    unless @playlist.lists_every_entry?(ids)
+      return render_error("playlist_track_ids must list every entry in the playlist once")
+    end
+
     @playlist.reorder!(ids)
 
     render json: {reordered: ids.size}

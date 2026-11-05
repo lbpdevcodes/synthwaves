@@ -16,6 +16,7 @@ Returns a list of albums matching the given criteria.
 | `fromYear` | integer | Conditional | — | Required when `type=byYear` |
 | `toYear` | integer | Conditional | — | Required when `type=byYear` |
 | `genre` | string | Conditional | — | Required when `type=byGenre` |
+| `includeEmpty` | boolean | No | `false` | Also return albums with nothing to play. Not part of the Subsonic API. |
 
 ### Supported Types
 
@@ -45,7 +46,7 @@ Returns a list of albums matching the given criteria.
           "duration": 2940,
           "year": 1992,
           "genre": "Electronic",
-          "coverArt": "5"
+          "coverArt": "5-1793923200"
         }
       ]
     }

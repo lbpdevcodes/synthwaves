@@ -38,6 +38,32 @@ RSpec.describe "API::V1::PlaylistTrackOrders", type: :request do
       expect(response).to have_http_status(:unprocessable_content)
     end
 
+    context "when the list isn't exactly the playlist's entries" do
+      let!(:entries) { create_list(:track, 3, artist: artist, album: album, user: user).map { |t| playlist.add_track(t) } }
+
+      def expect_refusal_of(ids)
+        patch "/api/v1/playlists/#{playlist.id}/track_order", params: {playlist_track_ids: ids}, headers: auth_headers
+
+        expect(response).to have_http_status(:unprocessable_content)
+        expect(JSON.parse(response.body)["error"]).to eq("playlist_track_ids must list every entry in the playlist once")
+        expect(entries.map { |entry| entry.reload.position }).to eq([1, 2, 3])
+      end
+
+      it "refuses a partial list" do
+        expect_refusal_of(entries.first(2).reverse.map(&:id))
+      end
+
+      it "refuses a repeated entry" do
+        expect_refusal_of([entries[0].id, entries[0].id, entries[1].id])
+      end
+
+      it "refuses an entry from another playlist" do
+        foreign = create(:playlist, user: user).add_track(create(:track, artist: artist, album: album, user: user))
+
+        expect_refusal_of([entries[0].id, entries[1].id, foreign.id])
+      end
+    end
+
     it "returns not found for another user's playlist" do
       other_playlist = create(:playlist)
 

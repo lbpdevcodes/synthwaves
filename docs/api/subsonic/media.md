@@ -58,7 +58,7 @@ Returns the cover art image for an album. Redirects to the image URL.
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| `id` | string | Yes | Album ID |
+| `id` | string | Yes | An album's `coverArt` value, or its ID |
 
 ### Response
 

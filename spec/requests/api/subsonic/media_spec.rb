@@ -121,4 +121,14 @@ RSpec.describe "Subsonic Media API", type: :request do
       expect(response).to have_http_status(:not_found)
     end
   end
+
+  describe "getCoverArt with a versioned id" do
+    it "finds the album from the id album entries carry" do
+      album = create(:album, :with_cover_image, user: user)
+
+      get "/api/rest/getCoverArt.view", params: auth_params.merge(id: album.cover_art_id)
+
+      expect(response).to have_http_status(:redirect)
+    end
+  end
 end

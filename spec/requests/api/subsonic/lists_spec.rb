@@ -99,4 +99,31 @@ RSpec.describe "Subsonic Lists API", type: :request do
       expect(names).not_to include("YouTube Only")
     end
   end
+
+  describe "getAlbumList2 with empty albums" do
+    let!(:empty) { create(:album, user: user, title: "Empty") }
+    let!(:full) { create(:album, user: user, title: "Full") }
+
+    before { create(:track, album: full, artist: full.artist, user: user) }
+
+    def titles(extra = {})
+      get "/api/rest/getAlbumList2.view", params: auth_params.merge(type: "alphabeticalByName").merge(extra)
+      JSON.parse(response.body)["subsonic-response"]["albumList2"]["album"].map { |album| album["name"] }
+    end
+
+    it "leaves them out by default" do
+      expect(titles).to eq(["Full"])
+    end
+
+    it "includes them when asked" do
+      expect(titles(includeEmpty: "true")).to eq(["Empty", "Full"])
+    end
+
+    it "carries a cover art id that changes with the cover" do
+      get "/api/rest/getAlbumList2.view", params: auth_params.merge(type: "alphabeticalByName")
+
+      entry = JSON.parse(response.body)["subsonic-response"]["albumList2"]["album"].first
+      expect(entry["coverArt"]).to eq(full.reload.cover_art_id)
+    end
+  end
 end

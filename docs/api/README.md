@@ -19,12 +19,15 @@ API keys are managed through the web UI at `/api_keys`. Each key has a `client_i
 
 ## Endpoint Reference
 
-### JWT API v1 (2 endpoints)
+### JWT API v1
 
-| Method | Path                         | Description                         | Doc                                                 |
-| ------ | ---------------------------- | ----------------------------------- | --------------------------------------------------- |
-| POST   | `/api/v1/auth/token`         | Exchange API key for JWT            | [jwt-api.md](jwt-api.md#post-apiv1authtoken)        |
-| GET    | `/api/v1/native/credentials` | Get user credentials for native app | [jwt-api.md](jwt-api.md#get-apiv1nativecredentials) |
+| Method | Path                          | Description                         | Doc                                                  |
+| ------ | ----------------------------- | ----------------------------------- | ---------------------------------------------------- |
+| POST   | `/api/v1/auth/token`          | Exchange API key for JWT            | [jwt-api.md](jwt-api.md#post-apiv1authtoken)         |
+| POST   | `/api/v1/auth/native_token`   | Exchange native app sign-in for JWT | [jwt-api.md](jwt-api.md#post-apiv1authnative_token)  |
+| GET    | `/api/v1/native/credentials`  | Get user credentials for native app | [jwt-api.md](jwt-api.md#get-apiv1nativecredentials)  |
+
+Tracks, albums, artists, playlists, merging, and genre tags are listed under [Library management](jwt-api.md#library-management).
 
 ### Import API (4 endpoints)
 

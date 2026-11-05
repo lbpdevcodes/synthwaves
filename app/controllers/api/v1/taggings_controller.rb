@@ -6,16 +6,14 @@ class API::V1::TaggingsController < API::V1::BaseController
       return render_error("taggable_type must be one of: #{ALLOWED_TAGGABLE_TYPES.join(", ")}")
     end
 
+    taggable = current_user.public_send(params[:taggable_type].tableize).find(params[:taggable_id])
+
     tag = Tag.find_or_create_by!(
       name: params[:name].to_s.strip.downcase,
       tag_type: params[:tag_type]
     )
 
-    tagging = current_user.taggings.find_or_create_by!(
-      tag: tag,
-      taggable_type: params[:taggable_type],
-      taggable_id: params[:taggable_id]
-    )
+    tagging = current_user.taggings.find_or_create_by!(tag: tag, taggable: taggable)
 
     render json: {
       id: tagging.id,
@@ -23,6 +21,8 @@ class API::V1::TaggingsController < API::V1::BaseController
       taggable_type: tagging.taggable_type,
       taggable_id: tagging.taggable_id
     }, status: :created
+  rescue ActiveRecord::RecordNotFound
+    render_not_found
   rescue ActiveRecord::RecordInvalid => e
     render_error(e.message)
   end

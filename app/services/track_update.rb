@@ -4,6 +4,8 @@
 # transaction; on failure it returns false with the errors on the track.
 #
 # Artist and album arrive as typed names. A blank name keeps the current one.
+# TrackRetagService skips nil values, so a nil title or year becomes blank:
+# that clears the year, and a blank title fails validation.
 class TrackUpdate
   VALUE_TAGS = {title: :title, release_year: :year}.freeze
   NAME_TAGS = {artist_name: :artist, album_title: :album}.freeze
@@ -34,7 +36,7 @@ class TrackUpdate
   end
 
   def retag_tags
-    @retag_tags ||= tags_from(VALUE_TAGS).merge(tags_from(NAME_TAGS).compact_blank)
+    @retag_tags ||= tags_from(VALUE_TAGS).transform_values(&:to_s).merge(tags_from(NAME_TAGS).compact_blank)
   end
 
   def tags_from(fields)

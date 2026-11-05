@@ -71,4 +71,28 @@ RSpec.describe "API::V1::Taggings", type: :request do
       expect(response).to have_http_status(:not_found)
     end
   end
+
+  describe "POST /api/v1/taggings ownership" do
+    it "answers 404 and tags nothing for another user's track" do
+      foreign = create(:track)
+
+      expect {
+        post "/api/v1/taggings", params: {
+          name: "synthwave", tag_type: "genre",
+          taggable_type: "Track", taggable_id: foreign.id
+        }, headers: auth_headers
+      }.not_to change(Tagging, :count)
+
+      expect(response).to have_http_status(:not_found)
+    end
+
+    it "answers 404 for a record that doesn't exist" do
+      post "/api/v1/taggings", params: {
+        name: "synthwave", tag_type: "genre",
+        taggable_type: "Album", taggable_id: 0
+      }, headers: auth_headers
+
+      expect(response).to have_http_status(:not_found)
+    end
+  end
 end

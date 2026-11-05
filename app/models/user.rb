@@ -30,6 +30,14 @@ class User < ApplicationRecord
 
   normalizes :email_address, with: ->(e) { e.strip.downcase }
 
+  # The native apps hold this password rather than the web one. An account
+  # with no Subsonic password never matches, because two blanks compare equal.
+  def self.authenticate_by_subsonic_password(email:, password:)
+    user = find_by(email_address: email)
+    user if user&.subsonic_password.present? && password.present? &&
+      ActiveSupport::SecurityUtils.secure_compare(user.subsonic_password, password)
+  end
+
   validates :email_address, presence: true, uniqueness: true,
     format: {with: URI::MailTo::EMAIL_REGEXP}
 

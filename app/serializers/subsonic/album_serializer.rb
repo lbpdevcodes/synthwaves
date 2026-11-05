@@ -11,7 +11,7 @@ module Subsonic
         duration: streamable.sum(&:duration).to_i,
         year: album.year,
         genre: album.genre,
-        coverArt: album.id.to_s
+        coverArt: album.cover_art_id
       }.compact
     end
   end

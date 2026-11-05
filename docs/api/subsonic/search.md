@@ -35,7 +35,7 @@ Search across artists, albums, and tracks using a text query. Matches are case-i
           "duration": 2940,
           "year": 1992,
           "genre": "Electronic",
-          "coverArt": "5"
+          "coverArt": "5-1793923200"
         }
       ],
       "song": [

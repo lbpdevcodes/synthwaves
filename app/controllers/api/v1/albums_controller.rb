@@ -25,9 +25,9 @@ class API::V1::AlbumsController < API::V1::BaseController
   end
 
   def create
-    album = current_user.albums.build(album_params)
+    album = current_user.albums.build
 
-    if album.save
+    if AlbumSave.call(album, album_params)
       attach_cover_image(album)
       render json: API::V1::AlbumSerializer.render_as_hash(album, view: :full), status: :created
     else
@@ -36,7 +36,7 @@ class API::V1::AlbumsController < API::V1::BaseController
   end
 
   def update
-    if @album.update(album_params)
+    if AlbumSave.call(@album, album_params)
       attach_cover_image(@album)
       render json: API::V1::AlbumSerializer.render_as_hash(@album, view: :full)
     else
@@ -58,7 +58,7 @@ class API::V1::AlbumsController < API::V1::BaseController
   end
 
   def album_params
-    params.require(:album).permit(:title, :artist_id, :year, :genre)
+    params.require(:album).permit(:title, :artist_id, :artist_name, :year, :genre)
   end
 
   def attach_cover_image(album)

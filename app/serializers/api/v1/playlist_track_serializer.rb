@@ -6,7 +6,7 @@ module API
         field :playlist_track_id do |pt|
           pt.id
         end
-        association :track, blueprint: TrackSerializer, view: :embedded
+        association :track, blueprint: TrackSerializer, view: :playlist_entry
       end
 
       # Flat token-lean row for large playlist reads (MCP get_playlist).

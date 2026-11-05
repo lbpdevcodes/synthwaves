@@ -140,6 +140,98 @@ RSpec.describe "API::V1::Tracks", type: :request do
     end
   end
 
+  describe "PATCH /api/v1/tracks/:id with library edits" do
+    let(:track) { create(:track, artist: artist, album: album, user: user, release_year: 1984) }
+    let(:json) { JSON.parse(response.body) }
+
+    def edit(fields)
+      patch "/api/v1/tracks/#{track.id}", params: {track: fields}, headers: auth_headers, as: :json
+    end
+
+    it "moves the track to a named artist, taking its album title along" do
+      edit(artist_name: "Kavinsky")
+
+      expect(response).to have_http_status(:ok)
+      expect(json["artist"]["name"]).to eq("Kavinsky")
+      expect(track.reload.album).to have_attributes(title: album.title, artist: track.artist)
+      expect(track.album).not_to eq(album)
+    end
+
+    it "moves the track to a named album under its artist" do
+      edit(album_title: "OutRun")
+
+      expect(json["album"]["title"]).to eq("OutRun")
+      expect(track.reload.album.artist).to eq(artist)
+    end
+
+    it "keeps the artist and album when their names are blank" do
+      edit(artist_name: "", album_title: "", title: "Renamed")
+
+      expect(response).to have_http_status(:ok)
+      expect(track.reload).to have_attributes(title: "Renamed", artist: artist, album: album)
+    end
+
+    it "saves and returns language, year and content rating" do
+      edit(language: "fr", release_year: 2010, content_rating: "clean")
+
+      expect(json).to include("language" => "fr", "release_year" => 2010, "content_rating" => "clean")
+    end
+
+    it "clears the year given an empty string" do
+      edit(title: track.title, release_year: "")
+
+      expect(response).to have_http_status(:ok)
+      expect(track.reload.release_year).to be_nil
+    end
+
+    it "clears the year given null" do
+      edit(release_year: nil)
+
+      expect(response).to have_http_status(:ok)
+      expect(track.reload.release_year).to be_nil
+    end
+
+    it "does not let an artist id separate the track from its album" do
+      other = create(:artist, user: user)
+
+      edit(title: "Renamed", artist_id: other.id)
+
+      expect(track.reload).to have_attributes(title: "Renamed", artist: artist)
+    end
+
+    it "reports a blank title" do
+      edit(title: "")
+
+      expect(response).to have_http_status(:unprocessable_content)
+      expect(json["errors"]).to include("Title can't be blank")
+    end
+  end
+
+  describe "track tags" do
+    let(:track) { create(:track, artist: artist, album: album, user: user) }
+    let!(:tagging) { create(:tagging, user: user, taggable: track, tag: create(:tag, name: "synthwave", tag_type: "genre")) }
+
+    it "lists a track's tags when it is shown" do
+      get "/api/v1/tracks/#{track.id}", headers: auth_headers
+
+      expect(JSON.parse(response.body)["tags"]).to eq(
+        [{"tagging_id" => tagging.id, "name" => "synthwave", "tag_type" => "genre"}]
+      )
+    end
+
+    it "lists a track's tags after an edit" do
+      patch "/api/v1/tracks/#{track.id}", params: {track: {title: "Renamed"}}, headers: auth_headers
+
+      expect(JSON.parse(response.body)["tags"].map { |tag| tag["name"] }).to eq(["synthwave"])
+    end
+
+    it "leaves tags out of the track list" do
+      get "/api/v1/tracks", headers: auth_headers
+
+      expect(JSON.parse(response.body)["tracks"].first).not_to have_key("tags")
+    end
+  end
+
   describe "DELETE /api/v1/tracks/:id" do
     it "deletes the track" do
       track = create(:track, album: album, artist: artist, user: user)

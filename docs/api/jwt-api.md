@@ -1,6 +1,8 @@
 # JWT API v1
 
-Two endpoints for token exchange and native app bootstrap.
+Token exchange, native app bootstrap, and the library management endpoints the native apps use.
+
+Every endpoint except the two token exchanges and `/api/v1/native/credentials` needs an `Authorization: Bearer <token>` header. Records belong to one user, so another user's ID is a 404.
 
 ## POST `/api/v1/auth/token`
 
@@ -46,6 +48,42 @@ curl -X POST https://your-server/api/v1/auth/token \
 
 ---
 
+## POST `/api/v1/auth/native_token`
+
+Exchange the email and Subsonic password the native apps already hold for a JWT, so they can reach this API without an API key.
+
+**Auth:** None (this is the auth endpoint)
+
+The credentials are read from the request body only. Values in the query string are ignored, so a leaked Subsonic stream URL cannot mint a token.
+
+### Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `email` | string | Yes | Account email |
+| `subsonic_password` | string | Yes | The account's Subsonic password |
+
+### Request
+
+```bash
+curl -X POST https://your-server/api/v1/auth/native_token \
+  -H "Content-Type: application/json" \
+  -d '{"email": "user@example.com", "subsonic_password": "..."}'
+```
+
+### Response — 200 OK
+
+Same as [`POST /api/v1/auth/token`](#post-apiv1authtoken).
+
+### Errors
+
+| Status | Body | Cause |
+|--------|------|-------|
+| 401 | `{"error": "Invalid credentials"}` | Wrong email or password, or the account has no Subsonic password |
+| 429 | `{"error": "Too many attempts. Try again later."}` | More than 10 attempts for one email in 3 minutes |
+
+---
+
 ## GET `/api/v1/native/credentials`
 
 Returns the current user's credentials for configuring Subsonic clients. Intended for native app bootstrap flows.
@@ -74,3 +112,116 @@ curl https://your-server/api/v1/native/credentials \
 | `email` | string | User's email address (used as Subsonic username) |
 | `subsonic_password` | string | Password for Subsonic API authentication |
 | `theme` | string | User's selected theme (`synthwave`, `reggae`, `punk`, or `jazz`) |
+
+---
+
+## Library management
+
+### Errors
+
+| Status | Body | Cause |
+|--------|------|-------|
+| 401 | `{"error": "Unauthorized"}` | Missing, invalid, or expired token |
+| 404 | `{"error": "Not found"}` | No such record in this user's library |
+| 422 | `{"errors": ["Title can't be blank"]}` | Validation failed |
+| 422 | `{"error": "..."}` | The request can't be carried out, such as merging a record into itself |
+
+### Tracks
+
+| Method | Path | Body | Returns |
+|--------|------|------|---------|
+| GET | `/api/v1/tracks/:id` | | Track, with `tags` |
+| PATCH | `/api/v1/tracks/:id` | `{"track": {...}}` | Track, with `tags` |
+| DELETE | `/api/v1/tracks/:id` | | 204, and the audio file is deleted |
+
+`PATCH` accepts `title`, `artist_name`, `album_title`, `track_number`, `disc_number`, `release_year`, `language`, `content_rating`, and `lyrics`.
+
+- Artist and album are typed names. A name that doesn't exist yet is created, and a blank name keeps the current one.
+- Changing the artist moves the track to an album of the same title under the new artist.
+- A `release_year` of `null` or `""` clears the year.
+
+```json
+{
+  "id": 12,
+  "title": "Nightcall",
+  "track_number": 1,
+  "disc_number": 1,
+  "duration": 258.0,
+  "bitrate": 320,
+  "file_format": "mp3",
+  "file_size": 10312000,
+  "lyrics": null,
+  "language": "en",
+  "release_year": 2010,
+  "content_rating": "clean",
+  "created_at": "2026-11-05T10:00:00Z",
+  "has_audio": true,
+  "artist": {"id": 3, "name": "Kavinsky"},
+  "album": {"id": 7, "title": "OutRun"},
+  "tags": [{"tagging_id": 41, "name": "synthwave", "tag_type": "genre"}]
+}
+```
+
+### Albums
+
+| Method | Path | Body | Returns |
+|--------|------|------|---------|
+| POST | `/api/v1/albums` | `{"album": {...}}` | 201 and the album |
+| PATCH | `/api/v1/albums/:id` | `{"album": {...}}` | Album |
+| DELETE | `/api/v1/albums/:id` | | 204, and its tracks and their audio are deleted |
+| PUT | `/api/v1/albums/:id/cover` | Multipart `cover_image` | Album |
+| DELETE | `/api/v1/albums/:id/cover` | | Album |
+| POST | `/api/v1/albums/:id/merge` | `{"source_album_id": 8}` | The surviving album |
+
+`POST` and `PATCH` accept `title`, `artist_name` or `artist_id`, `year`, and `genre`. Changing an album's artist moves its tracks to that artist.
+
+`PUT .../cover` accepts JPEG, PNG, GIF, or WebP, judged from the file's contents. Anything else is a 422.
+
+### Artists
+
+| Method | Path | Body | Returns |
+|--------|------|------|---------|
+| POST | `/api/v1/artists` | `{"artist": {...}}` | 201 and the artist |
+| PATCH | `/api/v1/artists/:id` | `{"artist": {...}}` | Artist |
+| DELETE | `/api/v1/artists/:id` | | 204, and its albums, tracks, and audio are deleted |
+| POST | `/api/v1/artists/:id/merge` | `{"source_artist_id": 8}` | The surviving artist |
+
+`POST` and `PATCH` accept `name` and `category` (`music` or `podcast`).
+
+### Playlists
+
+| Method | Path | Body | Returns |
+|--------|------|------|---------|
+| GET | `/api/v1/playlists/:id` | | Playlist with one page of `tracks` |
+| POST | `/api/v1/playlists` | `{"playlist": {"name": "..."}, "track_ids": [1, 2]}` | 201 and the playlist |
+| PATCH | `/api/v1/playlists/:id` | `{"playlist": {"name": "..."}}` | Playlist |
+| DELETE | `/api/v1/playlists/:id` | | 204, and its tracks are kept |
+| POST | `/api/v1/playlists/:id/tracks` | `{"track_ids": [1, 2]}` | `{"added": 2, "tracks_count": 9}` |
+| DELETE | `/api/v1/playlists/:id/tracks/:playlist_track_id` | | 204 |
+| PATCH | `/api/v1/playlists/:id/track_order` | `{"playlist_track_ids": [5, 4, 6]}` | `{"reordered": 3}` |
+| POST | `/api/v1/playlists/:id/merge` | `{"source_playlist_id": 8}` | The surviving playlist |
+
+`GET` returns up to 100 rows per page through `page` and `per_page`. Each row has `position`, `playlist_track_id`, and a `track` with `id`, `title`, `duration`, `has_audio`, `artist`, and `album`.
+
+`POST .../tracks` skips tracks already in the playlist.
+
+`track_order` must list every entry in the playlist exactly once. Anything else is a 422, which also means the playlist changed since it was read.
+
+### Merging
+
+The record in the path survives and the source is destroyed.
+
+- Albums: tracks move to the surviving album and its artist. The cover carries over if the survivor has none. The survivor keeps its year and genre.
+- Artists: albums, tracks, and favorites move. Albums with the same title are merged.
+- Playlists: tracks not already in the survivor are appended.
+
+Same-titled tracks are not deduplicated.
+
+### Genre tags
+
+| Method | Path | Body | Returns |
+|--------|------|------|---------|
+| POST | `/api/v1/taggings` | `{"name": "synthwave", "tag_type": "genre", "taggable_type": "Track", "taggable_id": 12}` | 201 and the tagging |
+| DELETE | `/api/v1/taggings/:id` | | 204 |
+
+`taggable_id` must belong to this user's library.
