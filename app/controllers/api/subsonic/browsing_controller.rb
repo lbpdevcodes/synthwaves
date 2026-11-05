@@ -21,7 +21,7 @@ class API::Subsonic::BrowsingController < API::Subsonic::BaseController
 
   def get_artist
     artist = current_user.artists.find(params[:id])
-    albums = artist.albums.with_streamable_tracks.includes(:tracks)
+    albums = listable(artist.albums).includes(:tracks)
     render_subsonic(artist: {
       id: artist.id.to_s,
       name: artist.name,

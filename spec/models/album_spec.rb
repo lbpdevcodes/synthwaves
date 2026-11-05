@@ -118,4 +118,33 @@ RSpec.describe Album, type: :model do
       expect(Album.podcast).not_to include(music_album)
     end
   end
+
+  describe "#cover_art_id" do
+    let(:album) { create(:album) }
+
+    def attach_cover
+      album.cover_image.attach(io: StringIO.new("art"), filename: "cover.png", content_type: "image/png")
+    end
+
+    it "starts with the album's id" do
+      expect(album.cover_art_id).to start_with("#{album.id}-")
+    end
+
+    it "changes when a cover is attached" do
+      before = album.cover_art_id
+
+      travel(1.minute) { attach_cover }
+
+      expect(album.reload.cover_art_id).not_to eq(before)
+    end
+
+    it "changes when the cover is removed" do
+      attach_cover
+      before = album.reload.cover_art_id
+
+      travel(1.minute) { album.cover_image.purge }
+
+      expect(album.reload.cover_art_id).not_to eq(before)
+    end
+  end
 end

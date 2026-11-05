@@ -86,4 +86,15 @@ RSpec.describe "API::V1::PlaylistTracks", type: :request do
       expect(response).to have_http_status(:not_found)
     end
   end
+
+  describe "removing an entry from the middle" do
+    it "closes the gap so positions stay 1 to N" do
+      entries = create_list(:track, 3, artist: artist, album: album, user: user).map { |t| playlist.add_track(t) }
+
+      delete "/api/v1/playlists/#{playlist.id}/tracks/#{entries[1].id}", headers: auth_headers
+
+      expect(response).to have_http_status(:no_content)
+      expect(playlist.playlist_tracks.reload.map(&:position)).to eq([1, 2])
+    end
+  end
 end

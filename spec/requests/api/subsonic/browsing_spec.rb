@@ -114,4 +114,25 @@ RSpec.describe "Subsonic Browsing API", type: :request do
       expect(json["subsonic-response"]["error"]["message"]).to eq("Song not found")
     end
   end
+
+  describe "getArtist with empty albums" do
+    let(:artist) { create(:artist, user: user) }
+    let!(:empty) { create(:album, artist: artist, user: user, title: "Empty") }
+    let!(:full) { create(:album, artist: artist, user: user, title: "Full") }
+
+    before { create(:track, album: full, artist: artist, user: user) }
+
+    def titles(extra = {})
+      get "/api/rest/getArtist.view", params: auth_params.merge(id: artist.id).merge(extra)
+      JSON.parse(response.body)["subsonic-response"]["artist"]["album"].map { |album| album["name"] }
+    end
+
+    it "leaves them out by default" do
+      expect(titles).to eq(["Full"])
+    end
+
+    it "includes them when asked" do
+      expect(titles(includeEmpty: "true")).to contain_exactly("Empty", "Full")
+    end
+  end
 end

@@ -20,7 +20,7 @@ class API::V1::TracksController < API::V1::BaseController
   end
 
   def show
-    render json: API::V1::TrackSerializer.render_as_hash(@track, view: :full)
+    render json: API::V1::TrackSerializer.render_as_hash(@track, view: :detail)
   end
 
   def create
@@ -36,8 +36,8 @@ class API::V1::TracksController < API::V1::BaseController
   end
 
   def update
-    if @track.update(track_update_params)
-      render json: API::V1::TrackSerializer.render_as_hash(@track, view: :full)
+    if TrackUpdate.call(@track, track_update_params)
+      render json: API::V1::TrackSerializer.render_as_hash(@track, view: :detail)
     else
       render_validation_errors(@track)
     end
@@ -178,7 +178,7 @@ class API::V1::TracksController < API::V1::BaseController
 
   def track_update_params
     params.require(:track).permit(
-      :title, :artist_id, :album_id, :track_number, :disc_number,
+      :title, :artist_name, :album_title, :track_number, :disc_number,
       :lyrics, :language, :release_year, :content_rating
     )
   end

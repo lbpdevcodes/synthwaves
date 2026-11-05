@@ -24,7 +24,7 @@ class API::Subsonic::ListsController < API::Subsonic::BaseController
     end
 
     render_subsonic(albumList2: {
-      album: albums.with_streamable_tracks.offset(offset).limit(size).map { |a| album_to_entry(a) }
+      album: listable(albums).offset(offset).limit(size).map { |a| album_to_entry(a) }
     })
   end
 

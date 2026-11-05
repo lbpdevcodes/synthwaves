@@ -15,7 +15,7 @@ class API::V1::PlaylistsController < API::V1::BaseController
   end
 
   def show
-    scope = @playlist.playlist_tracks.includes(track: [:artist, :album]).order(:position)
+    scope = @playlist.playlist_tracks.includes(track: [:artist, :album, :audio_file_attachment]).order(:position)
     pagy, playlist_tracks = pagy(:offset, scope, limit: [(params[:per_page] || 50).to_i, 100].min)
 
     render json: API::V1::PlaylistSerializer.render_as_hash(@playlist, view: :full).merge(

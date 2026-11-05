@@ -13,7 +13,7 @@ class API::Subsonic::MediaController < API::Subsonic::BaseController
   alias_method :download, :stream
 
   def get_cover_art
-    album = current_user.albums.find(params[:id])
+    album = current_user.albums.find(params[:id].to_i)
     if album.cover_image.attached?
       redirect_to Rails.application.routes.url_helpers.rails_blob_url(album.cover_image, host: request.host_with_port, protocol: request.scheme), allow_other_host: true
     else

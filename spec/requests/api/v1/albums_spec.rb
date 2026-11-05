@@ -157,4 +157,112 @@ RSpec.describe "API::V1::Albums", type: :request do
       expect(response).to have_http_status(:not_found)
     end
   end
+
+  describe "editing an album by artist name" do
+    let(:json) { JSON.parse(response.body) }
+
+    it "creates an album under a named artist, making the artist if needed" do
+      post "/api/v1/albums", params: {album: {title: "OutRun", artist_name: "Kavinsky"}}, headers: auth_headers
+
+      expect(response).to have_http_status(:created)
+      expect(json["artist"]["name"]).to eq("Kavinsky")
+      expect(user.artists.find_by(name: "Kavinsky")).to be_present
+    end
+
+    it "moves an album and its tracks to a named artist" do
+      album = create(:album, artist: artist, user: user)
+      track = create(:track, album: album, artist: artist, user: user)
+
+      patch "/api/v1/albums/#{album.id}", params: {album: {artist_name: "Kavinsky"}}, headers: auth_headers
+
+      expect(response).to have_http_status(:ok)
+      expect(json["artist"]["name"]).to eq("Kavinsky")
+      expect(track.reload.artist.name).to eq("Kavinsky")
+    end
+
+    it "reports a title already used by the same artist" do
+      create(:album, artist: artist, user: user, title: "Taken")
+      album = create(:album, artist: artist, user: user)
+
+      patch "/api/v1/albums/#{album.id}", params: {album: {title: "Taken"}}, headers: auth_headers
+
+      expect(response).to have_http_status(:unprocessable_content)
+      expect(json["errors"]).to include("Title has already been taken")
+    end
+  end
+
+  describe "album covers" do
+    let(:album) { create(:album, artist: artist, user: user) }
+    let(:json) { JSON.parse(response.body) }
+
+    def upload(name, type)
+      fixture_file_upload(name, type)
+    end
+
+    it "sets a cover from an image file" do
+      put "/api/v1/albums/#{album.id}/cover", params: {cover_image: upload("test.png", "image/png")}, headers: auth_headers
+
+      expect(response).to have_http_status(:ok)
+      expect(json["cover_image_url"]).to be_present
+      expect(album.reload.cover_image).to be_attached
+    end
+
+    it "replaces an existing cover" do
+      album.cover_image.attach(io: StringIO.new("old"), filename: "old.png", content_type: "image/png")
+
+      put "/api/v1/albums/#{album.id}/cover", params: {cover_image: upload("test.png", "image/png")}, headers: auth_headers
+
+      expect(album.reload.cover_image.filename.to_s).to eq("test.png")
+    end
+
+    it "refuses a file that isn't an image and keeps the existing cover" do
+      album.cover_image.attach(io: StringIO.new("old"), filename: "old.png", content_type: "image/png")
+
+      put "/api/v1/albums/#{album.id}/cover", params: {cover_image: upload("test.mp3", "audio/mpeg")}, headers: auth_headers
+
+      expect(response).to have_http_status(:unprocessable_content)
+      expect(json["error"]).to eq("cover_image must be a JPEG, PNG, GIF, or WebP image")
+      expect(album.reload.cover_image.filename.to_s).to eq("old.png")
+    end
+
+    it "judges the file by its contents, not the type it claims" do
+      put "/api/v1/albums/#{album.id}/cover", params: {cover_image: upload("test.mp3", "image/png")}, headers: auth_headers
+
+      expect(response).to have_http_status(:unprocessable_content)
+      expect(album.reload.cover_image).not_to be_attached
+    end
+
+    it "requires a file" do
+      put "/api/v1/albums/#{album.id}/cover", headers: auth_headers
+
+      expect(response).to have_http_status(:unprocessable_content)
+    end
+
+    it "removes a cover" do
+      album.cover_image.attach(io: StringIO.new("old"), filename: "old.png", content_type: "image/png")
+
+      delete "/api/v1/albums/#{album.id}/cover", headers: auth_headers
+
+      expect(response).to have_http_status(:ok)
+      expect(json["cover_image_url"]).to be_nil
+      expect(album.reload.cover_image).not_to be_attached
+    end
+
+    it "treats removing a missing cover as done" do
+      delete "/api/v1/albums/#{album.id}/cover", headers: auth_headers
+
+      expect(response).to have_http_status(:ok)
+    end
+
+    it "answers 404 for another user's album" do
+      other = create(:album)
+
+      put "/api/v1/albums/#{other.id}/cover", params: {cover_image: upload("test.png", "image/png")}, headers: auth_headers
+      expect(response).to have_http_status(:not_found)
+
+      delete "/api/v1/albums/#{other.id}/cover", headers: auth_headers
+      expect(response).to have_http_status(:not_found)
+      expect(other.reload.cover_image).not_to be_attached
+    end
+  end
 end

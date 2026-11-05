@@ -26,6 +26,12 @@ class Playlist < ApplicationRecord
     added
   end
 
+  # True when ids name each entry exactly once. reorder! needs this: an entry
+  # left out would keep a position the others are being numbered onto.
+  def lists_every_entry?(playlist_track_ids)
+    playlist_track_ids.map(&:to_i).sort == playlist_tracks.pluck(:id).sort
+  end
+
   # Numbers the given entries 1..N in the order given. Ids from another
   # playlist are ignored. Each entry goes to a negative position first, so the
   # unique [playlist_id, position] index never sees two rows on one position.

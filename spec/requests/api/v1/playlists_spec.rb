@@ -120,4 +120,17 @@ RSpec.describe "API::V1::Playlists", type: :request do
       expect(response).to have_http_status(:no_content)
     end
   end
+
+  describe "GET /api/v1/playlists/:id entries" do
+    it "says which tracks have audio, so no-audio rows can still be managed" do
+      playlist = create(:playlist, user: user)
+      playlist.add_track(create(:track, user: user))
+      playlist.add_track(create(:track, user: user, youtube_video_id: "abc123"))
+
+      get "/api/v1/playlists/#{playlist.id}", headers: auth_headers
+
+      tracks = JSON.parse(response.body)["tracks"]
+      expect(tracks.map { |row| row["track"]["has_audio"] }).to eq([true, false])
+    end
+  end
 end

@@ -121,7 +121,7 @@ Returned by `getArtist` (as `album`), `getAlbum`, `getAlbumList2`, `search3`, an
   "duration": 2940,
   "year": 2023,
   "genre": "Electronic",
-  "coverArt": "5"
+  "coverArt": "5-1793923200"
 }
 ```
 

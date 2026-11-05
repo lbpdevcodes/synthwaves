@@ -111,6 +111,7 @@ Returns an artist and their albums.
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
 | `id` | string | Yes | Artist ID |
+| `includeEmpty` | boolean | No | Also return albums with nothing to play. Defaults to `false`. Not part of the Subsonic API. |
 
 ### Response
 
@@ -132,7 +133,7 @@ Returns an artist and their albums.
           "duration": 2940,
           "year": 1992,
           "genre": "Electronic",
-          "coverArt": "5"
+          "coverArt": "5-1793923200"
         }
       ]
     }
@@ -177,7 +178,7 @@ Returns an album with its tracks.
       "duration": 2940,
       "year": 1992,
       "genre": "Electronic",
-      "coverArt": "5",
+      "coverArt": "5-1793923200",
       "song": [
         {
           "id": "42",

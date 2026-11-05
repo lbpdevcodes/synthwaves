@@ -94,7 +94,7 @@ Returns all starred (favorited) artists, albums, and tracks.
           "songCount": 12,
           "duration": 2940,
           "year": 1992,
-          "coverArt": "5",
+          "coverArt": "5-1793923200",
           "starred": "2024-01-15T10:30:00Z"
         }
       ],

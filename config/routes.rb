@@ -81,12 +81,18 @@ Rails.application.routes.draw do
   namespace :api do
     namespace :v1 do
       post "auth/token", to: "auth#create"
+      post "auth/native_token", to: "auth#native_token"
       get "native/credentials", to: "native#credentials"
 
       resource :me, controller: "profile", only: [:show, :update]
 
-      resources :artists, only: [:index, :show, :create, :update, :destroy]
-      resources :albums, only: [:index, :show, :create, :update, :destroy]
+      resources :artists, only: [:index, :show, :create, :update, :destroy] do
+        resource :merge, controller: "artist_merges", only: [:create]
+      end
+      resources :albums, only: [:index, :show, :create, :update, :destroy] do
+        resource :merge, controller: "album_merges", only: [:create]
+        resource :cover, controller: "album_covers", only: [:update, :destroy]
+      end
       resources :tracks, only: [:index, :show, :create, :update, :destroy] do
         get :stream, on: :member
         post :audio, on: :member
@@ -95,6 +101,7 @@ Rails.application.routes.draw do
       resources :playlists, only: [:index, :show, :create, :update, :destroy] do
         resources :tracks, controller: "playlist_tracks", only: [:create, :destroy], as: :playlist_tracks
         resource :track_order, controller: "playlist_track_orders", only: [:update]
+        resource :merge, controller: "playlist_merges", only: [:create]
       end
 
       resources :favorites, only: [:index, :create, :destroy]

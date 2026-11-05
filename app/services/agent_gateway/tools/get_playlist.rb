@@ -34,7 +34,7 @@ module AgentGateway
 
       def self.perform(playlist_id:, server_context:, compact: false, page: nil, per_page: nil)
         playlist = user(server_context).playlists.find(playlist_id)
-        scope = playlist.playlist_tracks.includes(track: [:artist, :album]).order(:position)
+        scope = playlist.playlist_tracks.includes(track: [:artist, :album, :audio_file_attachment]).order(:position)
 
         json_response(payload_for(playlist, scope, compact, page, per_page))
       end

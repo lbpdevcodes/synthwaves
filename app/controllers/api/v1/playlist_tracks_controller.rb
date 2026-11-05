@@ -15,7 +15,7 @@ class API::V1::PlaylistTracksController < API::V1::BaseController
 
   def destroy
     playlist_track = @playlist.playlist_tracks.find(params[:id])
-    playlist_track.destroy
+    @playlist.remove_track(playlist_track)
     head :no_content
   rescue ActiveRecord::RecordNotFound
     render_not_found

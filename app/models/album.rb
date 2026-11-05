@@ -28,6 +28,12 @@ class Album < ApplicationRecord
     where("albums.title LIKE :q", q: "%#{query}%") if query.present?
   }
 
+  # What Subsonic clients cache cover art under. Attaching or removing a cover
+  # touches the album, so a changed cover reaches every device under a new key.
+  def cover_art_id
+    "#{id}-#{updated_at.to_i}"
+  end
+
   private
 
   def library_links_changing?
