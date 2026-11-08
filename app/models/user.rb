@@ -28,6 +28,10 @@ class User < ApplicationRecord
     favorites.where(favorable_type: type).pluck(:favorable_id).to_set
   end
 
+  def favorited_times_for(type)
+    favorites.where(favorable_type: type).pluck(:favorable_id, :created_at).to_h
+  end
+
   normalizes :email_address, with: ->(e) { e.strip.downcase }
 
   # The native apps hold this password rather than the web one. An account

@@ -9,7 +9,7 @@ module Subsonic
       "opus" => "audio/opus"
     }.freeze
 
-    def self.to_child(track)
+    def self.to_child(track, starred: nil)
       {
         id: track.id.to_s,
         parent: track.album_id.to_s,
@@ -27,7 +27,8 @@ module Subsonic
         bitRate: track.bitrate,
         albumId: track.album_id.to_s,
         artistId: track.artist_id.to_s,
-        type: "music"
+        type: "music",
+        starred: starred&.iso8601
       }.compact
     end
   end

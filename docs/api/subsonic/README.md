@@ -103,9 +103,12 @@ Returned by `getSong`, `getAlbum` (as `song`), `search3` (as `song`), `getRandom
   "bitRate": 320,
   "albumId": "5",
   "artistId": "2",
-  "type": "music"
+  "type": "music",
+  "starred": "2024-01-15T10:30:00Z"
 }
 ```
+
+`starred` is when the signed-in user favorited the track (ISO 8601). It's omitted for tracks that aren't favorites.
 
 ### `album`
 

@@ -73,7 +73,12 @@ module SubsonicResponseFormatting
   end
 
   def track_to_child(track)
-    Subsonic::TrackSerializer.to_child(track)
+    Subsonic::TrackSerializer.to_child(track, starred: starred_tracks[track.id])
+  end
+
+  # When each of the user's favorite tracks was favorited, looked up once per request.
+  def starred_tracks
+    @starred_tracks ||= current_user.favorited_times_for("Track")
   end
 
   def album_to_entry(album)

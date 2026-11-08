@@ -158,6 +158,14 @@ RSpec.describe "Subsonic Playlists API", type: :request do
       expect(playlist["entry"].map { |e| e["title"] }).to eq(["Newer Favorite", "Older Favorite"])
     end
 
+    it "marks each entry of the 'favorites' playlist as starred when it was favorited" do
+      favorite = create(:favorite, user: user, favorable: create(:track, user: user), created_at: 3.days.ago)
+
+      get "/api/rest/getPlaylist.view", params: auth_params.merge(id: "favorites")
+      entry = JSON.parse(response.body)["subsonic-response"]["playlist"]["entry"].sole
+      expect(entry["starred"]).to eq(favorite.created_at.iso8601)
+    end
+
     it "excludes favorited tracks without audio files from the 'favorites' playlist" do
       create(:favorite, user: user, favorable: create(:track, title: "Streamable", user: user))
       create(:favorite, user: user, favorable: create(:track, :youtube, title: "No Audio", user: user))

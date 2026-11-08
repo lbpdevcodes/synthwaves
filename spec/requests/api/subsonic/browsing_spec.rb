@@ -81,6 +81,18 @@ RSpec.describe "Subsonic Browsing API", type: :request do
       expect(json["subsonic-response"]["album"]["songCount"]).to eq(1)
     end
 
+    it "marks only the user's favorite tracks as starred" do
+      album = create(:album, user: user)
+      favorite = create(:track, album: album, artist: album.artist, title: "Favorite", user: user)
+      create(:track, album: album, artist: album.artist, title: "Not a Favorite", user: user)
+      starred = create(:favorite, user: user, favorable: favorite)
+
+      get "/api/rest/getAlbum.view", params: auth_params.merge(id: album.id)
+      songs = JSON.parse(response.body)["subsonic-response"]["album"]["song"]
+      expect(songs.to_h { |s| [s["title"], s["starred"]] })
+        .to eq("Favorite" => starred.created_at.iso8601, "Not a Favorite" => nil)
+    end
+
     it "returns error for nonexistent album" do
       get "/api/rest/getAlbum.view", params: auth_params.merge(id: 99999)
       json = JSON.parse(response.body)
