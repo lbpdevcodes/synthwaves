@@ -231,6 +231,21 @@ bin/import_audio --album 42 [--limit N]  # push audio for an existing album only
 
 The CLI is idempotent — it only pushes the tracks the import reply lists in `missing_audio`, so re-running resumes after transient YouTube 403/429 failures (the re-import skips videos already imported and reuses the playlist it created). Known local dev gotcha: JWT API auth is broken in development unless development credentials contain `secret_key_base`.
 
+## Local Video Import (large files)
+
+The browser upload at `/videos/new` posts the whole file through Rails in one request, so a movie-sized file times out. `bin/import_video` uploads one local video file from the terminal instead, with the same API key as `bin/import_audio`:
+
+```bash
+bin/import_video ~/Movies/Heat.mkv [--title T]
+bin/import_video s01e02.mkv --folder "The Wire" --season 1 --episode 2
+```
+
+It asks `POST /api/import/direct_uploads` for a presigned URL, PUTs the file straight to object storage as one stream (Rails never sees the bytes, memory stays flat), then files it with `POST /api/import/videos`. Each API call fetches a fresh JWT, so an upload longer than the token's hour still files. The source file is never deleted. `VideoConversionJob` converts it server-side; it shows under Watch → Videos once `ready`.
+
+- The code is stdlib-only, in `lib/cli/video_import/`, which `autoload_lib` ignores so Rails never loads it.
+- One PUT has no resume: a dropped connection restarts from zero. S3-style storage caps one PUT at 5 GB; a larger file needs multipart upload, which nothing here supports yet.
+- `rake videos:push` (`lib/tasks/push_videos.rake`) is the older bulk path: it reads `credentials.remote`, walks a folder, re-encodes locally and **deletes each source file after upload**.
+
 ## Git Workflow
 
 Branch protection is enabled on `main` — direct pushes are not allowed. All changes must go through a pull request.
