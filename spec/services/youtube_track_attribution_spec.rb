@@ -35,6 +35,12 @@ RSpec.describe YoutubeTrackAttribution do
     expect(result).to have_attributes(artist: "Horace Andy", title: "Got To Be Sure", tier: :title_only)
   end
 
+  it "does not let a channel confirm an artist too short to identify it" do
+    result = attribute(title: "01 - Intro", channel_name: "nirvana2011fan")
+
+    expect(result.tier).to eq(:title_only)
+  end
+
   it "files a full-album rip under the artist the playlist title names, with the playlist as its album" do
     playlist_title = "Carlos Vives - El Amor De Mi Tierra (Full Album)"
     result = attribute(title: "La Tierra Del Olvido", playlist_title: playlist_title)

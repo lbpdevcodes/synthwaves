@@ -15,6 +15,9 @@
 # Album is set only when the source knows it; the caller picks the fallback.
 class YoutubeTrackAttribution
   TOPIC_SUFFIX = " - Topic"
+  # A squashed artist shorter than this ("01", "dj") turns up inside unrelated
+  # channel names, so it cannot confirm anything.
+  MIN_CONFIRMING_LENGTH = 3
 
   Result = Data.define(:artist, :title, :album, :year, :tier)
 
@@ -55,7 +58,11 @@ class YoutubeTrackAttribution
   end
 
   def title_tier(artist)
-    squash(channel_name).include?(squash(artist)) ? :channel_confirmed : :title_only
+    channel_names?(squash(artist)) ? :channel_confirmed : :title_only
+  end
+
+  def channel_names?(artist)
+    artist.length >= MIN_CONFIRMING_LENGTH && squash(channel_name).include?(artist)
   end
 
   def parsed_title

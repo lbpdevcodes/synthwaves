@@ -18,7 +18,7 @@ module AgentGateway
           url: {type: "string", description: "YouTube playlist URL"},
           category: {type: "string", enum: %w[music podcast], description: "Default music"},
           playlist_id: {type: "integer", description: "Existing playlist to receive the tracks"},
-          new_playlist_name: {type: "string", description: "Create a playlist with this name for the tracks"}
+          new_playlist_name: {type: "string", description: "Playlist to file the tracks into, created unless one already has this name"}
         },
         required: ["url"]
       )
