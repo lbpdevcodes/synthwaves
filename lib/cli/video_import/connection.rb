@@ -5,8 +5,11 @@ module VideoImport
 
     module_function
 
+    # max_retries: 0 because Net::HTTP retries a PUT once by default, and a
+    # retry would re-send a half-read body stream under the full Content-Length.
     def deliver(uri, request, read_timeout: 60)
-      Net::HTTP.start(uri.host, uri.port, use_ssl: uri.scheme == "https", read_timeout: read_timeout) { |http| http.request(request) }
+      options = {use_ssl: uri.scheme == "https", read_timeout: read_timeout, max_retries: 0}
+      Net::HTTP.start(uri.host, uri.port, **options) { |http| http.request(request) }
     rescue *FAILURES => e
       raise Error, "connection to #{uri.host} failed: #{e.message}"
     end

@@ -148,6 +148,30 @@ RSpec.describe VideoImport::Importer do
         .to raise_error(VideoImport::Error, /\Aconnection to storage.test failed: Connection reset by peer/)
     end
 
+    it "gives up on a storage connection that drops, instead of re-sending the half-read file" do
+      File.binwrite(@movie, "x" * 8_000_000)
+      storage = TCPServer.new("127.0.0.1", 0)
+      connections = Queue.new
+      hang_up = Thread.new do
+        loop do
+          client = storage.accept
+          connections << client
+          client.readpartial(1024)
+          client.close
+        end
+      end
+      stub_auth("token-1")
+      stub_direct_upload(body: {signed_id: "signed-blob", direct_upload: {url: "http://127.0.0.1:#{storage.addr[1]}/bucket/blob-key", headers: signed_headers}})
+      WebMock.disable_net_connect!(allow_localhost: true)
+
+      expect { importer.call(@movie) }.to raise_error(VideoImport::Error, /\Aconnection to 127.0.0.1 failed/)
+      expect(connections.size).to eq(1)
+    ensure
+      WebMock.disable_net_connect!
+      hang_up&.kill
+      storage&.close
+    end
+
     it "names a server it cannot reach" do
       stub_request(:post, "#{host}/api/v1/auth/token").to_raise(SocketError.new("getaddrinfo: nodename nor servname provided"))
 
