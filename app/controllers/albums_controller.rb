@@ -73,9 +73,11 @@ class AlbumsController < ApplicationController
       return
     end
 
-    track_count_before = album.tracks.count
+    # Counted across the library: a music import files each new video under its
+    # own artist's album, not necessarily this one.
+    track_count_before = Current.user.tracks.count
     YoutubePlaylistImportService.call(album.youtube_playlist_url, category: album.artist.category, api_key: Current.user.youtube_api_key, user: Current.user)
-    new_count = album.tracks.reload.count - track_count_before
+    new_count = Current.user.tracks.count - track_count_before
 
     if new_count > 0
       redirect_to album, notice: "#{new_count} new #{"episode".pluralize(new_count)} added."

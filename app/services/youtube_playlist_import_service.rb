@@ -1,6 +1,4 @@
 class YoutubePlaylistImportService
-  include ThumbnailAttachable
-
   class Error < StandardError; end
 
   def self.call(url, api_key:, user:, category: "music")
@@ -16,59 +14,20 @@ class YoutubePlaylistImportService
     raise Error, "Invalid YouTube playlist URL" if @playlist_id.blank?
   end
 
+  # Returns a YoutubeImport, or nil when the playlist holds no videos.
   def call
-    @playlist_info, @items = fetch_playlist_data
-    return nil if @items.empty?
+    playlist_info, items = fetch_playlist_data
+    return nil if items.empty?
 
-    @artist = find_or_create_artist
-    @album = find_or_create_album
-    import_tracks
-
-    @album
+    filing = filing_for(playlist_info)
+    YoutubeImport.new(title: playlist_info[:title], tracks: items.map { |item| filing.file(item) })
   end
 
   private
 
-  def find_or_create_artist
-    @user.artists.find_or_create_by!(name: @playlist_info[:channel_name] || "Unknown Artist") do |a|
-      a.category = @category
-    end
-  end
-
-  def find_or_create_album
-    album = @user.albums.find_or_create_by!(title: @playlist_info[:title], artist: @artist)
-    album.update!(youtube_playlist_url: @url) if album.youtube_playlist_url.blank?
-
-    if @playlist_info[:thumbnail_url].present? && !album.cover_image.attached?
-      attach_thumbnail(album, @playlist_info[:thumbnail_url])
-    end
-
-    album
-  end
-
-  def import_tracks
-    @items.each do |item|
-      enriched = YoutubeMetadataEnricher.call(
-        title: item[:title],
-        channel_name: @playlist_info[:channel_name],
-        playlist_title: @playlist_info[:title]
-      )
-      track_artist = artist_for(enriched)
-
-      @user.tracks.find_or_create_by!(youtube_video_id: item[:video_id]) do |track|
-        track.title = enriched[:title]
-        track.artist = track_artist
-        track.album = @album
-        track.track_number = item[:position] + 1
-        track.duration = item[:duration]
-      end
-    end
-  end
-
-  def artist_for(enriched)
-    return @artist if enriched[:source] == :channel
-
-    @user.artists.find_or_create_by!(name: enriched[:artist]) { |a| a.category = @category }
+  def filing_for(playlist_info)
+    filing = (@category == "podcast") ? YoutubePodcastFiling : YoutubeMusicFiling
+    filing.new(user: @user, url: @url, playlist_info: playlist_info)
   end
 
   def fetch_playlist_data
@@ -95,7 +54,9 @@ class YoutubePlaylistImportService
         video_id: item[:video_id],
         title: item[:title],
         position: item[:position],
-        duration: details[:duration]
+        duration: details[:duration],
+        channel_name: details[:channel_name],
+        description: details[:description]
       }
     end
 

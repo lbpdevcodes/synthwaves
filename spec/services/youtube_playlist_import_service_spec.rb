@@ -10,163 +10,211 @@ RSpec.describe YoutubePlaylistImportService do
         .to raise_error(YoutubePlaylistImportService::Error, "Invalid YouTube playlist URL")
     end
 
-    it "imports a playlist as an album with tracks" do
-      stub_playlist_api_calls
+    context "with music" do
+      let(:url) { "https://www.youtube.com/playlist?list=PLtest123" }
 
-      album = described_class.call("https://www.youtube.com/playlist?list=PLtest123", api_key: api_key, user: user)
+      it "credits a video's release note: its artist, its album and its year" do
+        stub_playlist_api_calls(
+          owner: "Rock Collection", playlist_title: "Classic Rock Hits",
+          track_titles: ["The Chain (2004 Remaster)", "Song 2"],
+          video_channels: ["Fleetwood Mac - Topic", "Test Channel"],
+          descriptions: [file_fixture("youtube/release_note_fleetwood_mac_the_chain.txt").read, nil]
+        )
 
-      expect(album).to be_persisted
-      expect(album.title).to eq("Test Playlist")
-      expect(album.artist.name).to eq("Test Channel")
-      expect(album.tracks.count).to eq(2)
+        described_class.call(url, api_key: api_key, user: user)
 
-      track1 = album.tracks.find_by(youtube_video_id: "vid1")
-      expect(track1.title).to eq("Song 1")
-      expect(track1.track_number).to eq(1)
-      expect(track1.duration).to eq(225.0)
+        track = user.tracks.find_by!(youtube_video_id: "vid1")
+        expect(track).to have_attributes(title: "The Chain (2004 Remaster)", release_year: 1977)
+        expect(track.artist.name).to eq("Fleetwood Mac")
+        expect(track.album).to have_attributes(title: "Rumours", artist: track.artist)
+      end
 
-      track2 = album.tracks.find_by(youtube_video_id: "vid2")
-      expect(track2.title).to eq("Song 2")
-      expect(track2.track_number).to eq(2)
+      it "files a video no source names an album for under its artist's Singles" do
+        stub_playlist_api_calls(track_titles: ["Daft Punk - Da Funk", "Song 2"])
+
+        described_class.call(url, api_key: api_key, user: user)
+
+        track = user.tracks.find_by!(youtube_video_id: "vid1")
+        expect(track.album).to have_attributes(title: "Singles", artist: track.artist)
+      end
+
+      it "credits a video naming no artist to its own channel, never the playlist owner" do
+        stub_playlist_api_calls(owner: "Rock Collection", video_channels: ["Eagles", "Eagles"])
+
+        described_class.call(url, api_key: api_key, user: user)
+
+        expect(user.tracks.map { |track| track.artist.name }.uniq).to eq(["Eagles"])
+      end
+
+      it "parses the artist and title from 'Artist - Song' video titles" do
+        stub_playlist_api_calls(
+          track_titles: ["Daft Punk - Around The World (Official Video)", "Kraftwerk - Trans-Europe Express"]
+        )
+
+        described_class.call(url, api_key: api_key, user: user)
+
+        expect(user.tracks.find_by!(youtube_video_id: "vid1").title).to eq("Around The World")
+        expect(user.tracks.map { |track| track.artist.name }).to contain_exactly("Daft Punk", "Kraftwerk")
+      end
+
+      it "creates music artists" do
+        stub_playlist_api_calls
+
+        described_class.call(url, api_key: api_key, user: user)
+
+        expect(user.artists).to all(be_music)
+      end
+
+      it "returns the imported tracks in playlist order under the playlist's title" do
+        stub_playlist_api_calls(track_titles: ["Daft Punk - Da Funk", "Kraftwerk - Computer Love"])
+
+        import = described_class.call(url, api_key: api_key, user: user)
+
+        expect(import.title).to eq("Test Playlist")
+        expect(import.tracks.map(&:youtube_video_id)).to eq(%w[vid1 vid2])
+      end
+
+      it "skips videos it has already imported" do
+        stub_playlist_api_calls
+
+        described_class.call(url, api_key: api_key, user: user)
+        import = described_class.call(url, api_key: api_key, user: user)
+
+        expect(import.tracks.size).to eq(2)
+        expect(Track.where(youtube_video_id: "vid1").count).to eq(1)
+      end
+
+      context "when the playlist is one artist's full album" do
+        let(:playlist_title) { "Carlos Vives - El Amor De Mi Tierra (Full Album)" }
+
+        it "files the tracks in an album named after the playlist, numbered in playlist order" do
+          stub_playlist_api_calls(playlist_title: playlist_title)
+
+          import = described_class.call(url, api_key: api_key, user: user)
+
+          expect(import.tracks.map { |track| track.album.title }.uniq).to eq([playlist_title])
+          expect(import.tracks.map(&:track_number)).to eq([1, 2])
+        end
+
+        it "keeps the playlist URL and thumbnail on that album" do
+          stub_playlist_api_calls(playlist_title: playlist_title)
+
+          import = described_class.call(url, api_key: api_key, user: user)
+
+          album = import.tracks.first.album
+          expect(album.youtube_playlist_url).to eq(url)
+          expect(album.cover_image).to be_attached
+        end
+      end
     end
 
-    it "credits the playlist artist when the video titles name no artist" do
-      stub_playlist_api_calls(playlist_title: "Carlos Vives - El Amor De Mi Tierra (Full Album)")
+    context "with podcasts" do
+      let(:url) { "https://www.youtube.com/playlist?list=PLtest123" }
 
-      album = described_class.call("https://www.youtube.com/playlist?list=PLtest123", api_key: api_key, user: user)
+      def import_podcast
+        described_class.call(url, category: "podcast", api_key: api_key, user: user)
+      end
 
-      expect(album.tracks.map { |track| track.artist.name }.uniq).to eq(["Carlos Vives"])
-    end
+      def playlist_album
+        user.albums.find_by!(title: "Test Playlist")
+      end
 
-    it "still credits the channel when the playlist title names no artist" do
-      stub_playlist_api_calls(playlist_title: "90s Latin Music")
+      it "files every episode in an album named after the playlist, under the channel" do
+        stub_playlist_api_calls
 
-      album = described_class.call("https://www.youtube.com/playlist?list=PLtest123", api_key: api_key, user: user)
+        import_podcast
 
-      expect(album.tracks.map { |track| track.artist.name }.uniq).to eq(["Test Channel"])
-    end
+        expect(playlist_album.artist.name).to eq("Test Channel")
+        expect(playlist_album.tracks.count).to eq(2)
+        expect(playlist_album.tracks.find_by(youtube_video_id: "vid1"))
+          .to have_attributes(title: "Song 1", track_number: 1, duration: 225.0)
+        expect(playlist_album.tracks.find_by(youtube_video_id: "vid2"))
+          .to have_attributes(title: "Song 2", track_number: 2)
+      end
 
-    it "skips duplicate tracks on re-import" do
-      stub_playlist_api_calls
+      it "creates a podcast artist" do
+        stub_playlist_api_calls
 
-      described_class.call("https://www.youtube.com/playlist?list=PLtest123", api_key: api_key, user: user)
-      album = described_class.call("https://www.youtube.com/playlist?list=PLtest123", api_key: api_key, user: user)
+        import_podcast
 
-      expect(album.tracks.count).to eq(2)
-      expect(Track.where(youtube_video_id: "vid1").count).to eq(1)
-    end
+        expect(playlist_album.artist).to be_podcast
+      end
 
-    it "creates a music artist by default" do
-      stub_playlist_api_calls
+      it "does not overwrite an existing artist's category" do
+        create(:artist, user: user, name: "Test Channel", category: "music")
+        stub_playlist_api_calls
 
-      album = described_class.call("https://www.youtube.com/playlist?list=PLtest123", api_key: api_key, user: user)
+        import_podcast
 
-      expect(album.artist).to be_music
-    end
+        expect(playlist_album.artist).to be_music
+      end
 
-    it "creates a podcast artist when category is podcast" do
-      stub_playlist_api_calls
+      it "credits a parsed artist when an episode title reads 'Artist - Song'" do
+        stub_playlist_api_calls(track_titles: ["Daft Punk - Da Funk", "Just A Song Title"])
 
-      album = described_class.call("https://www.youtube.com/playlist?list=PLtest123", category: "podcast", api_key: api_key, user: user)
+        import_podcast
 
-      expect(album.artist).to be_podcast
-    end
+        expect(user.tracks.find_by!(youtube_video_id: "vid1").artist.name).to eq("Daft Punk")
+        expect(user.tracks.find_by!(youtube_video_id: "vid2").artist.name).to eq("Test Channel")
+      end
 
-    it "saves youtube_playlist_url on the album" do
-      stub_playlist_api_calls
+      it "skips episodes it has already imported" do
+        stub_playlist_api_calls
 
-      album = described_class.call("https://www.youtube.com/playlist?list=PLtest123", api_key: api_key, user: user)
+        import_podcast
+        import_podcast
 
-      expect(album.youtube_playlist_url).to eq("https://www.youtube.com/playlist?list=PLtest123")
-    end
+        expect(playlist_album.tracks.count).to eq(2)
+        expect(Track.where(youtube_video_id: "vid1").count).to eq(1)
+      end
 
-    it "does not overwrite existing youtube_playlist_url on re-import" do
-      stub_playlist_api_calls
+      it "saves youtube_playlist_url on the album" do
+        stub_playlist_api_calls
 
-      album = described_class.call("https://www.youtube.com/playlist?list=PLtest123", api_key: api_key, user: user)
-      album.update!(youtube_playlist_url: "https://www.youtube.com/playlist?list=PLoriginal")
+        import_podcast
 
-      described_class.call("https://www.youtube.com/playlist?list=PLtest123", api_key: api_key, user: user)
-      album.reload
+        expect(playlist_album.youtube_playlist_url).to eq(url)
+      end
 
-      expect(album.youtube_playlist_url).to eq("https://www.youtube.com/playlist?list=PLoriginal")
-    end
+      it "does not overwrite existing youtube_playlist_url on re-import" do
+        stub_playlist_api_calls
+        import_podcast
+        playlist_album.update!(youtube_playlist_url: "https://www.youtube.com/playlist?list=PLoriginal")
 
-    it "does not overwrite existing artist category on re-import" do
-      stub_playlist_api_calls
+        import_podcast
 
-      album = described_class.call("https://www.youtube.com/playlist?list=PLtest123", category: "music", api_key: api_key, user: user)
-      expect(album.artist).to be_music
+        expect(playlist_album.youtube_playlist_url).to eq("https://www.youtube.com/playlist?list=PLoriginal")
+      end
 
-      album2 = described_class.call("https://www.youtube.com/playlist?list=PLtest123", category: "podcast", api_key: api_key, user: user)
-      expect(album2.artist).to be_music
-    end
+      it "downloads and attaches the thumbnail" do
+        stub_playlist_api_calls
 
-    it "parses artist from track titles in 'Artist - Song' format" do
-      stub_playlist_api_calls(
-        track_titles: ["Daft Punk - Around The World (Official Video)", "Kraftwerk - Trans-Europe Express"]
-      )
+        import_podcast
 
-      album = described_class.call("https://www.youtube.com/playlist?list=PLtest123", api_key: api_key, user: user)
-
-      track1 = album.tracks.find_by(youtube_video_id: "vid1")
-      expect(track1.title).to eq("Around The World")
-      expect(track1.artist.name).to eq("Daft Punk")
-
-      track2 = album.tracks.find_by(youtube_video_id: "vid2")
-      expect(track2.title).to eq("Trans-Europe Express")
-      expect(track2.artist.name).to eq("Kraftwerk")
-    end
-
-    it "uses playlist artist when track title has no dash" do
-      stub_playlist_api_calls(track_titles: ["Song Without Dash", "Another Song"])
-
-      album = described_class.call("https://www.youtube.com/playlist?list=PLtest123", api_key: api_key, user: user)
-
-      track1 = album.tracks.find_by(youtube_video_id: "vid1")
-      expect(track1.artist.name).to eq("Test Channel")
-    end
-
-    it "handles mixed parsed and unparsed track titles" do
-      stub_playlist_api_calls(track_titles: ["Daft Punk - Da Funk", "Just A Song Title"])
-
-      album = described_class.call("https://www.youtube.com/playlist?list=PLtest123", api_key: api_key, user: user)
-
-      track1 = album.tracks.find_by(youtube_video_id: "vid1")
-      expect(track1.artist.name).to eq("Daft Punk")
-
-      track2 = album.tracks.find_by(youtube_video_id: "vid2")
-      expect(track2.artist.name).to eq("Test Channel")
-    end
-
-    it "downloads and attaches the thumbnail" do
-      stub_playlist_api_calls
-      stub_request(:get, "https://i.ytimg.com/vi/abc/hqdefault.jpg")
-        .to_return(status: 200, body: "fake_image_data", headers: {"Content-Type" => "image/jpeg"})
-
-      album = described_class.call("https://www.youtube.com/playlist?list=PLtest123", api_key: api_key, user: user)
-
-      expect(album.cover_image).to be_attached
+        expect(playlist_album.cover_image).to be_attached
+      end
     end
   end
 
   context "without API key (yt-dlp fallback)" do
     let(:api_key) { nil }
+    let(:url) { "https://www.youtube.com/playlist?list=PLtest123" }
 
     it "imports a playlist using yt-dlp metadata" do
       stub_ytdlp_playlist_metadata
 
-      album = described_class.call("https://www.youtube.com/playlist?list=PLtest123", api_key: api_key, user: user)
+      import = described_class.call(url, api_key: api_key, user: user)
 
-      expect(album).to be_persisted
-      expect(album.title).to eq("Test Playlist")
-      expect(album.artist.name).to eq("Test Channel")
-      expect(album.tracks.count).to eq(2)
+      expect(import.tracks.map(&:title)).to eq(["Song 1", "Song 2"])
+      expect(import.tracks.first.duration).to eq(225.0)
+    end
 
-      track1 = album.tracks.find_by(youtube_video_id: "vid1")
-      expect(track1.title).to eq("Song 1")
-      expect(track1.track_number).to eq(1)
-      expect(track1.duration).to eq(225.0)
+    it "credits each video's own channel, never the playlist owner" do
+      stub_ytdlp_playlist_metadata
+
+      import = described_class.call(url, api_key: api_key, user: user)
+
+      expect(import.tracks.map { |track| track.artist.name }.uniq).to eq(["Video Channel"])
     end
 
     it "does not call YoutubeAPIService" do
@@ -174,33 +222,31 @@ RSpec.describe YoutubePlaylistImportService do
 
       expect(YoutubeAPIService).not_to receive(:new)
 
-      described_class.call("https://www.youtube.com/playlist?list=PLtest123", api_key: api_key, user: user)
+      described_class.call(url, api_key: api_key, user: user)
     end
 
     it "parses artist from track titles" do
       stub_ytdlp_playlist_metadata(track_titles: ["Daft Punk - Around The World", "Kraftwerk - Trans-Europe Express"])
 
-      album = described_class.call("https://www.youtube.com/playlist?list=PLtest123", api_key: api_key, user: user)
+      described_class.call(url, api_key: api_key, user: user)
 
-      track1 = album.tracks.find_by(youtube_video_id: "vid1")
+      track1 = user.tracks.find_by!(youtube_video_id: "vid1")
       expect(track1.artist.name).to eq("Daft Punk")
       expect(track1.title).to eq("Around The World")
     end
 
-    it "saves youtube_playlist_url on the album" do
+    it "saves youtube_playlist_url on a podcast album" do
       stub_ytdlp_playlist_metadata
 
-      album = described_class.call("https://www.youtube.com/playlist?list=PLtest123", api_key: api_key, user: user)
+      described_class.call(url, category: "podcast", api_key: api_key, user: user)
 
-      expect(album.youtube_playlist_url).to eq("https://www.youtube.com/playlist?list=PLtest123")
+      expect(user.albums.find_by!(title: "Test Playlist").youtube_playlist_url).to eq(url)
     end
 
     it "returns nil when playlist has no entries" do
       stub_ytdlp_playlist_metadata(track_titles: [])
 
-      album = described_class.call("https://www.youtube.com/playlist?list=PLtest123", api_key: api_key, user: user)
-
-      expect(album).to be_nil
+      expect(described_class.call(url, api_key: api_key, user: user)).to be_nil
     end
   end
 
@@ -208,7 +254,7 @@ RSpec.describe YoutubePlaylistImportService do
 
   def stub_ytdlp_playlist_metadata(track_titles: ["Song 1", "Song 2"])
     entries = track_titles.each_with_index.map do |title, index|
-      {"id" => "vid#{index + 1}", "title" => title, "duration" => 225.0}
+      {"id" => "vid#{index + 1}", "title" => title, "duration" => 225.0, "channel" => "Video Channel"}
     end
 
     json = {
@@ -231,7 +277,10 @@ RSpec.describe YoutubePlaylistImportService do
       .to_return(status: 200, body: "fake_image_data", headers: {"Content-Type" => "image/jpeg"})
   end
 
-  def stub_playlist_api_calls(track_titles: ["Song 1", "Song 2"], playlist_title: "Test Playlist")
+  # The playlist's owner and each video's own channel are separate on YouTube:
+  # "Rock Collection" owns a playlist of videos uploaded by "Boston - Topic".
+  def stub_playlist_api_calls(track_titles: ["Song 1", "Song 2"], playlist_title: "Test Playlist",
+    owner: "Test Channel", video_channels: ["Test Channel", "Test Channel"], descriptions: [nil, nil])
     title1, title2 = track_titles
 
     stub_request(:get, "https://www.googleapis.com/youtube/v3/playlists")
@@ -243,7 +292,7 @@ RSpec.describe YoutubePlaylistImportService do
           items: [{
             snippet: {
               title: playlist_title,
-              channelTitle: "Test Channel",
+              channelTitle: owner,
               thumbnails: {high: {url: "https://i.ytimg.com/vi/abc/hqdefault.jpg"}}
             },
             contentDetails: {itemCount: 2}
@@ -271,8 +320,10 @@ RSpec.describe YoutubePlaylistImportService do
         headers: {"Content-Type" => "application/json"},
         body: {
           items: [
-            {id: "vid1", snippet: {title: title1, channelTitle: "Test Channel"}, contentDetails: {duration: "PT3M45S"}},
-            {id: "vid2", snippet: {title: title2, channelTitle: "Test Channel"}, contentDetails: {duration: "PT4M10S"}}
+            {id: "vid1", snippet: {title: title1, channelTitle: video_channels[0], description: descriptions[0]},
+             contentDetails: {duration: "PT3M45S"}},
+            {id: "vid2", snippet: {title: title2, channelTitle: video_channels[1], description: descriptions[1]},
+             contentDetails: {duration: "PT4M10S"}}
           ]
         }.to_json
       )

@@ -871,8 +871,8 @@ RSpec.describe "MCP agent gateway tools", type: :request do
   describe "import_youtube_playlist" do
     it "imports the playlist metadata and reports missing audio" do
       album = create(:album, user: user, title: "Imported")
-      create_list(:track, 2, user: user, album: album, artist: album.artist, youtube_video_id: "abc123")
-      allow(YoutubeAlbumImportService).to receive(:call).and_return(album)
+      tracks = create_list(:track, 2, user: user, album: album, artist: album.artist, youtube_video_id: "abc123")
+      allow(YoutubeAlbumImportService).to receive(:call).and_return(YoutubeImport.new(title: "Imported", tracks: tracks))
 
       payload = tool_payload(call_tool("import_youtube_playlist",
         {"url" => "https://youtube.com/playlist?list=PL123"}))
@@ -881,6 +881,7 @@ RSpec.describe "MCP agent gateway tools", type: :request do
       expect(payload["title"]).to eq("Imported")
       expect(payload["track_count"]).to eq(2)
       expect(payload["tracks_missing_audio"]).to eq(2)
+      expect(payload["track_ids"]).to eq(tracks.map(&:id))
     end
 
     it "returns an error result when no videos are found" do

@@ -260,8 +260,8 @@ RSpec.describe MediaDownloadService do
           {"url" => "https://example.com/large.jpg", "preference" => 5}
         ],
         entries: [
-          {"id" => "vid1", "title" => "Artist - Song One", "duration" => 180.0},
-          {"id" => "vid2", "title" => "Artist - Song Two", "duration" => 240.5}
+          {"id" => "vid1", "title" => "Artist - Song One", "duration" => 180.0, "channel" => "Artist"},
+          {"id" => "vid2", "title" => "Artist - Song Two", "duration" => 240.5, "uploader" => "ArtistVEVO"}
         ]
       }.to_json
     end
@@ -277,8 +277,10 @@ RSpec.describe MediaDownloadService do
       expect(result[:channel_name]).to eq("MusicChannel")
       expect(result[:thumbnail_url]).to eq("https://example.com/large.jpg")
       expect(result[:entries].length).to eq(2)
-      expect(result[:entries].first).to eq(video_id: "vid1", title: "Artist - Song One", position: 0, duration: 180.0)
-      expect(result[:entries].last).to eq(video_id: "vid2", title: "Artist - Song Two", position: 1, duration: 240.5)
+      expect(result[:entries].first).to eq(video_id: "vid1", title: "Artist - Song One", position: 0, duration: 180.0,
+        channel_name: "Artist")
+      expect(result[:entries].last).to eq(video_id: "vid2", title: "Artist - Song Two", position: 1, duration: 240.5,
+        channel_name: "ArtistVEVO")
     end
 
     it "selects the highest-preference thumbnail" do

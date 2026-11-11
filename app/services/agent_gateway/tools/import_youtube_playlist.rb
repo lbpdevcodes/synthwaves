@@ -3,11 +3,15 @@ module AgentGateway
     # Imports a YouTube playlist's metadata, mirroring POST /api/v1/youtube_imports.
     class ImportYoutubePlaylist < AgentGateway::Tool
       tool_name "import_youtube_playlist"
-      description "Import a YouTube playlist's METADATA as an album whose tracks have " \
-        "has_audio=false. The server does NOT download the audio — YouTube bot-checks " \
-        "datacenter IPs, so audio is pushed later by a separate local process. Tell the " \
-        "user the music is not playable until that runs. Optionally file the tracks into " \
-        "a playlist (playlist_id) or a new one (new_playlist_name)."
+      description "Import a YouTube playlist's METADATA; the tracks have has_audio=false. " \
+        "The server does NOT download the audio — YouTube bot-checks datacenter IPs, so " \
+        "audio is pushed later by a separate local process. Tell the user the music is not " \
+        "playable until that runs. Music is filed by who performed each video (its YouTube " \
+        "release note or its own channel, never the playlist owner) into that artist's album " \
+        "or \"Singles\", and the playlist itself becomes a library playlist of the same name " \
+        "unless playlist_id or new_playlist_name names another. A podcast becomes one album " \
+        "under its channel. album_id is set only when every track landed in one album. " \
+        "Re-running an import skips videos already imported."
       annotations(read_only_hint: false, destructive_hint: false, open_world_hint: true)
       input_schema(
         properties: {
@@ -20,7 +24,7 @@ module AgentGateway
       )
 
       def self.perform(url:, server_context:, category: nil, playlist_id: nil, new_playlist_name: nil)
-        album = YoutubeAlbumImportService.call(
+        import = YoutubeAlbumImportService.call(
           url: url,
           user: user(server_context),
           category: category.presence || "music",
@@ -28,14 +32,9 @@ module AgentGateway
           new_playlist_name: new_playlist_name
         )
 
-        return error_response("No videos found in that playlist") if album.nil?
+        return error_response("No videos found in that playlist") if import.nil?
 
-        json_response(
-          album_id: album.id,
-          title: album.title,
-          track_count: album.tracks.count,
-          tracks_missing_audio: album.tracks.where.missing(:audio_file_attachment).count
-        )
+        json_response(import.summary)
       rescue YoutubePlaylistImportService::Error, YoutubeAPIService::Error, MediaDownloadService::Error => e
         error_response(e.message)
       end

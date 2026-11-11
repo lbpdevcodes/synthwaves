@@ -59,6 +59,49 @@ RSpec.describe "API::V1::YoutubeImports", type: :request do
       expect(json["error"]).to include("quota")
     end
 
+    context "with a music playlist of other people's uploads (YouTube itself stubbed)" do
+      before do
+        user.update!(youtube_api_key: "test_api_key")
+        stub_youtube(
+          playlist: {title: "Classic Rock Hits", channelTitle: "Rock Collection"},
+          videos: [
+            {id: "chain", title: "The Chain (2004 Remaster)", channelTitle: "Fleetwood Mac - Topic",
+             description: file_fixture("youtube/release_note_fleetwood_mac_the_chain.txt").read},
+            {id: "touch", title: "Busta Rhymes - Touch It (Official Music Video)",
+             channelTitle: "BustaRhymesVEVO", description: file_fixture("youtube/vevo_busta_rhymes_touch_it.txt").read}
+          ]
+        )
+      end
+
+      it "credits each video's performer, never the playlist owner, and keeps the playlist" do
+        post "/api/v1/youtube_imports", params: {url: "https://www.youtube.com/playlist?list=PLrock"}, headers: auth_headers
+
+        json = JSON.parse(response.body)
+        tracks = Track.find(json["track_ids"])
+        expect(tracks.map { |track| [track.artist.name, track.album.title] })
+          .to eq([["Fleetwood Mac", "Rumours"], ["Busta Rhymes", "Singles"]])
+        expect(json["album_id"]).to be_nil
+        expect(Playlist.find(json["playlist_id"])).to have_attributes(name: "Classic Rock Hits")
+        expect(user.artists.where(name: "Rock Collection")).to be_empty
+      end
+
+      def stub_youtube(playlist:, videos:)
+        stub_request(:get, "https://www.googleapis.com/youtube/v3/playlists").with(query: hash_including(id: "PLrock"))
+          .to_return(status: 200, headers: {"Content-Type" => "application/json"},
+            body: {items: [{snippet: playlist, contentDetails: {itemCount: videos.size}}]}.to_json)
+        stub_request(:get, "https://www.googleapis.com/youtube/v3/playlistItems").with(query: hash_including(playlistId: "PLrock"))
+          .to_return(status: 200, headers: {"Content-Type" => "application/json"},
+            body: {items: videos.each_with_index.map { |video, position|
+              {snippet: {resourceId: {videoId: video[:id]}, title: video[:title], position: position}}
+            }}.to_json)
+        stub_request(:get, "https://www.googleapis.com/youtube/v3/videos").with(query: hash_including({}))
+          .to_return(status: 200, headers: {"Content-Type" => "application/json"},
+            body: {items: videos.map { |video|
+              {id: video[:id], snippet: video.except(:id), contentDetails: {duration: "PT4M30S"}}
+            }}.to_json)
+      end
+    end
+
     context "with a successful import" do
       let(:artist) { create(:artist, user: user) }
       let(:album) { create(:album, artist: artist, user: user, title: "Imported Album") }
@@ -67,7 +110,8 @@ RSpec.describe "API::V1::YoutubeImports", type: :request do
         create(:track, :youtube, album: album, artist: artist, user: user, track_number: 1)
         create(:track, :youtube, album: album, artist: artist, user: user, track_number: 2)
         create(:track, album: album, artist: artist, user: user, track_number: 3)
-        allow(YoutubePlaylistImportService).to receive(:call).and_return(album)
+        allow(YoutubePlaylistImportService).to receive(:call)
+          .and_return(YoutubeImport.new(title: "Imported Album", tracks: album.tracks.order(:track_number).to_a))
       end
 
       it "returns the album summary with download counts" do
@@ -81,6 +125,20 @@ RSpec.describe "API::V1::YoutubeImports", type: :request do
         expect(json["title"]).to eq("Imported Album")
         expect(json["track_count"]).to eq(3)
         expect(json["tracks_missing_audio"]).to eq(2)
+      end
+
+      it "returns the playlist, the track ids and the tracks still missing audio" do
+        post "/api/v1/youtube_imports",
+          params: {url: "https://www.youtube.com/playlist?list=PLtest123"},
+          headers: auth_headers
+
+        json = JSON.parse(response.body)
+        tracks = album.tracks.order(:track_number)
+        expect(json["playlist_id"]).to eq(user.playlists.find_by!(name: "Imported Album").id)
+        expect(json["track_ids"]).to eq(tracks.map(&:id))
+        expect(json["missing_audio"]).to eq(tracks.first(2).map { |track|
+          {"id" => track.id, "title" => track.title, "youtube_video_id" => track.youtube_video_id}
+        })
       end
 
       it "imports via YoutubePlaylistImportService with the user's credentials" do
