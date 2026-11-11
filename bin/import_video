@@ -1,0 +1,52 @@
+#!/usr/bin/env ruby
+# Uploads one local video file (a movie, or an episode of a series) to
+# synthwaves.fm. The file streams from disk straight to object storage through
+# a presigned URL, so a large file never passes through the Rails server and
+# never sits whole in memory. The source file is left where it is.
+#
+# Usage:
+#   bin/import_video ~/Movies/Heat.mkv
+#   bin/import_video ~/Movies/Heat.mkv --title "Heat (1995)"
+#   bin/import_video s01e02.mkv --folder "The Wire" --season 1 --episode 2
+#
+# Credentials come from an API key (create one at /api_keys):
+#   export SYNTHWAVES_CLIENT_ID=bc_...
+#   export SYNTHWAVES_SECRET_KEY=...
+
+require "optparse"
+require_relative "../lib/cli/video_import"
+
+def fail_with(message) = abort("import_video: #{message}")
+
+options = {host: ENV.fetch("SYNTHWAVES_HOST", "https://synthwaves.fm")}
+video = {}
+parser = OptionParser.new do |opts|
+  opts.banner = "Usage: bin/import_video PATH [options]"
+  opts.on("--title TITLE", "Default: the file name") { |v| video[:title] = v }
+  opts.on("--folder NAME", "File it in a folder (a series), created if missing") { |v| video[:folder_name] = v }
+  opts.on("--season N", Integer, "Season number") { |v| video[:season_number] = v }
+  opts.on("--episode N", Integer, "Episode number") { |v| video[:episode_number] = v }
+  opts.on("--host URL", "Default: ENV[SYNTHWAVES_HOST] or https://synthwaves.fm") { |v| options[:host] = v }
+end
+
+begin
+  parser.parse!
+rescue OptionParser::ParseError => e
+  fail_with(e.message)
+end
+
+path = ARGV.first or abort(parser.help)
+client_id, secret_key = ENV.values_at("SYNTHWAVES_CLIENT_ID", "SYNTHWAVES_SECRET_KEY")
+if [client_id, secret_key].any? { |value| value.to_s.empty? }
+  fail_with("set SYNTHWAVES_CLIENT_ID and SYNTHWAVES_SECRET_KEY (create an API key at /api_keys)")
+end
+
+api = VideoImport::API.new(host: options[:host], client_id: client_id, secret_key: secret_key)
+begin
+  filed = VideoImport::Importer.new(api: api, out: $stdout).call(File.expand_path(path), **video)
+rescue VideoImport::Error => e
+  fail_with(e.message)
+end
+
+puts "Filed \"#{filed["title"]}\" as video #{filed["id"]} (#{filed["status"]})."
+puts "It appears under Watch → Videos once the server has converted it: #{options[:host]}/videos/#{filed["id"]}"

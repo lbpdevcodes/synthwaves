@@ -209,6 +209,8 @@ curl -X POST https://your-server/api/import/playlists \
 
 Import a video using a previously uploaded blob from the direct uploads endpoint.
 
+`bin/import_video PATH` drives the whole flow (direct upload, streamed PUT to storage, then this call) for one local file.
+
 ### Parameters
 
 | Parameter | Type | Required | Description |
