@@ -217,5 +217,25 @@ RSpec.describe YoutubeAPIService do
     it "returns empty array for empty input" do
       expect(service.fetch_video_details([])).to eq([])
     end
+
+    it "returns each video's description" do
+      stub_request(:get, "https://www.googleapis.com/youtube/v3/videos")
+        .with(query: {part: "snippet,contentDetails", id: "vid1", key: api_key})
+        .to_return(
+          status: 200,
+          headers: {"Content-Type" => "application/json"},
+          body: {
+            items: [{
+              id: "vid1",
+              snippet: {title: "The Chain", channelTitle: "Fleetwood Mac - Topic", description: "Provided to YouTube by Rhino"},
+              contentDetails: {duration: "PT4M30S"}
+            }]
+          }.to_json
+        )
+
+      details = service.fetch_video_details(%w[vid1])
+
+      expect(details.first[:description]).to eq("Provided to YouTube by Rhino")
+    end
   end
 end

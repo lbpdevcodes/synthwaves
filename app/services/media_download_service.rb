@@ -51,7 +51,8 @@ class MediaDownloadService
           video_id: entry["id"],
           title: entry["title"],
           position: index,
-          duration: entry["duration"]&.to_f
+          duration: entry["duration"]&.to_f,
+          channel_name: entry["channel"] || entry["uploader"]
         }
       }
     }

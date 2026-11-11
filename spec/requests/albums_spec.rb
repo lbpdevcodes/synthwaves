@@ -260,6 +260,19 @@ RSpec.describe "Albums", type: :request do
       expect(response.body).to include("1 new episode added")
     end
 
+    it "counts new videos the import filed into other albums" do
+      other_album = create(:album, artist: create(:artist, user: user))
+      allow(YoutubePlaylistImportService).to receive(:call) do
+        create(:track, album: other_album, artist: other_album.artist, youtube_video_id: "vid3")
+        nil
+      end
+
+      post refresh_album_path(album)
+
+      follow_redirect!
+      expect(response.body).to include("1 new episode added")
+    end
+
     it "reports when no new episodes found" do
       allow(YoutubePlaylistImportService).to receive(:call).and_return(album)
 

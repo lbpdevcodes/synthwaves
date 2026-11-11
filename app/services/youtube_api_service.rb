@@ -75,6 +75,7 @@ class YoutubeAPIService
           video_id: item["id"],
           title: item.dig("snippet", "title"),
           channel_name: item.dig("snippet", "channelTitle"),
+          description: item.dig("snippet", "description"),
           duration: parse_iso8601_duration(item.dig("contentDetails", "duration")),
           thumbnail_url: best_thumbnail(item.dig("snippet", "thumbnails"))
         }

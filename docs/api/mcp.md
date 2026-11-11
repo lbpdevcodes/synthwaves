@@ -101,7 +101,7 @@ All IDs are per-user. Every tool resolves records through the authenticated key'
 | Tool                      | Description                                                                  |
 | ------------------------- | ---------------------------------------------------------------------------- |
 | `upload_track`            | Upload base64-encoded audio (max ~50 MB decoded) as a new track. Embedded tags are read automatically; explicit metadata arguments override them. Conversion, loudness analysis, search indexing, and MusicBrainz enrichment run in the background. |
-| `import_youtube_playlist` | Import a YouTube playlist's **metadata only** — tracks have `has_audio=false`. The server does not download YouTube audio (datacenter IPs are bot-checked); audio is pushed later by the local `bin/import_audio` CLI. |
+| `import_youtube_playlist` | Import a YouTube playlist's **metadata only** — tracks have `has_audio=false`. The server does not download YouTube audio (datacenter IPs are bot-checked); audio is pushed later by the local `bin/import_audio` CLI. Music is credited to each video's performer (its "Provided to YouTube by" release note or its own channel, never the playlist owner) and filed in that artist's album or "Singles"; the playlist becomes a library playlist of the same name. A podcast becomes one album under its channel. Replies with `playlist_id`, `track_ids`, `missing_audio`, and `album_id` only when every track landed in one album. |
 
 ## Notes
 

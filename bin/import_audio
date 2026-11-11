@@ -100,10 +100,10 @@ def import_playlist(options, token)
   abort_with("import failed: #{json["error"]}") unless code == 201
 
   puts "Imported \"#{json["title"]}\" — #{json["track_count"]} tracks, #{json["tracks_missing_audio"]} missing audio"
-  json.fetch("album_id")
+  json.fetch("missing_audio")
 end
 
-def tracks_missing_audio(options, token, album_id)
+def album_tracks_missing_audio(options, token, album_id)
   code, json = api_request(options, method: :get, path: "api/v1/albums/#{album_id}", token: token)
   abort_with("could not fetch album #{album_id} (#{code})") unless code == 200
 
@@ -121,8 +121,13 @@ def download_audio(video_id, dir)
 end
 
 token = fetch_token(options)
-album_id = options[:album_id] || import_playlist(options, token)
-missing = tracks_missing_audio(options, token, album_id)
+# A music import files tracks under several artists' albums, so the import
+# reply itself lists the tracks still missing audio.
+missing = if options[:album_id]
+  album_tracks_missing_audio(options, token, options[:album_id])
+else
+  import_playlist(options, token)
+end
 missing = missing.first(options[:limit]) if options[:limit]
 
 if missing.empty?

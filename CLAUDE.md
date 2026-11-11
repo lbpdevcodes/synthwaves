@@ -176,6 +176,15 @@ Owners edit their own artists, albums and tracks in a modal over the current pag
 
 `TrackRow::Component` renders a track in list views with configurable options: `link_title`, `link_subtitle`, `show_album`, `hide_artist_if`, `show_duration`, `number`.
 
+### YouTube Playlist Imports
+
+`YoutubePlaylistImportService` fetches a playlist (YouTube Data API, or yt-dlp when the user has no API key) and hands each video to a filing:
+
+- **Music** → `YoutubeMusicFiling`. `YoutubeTrackAttribution` credits the performer from the video's *own* metadata, strongest first: the "Provided to YouTube by" release note (`YoutubeReleaseNote`: artist, title, album, ℗ year), an "Artist - Title" video title, a full-album playlist title, then the video's own channel — never the playlist owner, whose channel name is how "Rock Collection" became an artist. The album is the note's album, the playlist for a full-album rip, else the artist's "Singles". A track and its album always share an artist.
+- **Podcast** → `YoutubePodcastFiling`: the channel is the artist and the playlist is one album, refreshable with "Refresh from YouTube".
+
+It returns a `YoutubeImport` (title, tracks in playlist order, playlist). `YoutubeAlbumImportService` adds the tracks to a library playlist: for music, one named after the YouTube playlist (found by name, so re-runs reuse it) unless `playlist_id` or `new_playlist_name` names another. `YoutubeImport#summary` is the reply of both `POST /api/v1/youtube_imports` and the MCP `import_youtube_playlist` tool; `album_id` is set only when every track landed in one album, and `missing_audio` is the list `bin/import_audio` pushes.
+
 ### Service Objects (app/services/)
 
 - `JWTService` - Encode/decode JWT tokens
@@ -204,7 +213,7 @@ When adding a new job, assign it to the appropriate queue via `queue_as` in the 
 - `GET /search`, `GET /search/dropdown` - Search
 - `/rest/*`, `/api/rest/*` - Subsonic-compatible API (22 endpoints)
 - `/api/v1/*` - JWT-authenticated REST API
-- `POST /api/v1/youtube_imports` - Synchronous playlist import (metadata only, no audio downloads)
+- `POST /api/v1/youtube_imports` - Synchronous playlist import (metadata only, no audio downloads); replies with `playlist_id`, `track_ids` and `missing_audio`
 - `POST /api/v1/tracks/:id/audio` - Attach audio to an existing track (no-op if already attached)
 - `/admin` - Madmin admin panel
 - `/jobs` - Mission Control Jobs dashboard
@@ -220,7 +229,7 @@ bin/import_audio "<youtube playlist URL>" [--category C] [--playlist ID | --new-
 bin/import_audio --album 42 [--limit N]  # push audio for an existing album only
 ```
 
-The CLI is idempotent — it only pushes tracks missing audio, so re-running resumes after transient YouTube 403/429 failures. Known local dev gotcha: JWT API auth is broken in development unless development credentials contain `secret_key_base`.
+The CLI is idempotent — it only pushes the tracks the import reply lists in `missing_audio`, so re-running resumes after transient YouTube 403/429 failures (the re-import skips videos already imported and reuses the playlist it created). Known local dev gotcha: JWT API auth is broken in development unless development credentials contain `secret_key_base`.
 
 ## Git Workflow
 
