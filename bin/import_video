@@ -4,9 +4,11 @@
 # a presigned URL, so a large file never passes through the Rails server and
 # never sits whole in memory. The source file is left where it is.
 #
-# A video that is not H.264 is first encoded here, into a temporary MP4 with
-# the server's own conversion settings, so the small production server has
-# nothing expensive left to do. That needs ffmpeg (brew install ffmpeg);
+# Whatever the server would convert is converted here first, into a temporary
+# MP4 with the server's own settings: the whole video when it is not H.264,
+# only the sound when it is surround or not AAC, and only the container when
+# H.264 and stereo AAC come in something other than MP4. The small production
+# server then has nothing to convert. That needs ffmpeg (brew install ffmpeg);
 # --no-encode skips it and leaves the conversion to the server.
 #
 # Subtitle files that came with the video go up after it: .srt and .vtt files
