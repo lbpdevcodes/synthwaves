@@ -24,10 +24,23 @@ RSpec.describe YoutubeReleaseNote do
       expect(note.artist).to eq("Gorillaz")
     end
 
-    it "leaves the year blank when the note carries no copyright line" do
+    it "falls back to the release date when the note carries no copyright line" do
       note = described_class.parse("Provided to YouTube by Label\n\nSong · Band\n\nRecord\n\nReleased on: 2001-01-01")
 
+      expect(note.year).to eq(2001)
+    end
+
+    it "leaves the year blank when the note dates nothing" do
+      note = described_class.parse("Provided to YouTube by Label\n\nSong · Band\n\nRecord")
+
       expect(note.year).to be_nil
+    end
+
+    it "does not read a label's leading digits as the copyright year" do
+      note = described_class.parse("Provided to YouTube by DistroKid\n\nCool Ecstasy · Synth.J\n\n" \
+        "MIAMI DRIVING 80s Synthwave Music\n\n℗ 7865311 Records DK\n\nReleased on: 2024-09-22")
+
+      expect(note.year).to eq(2024)
     end
 
     it "returns nil when the credit line names no artist" do
