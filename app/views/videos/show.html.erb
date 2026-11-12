@@ -24,6 +24,9 @@
              x-webkit-airplay="allow"
              <% if @video.thumbnail.attached? %>poster="<%= url_for(@video.thumbnail) %>"<% end %>
              src="<%= stream_video_path(@video) %>">
+        <% @video.subtitles.each do |subtitle| %>
+          <%= tag.track kind: subtitle.kind, label: subtitle.label, srclang: subtitle.language, src: video_subtitle_path(@video, subtitle) %>
+        <% end %>
       </video>
     </div>
   <% elsif @video.status == "processing" %>
