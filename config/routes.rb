@@ -46,6 +46,7 @@ Rails.application.routes.draw do
     member do
       get :stream
     end
+    resources :subtitles, only: [:show, :create, :destroy], controller: "video_subtitles"
   end
   resources :internet_radio_stations, only: [:index, :show, :edit, :update, :destroy], path: "internet-radio" do
     collection do
@@ -120,7 +121,9 @@ Rails.application.routes.draw do
       resources :tracks, only: [:create]
       resources :playlists, only: [:create]
       resources :direct_uploads, only: [:create]
-      resources :videos, only: [:create]
+      resources :videos, only: [:create] do
+        resources :subtitles, only: [:create]
+      end
     end
   end
 

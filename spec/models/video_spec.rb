@@ -7,10 +7,21 @@ RSpec.describe Video, type: :model do
     it { should have_one_attached(:file) }
     it { should have_one_attached(:thumbnail) }
     it { should have_many(:favorites).dependent(:destroy) }
+    it { should have_many(:subtitles).class_name("VideoSubtitle").dependent(:destroy) }
   end
 
   describe "validations" do
     it { should validate_presence_of(:title) }
+  end
+
+  describe "#subtitles" do
+    it "lists a video's subtitles by label" do
+      video = create(:video)
+      create(:video_subtitle, video: video, label: "Spanish")
+      create(:video_subtitle, video: video, label: "English")
+
+      expect(video.subtitles.map(&:label)).to eq(%w[English Spanish])
+    end
   end
 
   describe ".ready" do

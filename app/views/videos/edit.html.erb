@@ -32,4 +32,38 @@
       <%= render Button::Component.new(label: "Cancel", behavior: :navigation, link_url: video_path(@video), style: :ghost) %>
     </div>
   <% end %>
+
+  <section class="mt-10 space-y-4">
+    <h2 class="text-xl font-bold font-display">Subtitles</h2>
+
+    <% if @video.subtitles.any? %>
+      <ul class="divide-y divide-gray-700 rounded-lg border border-gray-700 bg-gray-800">
+        <% @video.subtitles.each do |subtitle| %>
+          <li class="flex items-center justify-between gap-3 px-4 py-2 text-sm">
+            <span class="text-white">
+              <%= subtitle.label %>
+              <% if subtitle.language.present? %><span class="text-gray-400">· <%= subtitle.language %></span><% end %>
+            </span>
+            <%= button_to "Delete", video_subtitle_path(@video, subtitle), method: :delete,
+                  data: { turbo_confirm: "Remove the #{subtitle.label} subtitles?" },
+                  class: "text-red-400 hover:text-red-300 cursor-pointer" %>
+          </li>
+        <% end %>
+      </ul>
+    <% else %>
+      <p class="text-sm text-gray-400">No subtitles yet. The player's captions menu lists the ones you add here.</p>
+    <% end %>
+
+    <%= form_with scope: :subtitle, url: video_subtitles_path(@video), multipart: true, class: "space-y-3" do |f| %>
+      <div>
+        <%= f.label :file, "Subtitle file (.srt or .vtt)", class: "block text-sm font-medium text-gray-400 mb-1" %>
+        <%= f.file_field :file, accept: ".srt,.vtt", class: "w-full text-sm text-gray-400" %>
+      </div>
+      <div>
+        <%= f.label :label, "Label (optional)", class: "block text-sm font-medium text-gray-400 mb-1" %>
+        <%= f.text_field :label, placeholder: "Read from the file name, e.g. English (SDH)", class: "w-full rounded-lg bg-gray-800 border-gray-700 text-white focus:outline-neon-cyan px-3 py-2 text-sm border" %>
+      </div>
+      <%= f.submit "Add subtitles", class: "px-4 py-2 bg-neon-cyan text-gray-900 rounded-lg cursor-pointer" %>
+    <% end %>
+  </section>
 </div>

@@ -75,9 +75,47 @@ RSpec.describe "Videos", type: :request do
       get video_path(video)
       expect(response).to have_http_status(:not_found)
     end
+
+    it "offers each subtitle to the player as a track" do
+      video = create(:video, user: user)
+      video.file.attach(io: StringIO.new("fake video"), filename: "test.mp4", content_type: "video/mp4")
+      english = create(:video_subtitle, video: video, label: "English (SDH)", language: "en", kind: "captions")
+      french = create(:video_subtitle, video: video, label: "French", language: "fr", kind: "subtitles")
+
+      get video_path(video)
+
+      tracks = Nokogiri::HTML(response.body).css("video track").map do |track|
+        track.to_h.slice("kind", "label", "srclang", "src")
+      end
+      expect(tracks).to eq([
+        {"kind" => "captions", "label" => "English (SDH)", "srclang" => "en", "src" => video_subtitle_path(video, english)},
+        {"kind" => "subtitles", "label" => "French", "srclang" => "fr", "src" => video_subtitle_path(video, french)}
+      ])
+    end
   end
 
   describe "GET /videos/:id/edit" do
+    it "lists the video's subtitles, each with a way to remove it" do
+      video = create(:video, user: user)
+      subtitle = create(:video_subtitle, video: video, label: "French (Canadian)")
+
+      get edit_video_path(video)
+
+      page = Nokogiri::HTML(response.body)
+      expect(page.text).to include("French (Canadian)")
+      expect(page.at_css("form[action='#{video_subtitle_path(video, subtitle)}'] input[name='_method'][value='delete']")).to be_present
+    end
+
+    it "offers a form to add a subtitle file" do
+      video = create(:video, user: user)
+
+      get edit_video_path(video)
+
+      form = Nokogiri::HTML(response.body).at_css("form[action='#{video_subtitles_path(video)}'][enctype='multipart/form-data']")
+      expect(form.at_css("input[type='file'][name='subtitle[file]'][accept='.srt,.vtt']")).to be_present
+      expect(form.at_css("input[name='subtitle[label]']")).to be_present
+    end
+
     it "returns success" do
       video = create(:video, user: user)
       get edit_video_path(video)

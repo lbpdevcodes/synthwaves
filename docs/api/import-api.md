@@ -1,6 +1,6 @@
 # Import API
 
-Four endpoints for importing tracks, videos, and playlists. All endpoints require JWT Bearer token authentication (see [Authentication](authentication.md)).
+Five endpoints for importing tracks, videos, video subtitles, and playlists. All endpoints require JWT Bearer token authentication (see [Authentication](authentication.md)).
 
 ## POST `/api/import/direct_uploads`
 
@@ -260,3 +260,55 @@ curl -X POST https://your-server/api/import/videos \
 |--------|------|-------|
 | 422 | `{"error": "Invalid signed blob ID"}` | Bad or expired `signed_blob_id` |
 | 422 | `{"error": "..."}` | Validation failure |
+
+---
+
+## POST `/api/import/videos/:video_id/subtitles`
+
+Add one subtitle file (SRT or WebVTT) to a video the caller owns. The server converts it to WebVTT and the video page offers it to the player as a `<track>`, so it shows in the browser's captions menu.
+
+`bin/import_video` calls this once per subtitle file after it files the video.
+
+The label, language and kind come from the file name, read against the video's own file name: `English.srt` is "English" (`en`), `Canadian.fre.srt` is "French (Canadian)" (`fr`), `SDH.eng.HI.srt` is "English (SDH)" captions, and `Heat.en.srt` beside `Heat.mkv` is "English". A label the video already has gets a number ("English 2").
+
+### Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `filename` | string | Yes | The file's name, read for its label and language |
+| `content_base64` | string | Yes | The file's bytes, base64-encoded. UTF-8, UTF-16 with a byte order mark, and Windows-1252 are all read |
+| `label` | string | No | The label to show instead of the one read from `filename` |
+
+### Request
+
+```bash
+curl -X POST https://your-server/api/import/videos/15/subtitles \
+  -H "Authorization: Bearer <token>" \
+  -H "Content-Type: application/json" \
+  -d "{\"filename\": \"Canadian.fre.srt\", \"content_base64\": \"$(base64 < Canadian.fre.srt)\"}"
+```
+
+### Response — 201 Created
+
+```json
+{
+  "id": 3,
+  "label": "French (Canadian)",
+  "language": "fr",
+  "kind": "subtitles"
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | integer | Subtitle ID |
+| `label` | string | What the captions menu shows |
+| `language` | string | ISO 639-1 code, or null when the file name names no language |
+| `kind` | string | `subtitles`, or `captions` for SDH / hearing-impaired files |
+
+### Errors
+
+| Status | Body | Cause |
+|--------|------|-------|
+| 404 | | The video does not exist or belongs to someone else |
+| 422 | `{"error": "notes.txt: no subtitle cues found"}` | The file holds no SRT or WebVTT cue timings |
