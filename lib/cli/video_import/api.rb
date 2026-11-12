@@ -2,6 +2,10 @@ module VideoImport
   # The synthwaves.fm endpoints an import talks to.
   class API
     DirectUpload = Data.define(:signed_id, :url, :headers)
+    Multipart = Data.define(:signed_id, :upload_id, :part_size) do
+      def ids = {signed_id: signed_id, upload_id: upload_id}
+    end
+    PartUpload = Data.define(:url, :headers)
 
     def initialize(host:, client_id:, secret_key:)
       @host = host
@@ -13,6 +17,27 @@ module VideoImport
       json = post("api/import/direct_uploads", describe(source), failure: "direct upload rejected")
       upload = json.fetch("direct_upload")
       DirectUpload.new(signed_id: json.fetch("signed_id"), url: upload.fetch("url"), headers: upload.fetch("headers"))
+    end
+
+    def start_multipart_upload(source)
+      json = post("api/import/multipart_upload", describe(source), failure: "upload in parts rejected")
+      Multipart.new(signed_id: json.fetch("signed_id"), upload_id: json.fetch("upload_id"), part_size: json.fetch("part_size"))
+    end
+
+    def presign_part(multipart, part)
+      body = multipart.ids.merge(part_number: part.number, byte_size: part.byte_size, checksum: part.checksum)
+      json = post("api/import/multipart_upload/parts", body, failure: "#{part.filename} rejected")
+      PartUpload.new(url: json.fetch("url"), headers: json.fetch("headers"))
+    end
+
+    def complete_multipart_upload(multipart, parts)
+      post("api/import/multipart_upload/completion", multipart.ids.merge(parts: parts), failure: "joining the parts failed")
+    end
+
+    def abort_multipart_upload(multipart)
+      uri = URI.join("#{host}/", "api/import/multipart_upload?#{URI.encode_www_form(multipart.ids)}")
+      response = Connection.deliver(uri, Net::HTTP::Delete.new(uri, json_headers(fresh_token)))
+      raise Error, "throwing away the parts failed (#{response.code})" unless response.is_a?(Net::HTTPSuccess)
     end
 
     def register_video(signed_blob_id, **video)

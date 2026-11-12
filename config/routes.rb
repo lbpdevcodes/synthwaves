@@ -114,6 +114,12 @@ Rails.application.routes.draw do
       resources :tracks, only: [:create]
       resources :playlists, only: [:create]
       resources :direct_uploads, only: [:create]
+      resource :multipart_upload, only: [:create, :destroy] do
+        scope module: :multipart_uploads do
+          resources :parts, only: [:create]
+          resource :completion, only: [:create]
+        end
+      end
       resources :videos, only: [:create] do
         resources :subtitles, only: [:create]
       end

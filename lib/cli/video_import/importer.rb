@@ -24,12 +24,14 @@ module VideoImport
       @api.register_video(signed_id, **video, **ready)
     end
 
-    # Storage would take the whole file before refusing one over the limit.
+    # Storage takes at most UploadLimit in one PUT, so a larger file goes up in parts.
     def store(source)
-      raise Error, @limit.over(source) unless @limit.fits?(source)
+      @limit.fits?(source) ? store_whole(source) : MultipartUpload.new(api: @api, out: @out).store(source)
+    end
 
+    def store_whole(source)
       upload = @api.create_direct_upload(source)
-      StorageUpload.new(url: upload.url, headers: upload.headers, out: @out).put(source)
+      StorageUpload.new(url: upload.url, headers: upload.headers, meter: Meter.uploading(source, @out)).put(source)
       upload.signed_id
     end
   end

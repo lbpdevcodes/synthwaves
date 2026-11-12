@@ -2,22 +2,20 @@ module VideoImport
   # Hands over the file to upload: the source, when the server would keep it
   # as it is, or else a temporary copy converted here the way the server
   # would convert it (see Conversion), so the server has nothing to convert.
-  # A file larger than one upload takes (UploadLimit) is encoded in full
-  # instead, which makes the video itself smaller.
+  # Size changes nothing: a file larger than one upload takes goes up in parts.
   class Encoder
-    def initialize(out:, ffmpeg: "ffmpeg", ffprobe: "ffprobe", limit: UploadLimit.new)
+    def initialize(out:, ffmpeg: "ffmpeg", ffprobe: "ffprobe")
       @out = out
       @ffmpeg = ffmpeg
       @ffprobe = ffprobe
-      @limit = limit
     end
 
     def prepare(source)
       probe = Probe.of(source.path, ffprobe: @ffprobe)
       settings = Conversion.for(probe)
-      return yield(source) if settings.nil? && @limit.fits?(source)
+      return yield(source) if settings.nil?
 
-      Dir.mktmpdir("import_video") { |dir| yield fitted(source, probe, settings, dir) }
+      Dir.mktmpdir("import_video") { |dir| yield encode(source, probe, settings, dir) }
     end
 
     # What the server would work out about the prepared file, so it need not
@@ -25,16 +23,6 @@ module VideoImport
     def ready_details(source, &store) = ReadyDetails.new(out: @out, ffmpeg: @ffmpeg, ffprobe: @ffprobe).for(source, &store)
 
     private
-
-    # Converted as the server would, or else, when that is too large for one
-    # upload, encoded in full, which makes the video itself smaller.
-    def fitted(source, probe, settings, dir)
-      copy = settings ? encode(source, probe, settings, dir) : source
-      return copy if @limit.fits?(copy) || settings == Conversion::FULL
-
-      @out.puts("#{@limit.over(copy)}, so the video gets encoded in full")
-      encode(source, probe, Conversion::FULL, dir)
-    end
 
     def encode(source, probe, settings, dir)
       copy = File.join(dir, "#{File.basename(source.filename, ".*")}.mp4")
