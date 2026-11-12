@@ -42,6 +42,14 @@ RSpec.describe VideoImport::SubtitleFiles do
     expect(found).to eq(["The.Odyssey.2026.en.srt", "The.Odyssey.2026.fr.vtt"])
   end
 
+  it "leaves another episode whose name only starts like this one's" do
+    episode = write("Show.S01E1.mkv", "frames")
+    write("Show.S01E1.en.srt", "episode 1")
+    write("Show.S01E10.en.srt", "episode 10")
+
+    expect(described_class.beside(episode).map { |path| File.basename(path) }).to eq(["Show.S01E1.en.srt"])
+  end
+
   it "sends a file once when the same subtitles sit beside the video and in Subs" do
     write("Subs/English.srt", "the same english")
     write("The.Odyssey.2026.srt", "the same english")

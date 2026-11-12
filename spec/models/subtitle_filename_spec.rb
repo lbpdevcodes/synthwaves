@@ -31,6 +31,10 @@ RSpec.describe SubtitleFilename do
     expect(named("Heat.1995.en.srt", video_basename: "Heat.1995")).to have_attributes(label: "English", language: "en")
   end
 
+  it "does not strip a video's name from a longer word that only starts with it" do
+    expect(named("Aliens.en.srt", video_basename: "Alien")).to have_attributes(label: "English (Aliens)", language: "en")
+  end
+
   it "ignores the track number some releases put before the language" do
     expect(named("2_English.srt")).to have_attributes(label: "English", language: "en")
   end

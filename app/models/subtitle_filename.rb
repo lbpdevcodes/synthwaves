@@ -3,6 +3,7 @@
 class SubtitleFilename
   # Marks for subtitles that also describe sounds, for deaf viewers.
   CAPTION_MARKERS = %w[SDH HI CC].freeze
+  WORD_BOUNDARY = /\A(?:\z|[ ._-])/
 
   def initialize(filename, video_basename:)
     @filename = filename
@@ -33,11 +34,14 @@ class SubtitleFilename
     @tokens ||= own_name.sub(/\A\d+_/, "").split(".").reject(&:empty?)
   end
 
-  # What the name adds to the video's: "Heat.en.srt" beside Heat.mkv says "en".
+  # What the name adds to the video's: "Heat.en.srt" beside Heat.mkv says
+  # "en". The video's name must end where a word does: Aliens.srt beside
+  # Alien.mkv adds nothing to it.
   def own_name
     stem = File.basename(filename, ".*")
     base = video_basename.to_s
-    stem.downcase.start_with?(base.downcase) ? stem[base.length..] : stem
+    rest = stem[base.length..]
+    stem.downcase.start_with?(base.downcase) && rest.match?(WORD_BOUNDARY) ? rest : stem
   end
 
   def language_token

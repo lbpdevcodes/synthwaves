@@ -27,8 +27,12 @@ module VideoImport
       subtitles_in(subs) + subtitles_in(File.join(subs, video_name))
     end
 
+    # Show.S01E1.en.srt is named after Show.S01E1.mkv; Show.S01E10.en.srt is not.
     def named_after_video
-      subtitles_in(folder).select { |path| File.basename(path).downcase.start_with?(video_name.downcase) }
+      subtitles_in(folder).select do |path|
+        name = File.basename(path)
+        name.downcase.start_with?(video_name.downcase) && name[video_name.length..].match?(/\A[ ._-]/)
+      end
     end
 
     # Dir.children, not Dir.glob: release folder names carry [brackets].
