@@ -172,6 +172,16 @@ Owners edit their own artists, albums and tracks in a modal over the current pag
 - Playlist rows reorder by drag (`sortable_controller.js`, SortableJS pinned in `vendor/javascript`) or by Move up / Move down buttons. Both `PATCH /playlists/:id/tracks/:id` — a drag with the `position` it was dropped on (`Playlist#move_track!`), a button with a `direction` (`Playlist#step_track!`, which finds the real neighbour across pages and numbering gaps). Controls hide while the list is filtered. The API and MCP full-order rewrite share `Playlist#reorder!`.
 - "Upload tracks" (album More menu, artist page) opens `track_uploads/new`: `bulk_upload_controller.js` direct-uploads several files, then `TrackUpload` files them as tracks in one album (titled by file name) and enqueues `MetadataExtractionJob` to read the tags — except for `AudioConversionJob::CONVERTIBLE_FORMATS`, whose conversion reads them.
 
+### Video Subtitles
+
+An uploaded video's subtitles are `VideoSubtitle` rows (`label`, `language`, `kind` subtitles/captions, `vtt` text). The video page renders one `<track>` per row, so the browser's own captions menu switches them.
+
+- **Served from the app, never storage.** Production streams the video from a presigned bucket URL on another origin, and a `<track>` only loads same-origin. `VideoSubtitlesController#show` renders the stored WebVTT itself; no bucket CORS needed.
+- `SubtitleText` turns SRT or WebVTT bytes into WebVTT: it reads UTF-8, UTF-16 with a byte order mark, or Windows-1252; rewrites SRT timings; drops `<font>` and `{\an8}` tags a browser would print; and refuses a file with no cues.
+- `SubtitleFilename` reads the label, language and kind from the file name against the video's own (`Canadian.fre.srt` → "French (Canadian)", `SDH.eng.HI.srt` → "English (SDH)" captions); `SubtitleLanguage` holds the language codes.
+- `SubtitleImport` files one file (numbering a label the video already has). The edit page (add/remove) and `POST /api/import/videos/:id/subtitles` both go through it.
+- The iOS app plays videos natively and does not show these yet (card SYN-42).
+
 ### ViewComponents
 
 `TrackRow::Component` renders a track in list views with configurable options: `link_title`, `link_subtitle`, `show_album`, `hide_artist_if`, `show_duration`, `number`.
@@ -215,6 +225,8 @@ When adding a new job, assign it to the appropriate queue via `queue_as` in the 
 - `/api/v1/*` - JWT-authenticated REST API
 - `POST /api/v1/youtube_imports` - Synchronous playlist import (metadata only, no audio downloads); replies with `playlist_id`, `track_ids` and `missing_audio`
 - `POST /api/v1/tracks/:id/audio` - Attach audio to an existing track (no-op if already attached)
+- `GET /videos/:video_id/subtitles/:id` - A subtitle's WebVTT, for the video page's `<track>`; `POST`/`DELETE` add and remove from the edit page
+- `POST /api/import/videos/:video_id/subtitles` - Add a subtitle file (base64) to a video
 - `/admin` - Madmin admin panel
 - `/jobs` - Mission Control Jobs dashboard
 
@@ -239,11 +251,15 @@ The browser upload at `/videos/new` posts the whole file through Rails in one re
 bin/import_video ~/Movies/Heat.mkv [--title T]
 bin/import_video s01e02.mkv --folder "The Wire" --season 1 --episode 2
 bin/import_video clip.webm --no-encode   # skip the local encode; the server converts
+bin/import_video Heat.mkv --subtitle Heat.English.srt   # send these subtitles, not the ones found
+bin/import_video Heat.mkv --no-subtitles
 ```
 
 **It encodes locally first.** The production server has 1 CPU, and `VideoConversionJob`'s `:full` path (any video that is not H.264) re-encodes the whole film there: hours for a feature. So the script probes the file with ffprobe and, when the video is not H.264, encodes a temporary MP4 with `convert_to_mp4`'s exact arguments (`Encoder::SERVER_SETTINGS`), uploads that and deletes it. The server then finds nothing to convert and only grabs a thumbnail. An H.264 file uploads as-is: the server's remaining paths for it (remux, audio-only) are cheap. Needs ffmpeg (`brew install ffmpeg`). `spec/lib/cli/video_import/server_agreement_spec.rb` runs the real `VideoConversionJob` on the script's output, so changing the server's conversion settings without the script's fails a spec.
 
 Then it asks `POST /api/import/direct_uploads` for a presigned URL, PUTs the file straight to object storage as one stream (Rails never sees the bytes, memory stays flat), and files it with `POST /api/import/videos`. Each API call fetches a fresh JWT, so an upload longer than the token's hour still files. The source file is never deleted or changed. It shows under Watch → Videos once `ready`.
+
+**Subtitles go up after the video.** Before uploading, the script lists the `.srt`/`.vtt` files that came with the video (`VideoImport::SubtitleFiles`): those in `Subs/` beside it or `Subs/<video name>/`, then those beside it named after it (`Heat.en.srt`). It looks beside the original file, never the temp encode, and sends a byte-identical file once. Once the video is filed, `VideoImport::SubtitleUpload` posts each to `POST /api/import/videos/:id/subtitles`. A refused file does not stop the rest; the script names it, points at the video's edit page, and exits 1.
 
 - The code is stdlib-only, in `lib/cli/video_import/`, which `autoload_lib` ignores so Rails never loads it.
 - One PUT has no resume: a dropped connection restarts from zero. S3-style storage caps one PUT at 5 GB; a larger file needs multipart upload, which nothing here supports yet.
