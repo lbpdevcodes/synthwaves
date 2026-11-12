@@ -135,11 +135,14 @@ class VideoConversionJob < ApplicationJob
     raise "ffmpeg video conversion failed" unless success
   end
 
+  # -ss goes before -i: as an input option ffmpeg seeks in the container and
+  # decodes only from the nearest keyframe, landing on the same frame. After
+  # -i it decodes everything up to the seek point (minutes for a film here).
   def generate_thumbnail(input_path, thumbnail_path, duration)
     seek_time = duration ? (duration * 0.1).round(2) : 1
     system(
-      "ffmpeg", "-y", "-i", input_path,
-      "-ss", seek_time.to_s, "-vframes", "1",
+      "ffmpeg", "-y", "-ss", seek_time.to_s, "-i", input_path,
+      "-vframes", "1",
       "-vf", "scale=640:-1",
       thumbnail_path,
       out: File::NULL, err: File::NULL
