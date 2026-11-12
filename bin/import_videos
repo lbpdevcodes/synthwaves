@@ -58,4 +58,8 @@ unless options[:dry_run]
 end
 
 folder_import = VideoImport::FolderImport.new(folder: folder, out: $stdout, importer: importer, subtitle_upload: subtitle_upload)
-exit(folder_import.call(dry_run: options[:dry_run]) ? 0 : 1)
+begin
+  exit(folder_import.call(dry_run: options[:dry_run]) ? 0 : 1)
+rescue VideoImport::Error => e
+  fail_with(e.message)
+end

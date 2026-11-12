@@ -11,10 +11,18 @@ module VideoImport
     end
 
     def initialize(lines)
-      @fixes = lines.reject { |line| line.strip.empty? || line.start_with?("#") }
-        .to_h { |line| line.split("=", 2).map(&:strip) }
+      @fixes = lines.each.with_index(1).reject { |line, _| line.strip.empty? || line.start_with?("#") }
+        .to_h { |line, number| fix(line, number) }
     end
 
     def apply(title) = @fixes.fetch(title, title)
+
+    private
+
+    def fix(line, number)
+      raise Error, %(#{FILE} line #{number} has no "=" between the two titles: #{line}) unless line.include?("=")
+
+      line.split("=", 2).map(&:strip)
+    end
   end
 end

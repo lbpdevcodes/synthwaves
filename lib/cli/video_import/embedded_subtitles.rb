@@ -37,8 +37,9 @@ module VideoImport
 
     def captions?(track) = track.dig("disposition", "hearing_impaired") == 1 || track.dig("tags", "title").to_s.match?(CAPTIONS)
 
-    # eng, eng.2, eng.3: the server labels the second one "English (2)".
-    def numbered(names) = names.each_with_index.map { |name, at| (seen = names.take(at).count(name)).zero? ? name : "#{name}.#{seen + 1}" }
+    # eng, 2_eng, 3_eng: the server reads past the number and labels a
+    # repeat the way it labels any repeat, "English 2".
+    def numbered(names) = names.each_with_index.map { |name, at| (seen = names.take(at).count(name)).zero? ? name : "#{seen + 1}_#{name}" }
 
     def run(path, outputs)
       _out, errors, status = Open3.capture3(@ffmpeg, "-v", "error", "-y", "-i", path, *outputs)

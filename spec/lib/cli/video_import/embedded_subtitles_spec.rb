@@ -35,10 +35,10 @@ RSpec.describe VideoImport::EmbeddedSubtitles do
     expect(srt.map { |path| [File.basename(path), File.read(path)[/\[door creaks\]/]] }).to eq([["eng.srt", nil], ["SDH.eng.srt", "[door creaks]"]])
   end
 
-  it "numbers tracks that would share a name" do
+  it "numbers tracks that would share a name the way the server reads a number" do
     srt = subtitles.extract(clip(english, english.merge(text: "Hi")), @out)
 
-    expect(srt.map { |path| File.basename(path) }).to eq(["eng.srt", "eng.2.srt"])
+    expect(srt.map { |path| File.basename(path) }).to eq(["eng.srt", "2_eng.srt"])
   end
 
   it "counts the text tracks without writing anything" do

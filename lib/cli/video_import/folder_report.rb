@@ -21,9 +21,13 @@ module VideoImport
     def print
       @out.puts
       @checks.each { |line| @out.puts(line) }
-      @lists.each { |heading, items| @out.puts(["#{heading} #{items.size}", *items.join(", ")].join(": ")) }
+      @lists.each { |heading, items| @out.puts(line(heading, items)) }
     end
 
     def success? = @lists["Failed"].empty? && @checks.empty?
+
+    private
+
+    def line(heading, items) = items.empty? ? "#{heading} 0" : "#{heading} #{items.size}: #{items.join(", ")}"
   end
 end

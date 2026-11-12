@@ -23,14 +23,16 @@ module FolderImportFakes
 
   # Adds subtitle files to a video, refusing the file names it is told to.
   class SubtitleUpload
-    attr_reader :calls
+    attr_reader :calls, :paths
 
     def initialize(refusing: [])
       @refusing = refusing
       @calls = []
+      @paths = []
     end
 
     def call(video_id, paths)
+      @paths.concat(paths)
       @calls << [video_id, paths.map { |path| [File.basename(path), File.exist?(path)] }]
       paths.map { |path| File.basename(path) }.select { |name| @refusing.include?(name) }.map { |name| "#{name}: rejected (422)" }
     end
@@ -113,7 +115,7 @@ RSpec.describe VideoImport::FolderImport do
     folder_import.call
 
     expect(subtitle_upload.calls).to eq([[1321, [["eng.srt", true], ["SDH.eng.srt", true]]]])
-    expect(Dir.glob("#{Dir.tmpdir}/**/SDH.eng.srt")).to be_empty
+    expect(subtitle_upload.paths.select { |path| File.exist?(path) }).to be_empty
   end
 
   it "keeps a video it filed in the log when its subtitles are refused, and flags it" do

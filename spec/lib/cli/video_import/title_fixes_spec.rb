@@ -31,6 +31,12 @@ RSpec.describe VideoImport::TitleFixes do
     expect(fixes.apply("Anchorman the Legend of Ron Burgundy")).to eq("Anchorman: The Legend of Ron Burgundy")
   end
 
+  it "names a line without an = it cannot read" do
+    write("# fixes\nTheres Something About Mary There's Something About Mary\n")
+
+    expect { fixes }.to raise_error(VideoImport::Error, %(synthwaves-titles.txt line 2 has no "=" between the two titles: Theres Something About Mary There's Something About Mary))
+  end
+
   it "changes nothing when the folder has no titles file" do
     expect(fixes.apply("Shrek")).to eq("Shrek")
   end
