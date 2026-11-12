@@ -4,7 +4,6 @@ RSpec.describe "Queue assignments" do
   {
     AudioConversionJob => "conversion",
     VideoConversionJob => "conversion",
-    StreamRecordingJob => "conversion",
 
     MediaDownloadJob => "imports",
     VideoDownloadJob => "imports",
@@ -13,9 +12,6 @@ RSpec.describe "Queue assignments" do
     CoverArtAttachJob => "default",
     CoverArtSearchJob => "default",
     MetadataExtractionJob => "default",
-    EPGCleanupJob => "default",
-    EPGSyncJob => "default",
-    IPTVChannelSyncJob => "default",
     AppleMusicEnrichmentJob => "default",
     DatabaseBackupJob => "default",
     DownloadZipJob => "default"

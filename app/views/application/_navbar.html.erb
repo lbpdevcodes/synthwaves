@@ -48,8 +48,6 @@
             <div class="border-t border-gray-700 my-1"></div>
           </div>
           <%= render Button::Component.new(label: "Profile", behavior: :navigation, link_url: profile_path, style: :menu_item) %>
-          <div class="border-t border-gray-700 my-1"></div>
-          <%= render Button::Component.new(label: "Public TV Guide", behavior: :navigation, link_url: public_tv_guide_path, style: :menu_item) %>
           <% if Current.user.admin? %>
             <div class="border-t border-gray-700 my-1"></div>
             <%= render Button::Component.new(label: "Admin", behavior: :navigation, link_url: "/admin", style: :menu_item) %>

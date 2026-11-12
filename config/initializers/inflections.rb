@@ -13,10 +13,10 @@
 ActiveSupport::Inflector.inflections(:en) do |inflect|
   inflect.acronym "API"
   inflect.acronym "JWT"
+  # Live TV is gone, but its old migrations are still named with these
+  # (CreateIPTVCategories, ChangeEPGProgrammeForeignKeyToNullify).
   inflect.acronym "IPTV"
-  inflect.acronym "XMLTV"
   inflect.acronym "EPG"
-  inflect.acronym "PIP"
 end
 
 # These inflection rules are supported but not enabled by default:

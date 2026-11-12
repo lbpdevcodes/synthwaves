@@ -6,11 +6,9 @@ export default class extends BridgeComponent {
   connect() {
     super.connect()
 
-    this.playNowHandler = (e) => this.handlePlayNow(e)
     this.turboLoadHandler = () => this.scanForNativeVideo()
     this.turboBeforeVisitHandler = () => this.stopNativeVideo()
 
-    document.addEventListener("video:playNow", this.playNowHandler, { capture: true })
     document.addEventListener("turbo:load", this.turboLoadHandler)
     document.addEventListener("turbo:before-visit", this.turboBeforeVisitHandler)
 
@@ -21,15 +19,8 @@ export default class extends BridgeComponent {
   disconnect() {
     super.disconnect()
 
-    document.removeEventListener("video:playNow", this.playNowHandler, { capture: true })
     document.removeEventListener("turbo:load", this.turboLoadHandler)
     document.removeEventListener("turbo:before-visit", this.turboBeforeVisitHandler)
-  }
-
-  handlePlayNow(event) {
-    event.stopImmediatePropagation()
-    event.preventDefault()
-    this.send("playVideo", { video: this.buildNativeVideo(event.detail) })
   }
 
   scanForNativeVideo() {
@@ -55,17 +46,5 @@ export default class extends BridgeComponent {
 
   stopNativeVideo() {
     this.send("stopVideo", {})
-  }
-
-  buildNativeVideo(detail) {
-    return {
-      streamURL: detail.url || "",
-      title: detail.name || detail.title || "",
-      type: detail.type || "hls_channel",
-      id: detail.id || "",
-      thumbnailURL: detail.thumbnailURL || "",
-      duration: detail.duration || 0,
-      isLive: detail.type === "hls_channel"
-    }
   }
 }

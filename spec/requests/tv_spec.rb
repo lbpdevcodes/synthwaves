@@ -23,6 +23,49 @@ RSpec.describe "TV", type: :request do
       expect(response).to have_http_status(:success)
       expect(response.body).not_to include("Music Only Band")
     end
+
+    context "without Live TV" do
+      let(:user) { create(:user) }
+
+      before { login_user(user) }
+
+      def tabs
+        Nokogiri::HTML(response.body).css("a[href^='/tv?tab=']").map { |a| a.text.strip }
+      end
+
+      it "opens on Videos and offers only the Videos and Podcasts tabs" do
+        get tv_path
+
+        expect(tabs).to eq(%w[Videos Podcasts])
+        expect(Nokogiri::HTML(response.body).at_css("[data-empty-library]")).to be_present
+      end
+
+      it "shows Videos for the old Guide and Recordings tabs" do
+        %w[guide recordings].each do |tab|
+          get tv_path(tab: tab)
+
+          expect(Nokogiri::HTML(response.body).at_css("[data-empty-library]")).to be_present
+        end
+      end
+
+      it "no longer answers the channel, guide and recording pages" do
+        ["/tv/channels/new", "/tv-guide", "/recordings"].each do |path|
+          get path
+
+          expect(response).to have_http_status(:not_found), path
+        end
+      end
+
+      it "leaves the TV player, its picture-in-picture box and the recordings stream out of the layout" do
+        get tv_path
+
+        doc = Nokogiri::HTML(response.body)
+        expect(doc.at_css("[data-controller~='hls-player']")).to be_nil
+        expect(doc.at_css("#pip-player")).to be_nil
+        expect(doc.css("turbo-cable-stream-source").map { |s| s["signed-stream-name"] })
+          .not_to include(Turbo::StreamsChannel.signed_stream_name("recordings_#{user.id}"))
+      end
+    end
   end
 
   describe "GET /tv?tab=videos" do

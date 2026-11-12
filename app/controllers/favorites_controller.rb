@@ -32,7 +32,6 @@ class FavoritesController < ApplicationController
     when "Album" then Current.user.albums.find(params[:favorable_id])
     when "Artist" then Current.user.artists.find(params[:favorable_id])
     when "Folder" then Current.user.folders.find(params[:favorable_id])
-    when "IPTVChannel" then IPTVChannel.find(params[:favorable_id])
     when "InternetRadioStation" then InternetRadioStation.find(params[:favorable_id])
     else raise ActiveRecord::RecordNotFound
     end
