@@ -214,7 +214,14 @@ CREATE INDEX "index_albums_on_musicbrainz_release_id" ON "albums" ("musicbrainz_
 CREATE INDEX "index_artists_on_musicbrainz_artist_id" ON "artists" ("musicbrainz_artist_id") /*application='SynthWaves'*/;
 CREATE TABLE IF NOT EXISTS "maintenance_tasks_runs" ("id" integer PRIMARY KEY AUTOINCREMENT NOT NULL, "task_name" varchar NOT NULL, "started_at" datetime(6), "ended_at" datetime(6), "time_running" float DEFAULT 0.0 NOT NULL, "tick_count" bigint DEFAULT 0 NOT NULL, "tick_total" bigint, "job_id" varchar, "cursor" varchar, "status" varchar DEFAULT 'enqueued' NOT NULL, "error_class" varchar, "error_message" varchar, "backtrace" text, "created_at" datetime(6) NOT NULL, "updated_at" datetime(6) NOT NULL, "arguments" text, "lock_version" integer DEFAULT 0 NOT NULL, "metadata" text);
 CREATE INDEX "index_maintenance_tasks_runs" ON "maintenance_tasks_runs" ("task_name", "status", "created_at" DESC) /*application='SynthWaves'*/;
+CREATE TABLE IF NOT EXISTS "video_subtitles" ("id" integer PRIMARY KEY AUTOINCREMENT NOT NULL, "video_id" integer NOT NULL, "label" varchar NOT NULL, "language" varchar, "kind" varchar DEFAULT 'subtitles' NOT NULL, "vtt" text NOT NULL, "created_at" datetime(6) NOT NULL, "updated_at" datetime(6) NOT NULL, CONSTRAINT "fk_rails_907f4cc7e5"
+FOREIGN KEY ("video_id")
+  REFERENCES "videos" ("id")
+);
+CREATE INDEX "index_video_subtitles_on_video_id" ON "video_subtitles" ("video_id") /*application='SynthWaves'*/;
+CREATE UNIQUE INDEX "index_video_subtitles_on_video_id_and_label" ON "video_subtitles" ("video_id", "label") /*application='SynthWaves'*/;
 INSERT INTO "schema_migrations" (version) VALUES
+('20261112011904'),
 ('20261028003748'),
 ('20261028003434'),
 ('20260902195740'),
