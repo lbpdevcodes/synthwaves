@@ -1,6 +1,6 @@
 # Import API
 
-Five endpoints for importing tracks, videos, video subtitles, and playlists. All endpoints require JWT Bearer token authentication (see [Authentication](authentication.md)).
+Endpoints for importing tracks, videos, video subtitles, and playlists, and for uploading files to storage in one PUT or, over 5 GB, in parts. All endpoints require JWT Bearer token authentication (see [Authentication](authentication.md)).
 
 ## POST `/api/import/direct_uploads`
 
@@ -55,6 +55,69 @@ curl -X POST https://your-server/api/import/direct_uploads \
 | Status | Body | Cause |
 |--------|------|-------|
 | 422 | `{"error": "..."}` | Invalid parameters |
+
+---
+
+## Uploads in parts: `/api/import/multipart_upload`
+
+Storage takes at most 5 GB in one PUT. A larger file goes up as an S3 multipart upload: start it, PUT each part to a URL signed for that part, then join the parts. The joined blob is filed like a direct upload's, by its `signed_id`. `bin/import_video` does this for any file over 5 GB. The server's storage must be S3-style; Disk storage answers 422.
+
+Every failure answers `422 {"error": "..."}` naming the reason: a missing parameter, an invalid `signed_id`, a part number outside 1–10000, storage that takes no uploads in parts, or a joined object of the wrong size.
+
+### POST `/api/import/multipart_upload`
+
+Creates the blob and starts its upload.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `filename` | string | Yes | Name of the file being uploaded |
+| `byte_size` | integer | Yes | File size in bytes |
+| `checksum` | string | Yes | Base64-encoded MD5 checksum of the whole file |
+| `content_type` | string | No | MIME type (default: `video/mp4`) |
+
+**Response — 201 Created**
+
+```json
+{"signed_id": "eyJfcmFpbHMiOnsi...", "upload_id": "2~nJTc...", "part_size": 104857600}
+```
+
+Split the file into `part_size` parts, numbered from 1; the last part holds what is left. `part_size` is 100 MiB, or larger when 100 MiB parts would need more than 10,000.
+
+### POST `/api/import/multipart_upload/parts`
+
+Signs one part's PUT. Ask just before sending the part: the URL expires after 5 minutes. A part that fails can be signed and sent again.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `signed_id` | string | Yes | From the start reply |
+| `upload_id` | string | Yes | From the start reply |
+| `part_number` | integer | Yes | 1 to 10000 |
+| `byte_size` | integer | Yes | The part's size in bytes |
+| `checksum` | string | Yes | Base64-encoded MD5 checksum of the part |
+
+**Response — 201 Created**
+
+```json
+{"url": "https://storage.example.com/...&partNumber=1&uploadId=...", "headers": {"Content-MD5": "rL0Y20zC+Fzt72VPzMSk2A=="}}
+```
+
+PUT exactly the part's bytes to `url` with `headers` and a `Content-Length`. The URL signs both the size and the checksum, so storage refuses other bytes with `400 BadDigest`. Keep the `ETag` header storage answers with.
+
+### POST `/api/import/multipart_upload/completion`
+
+Joins the parts, in part-number order, and checks that storage holds the file's whole `byte_size`; an object of any other size is deleted and refused.
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `signed_id` | string | Yes | From the start reply |
+| `upload_id` | string | Yes | From the start reply |
+| `parts` | array | Yes | `[{"part_number": 1, "etag": "\"a9b4...\""}, ...]`, one per part |
+
+**Response — 200 OK**: `{"signed_id": "eyJfcmFpbHMiOnsi..."}`. Pass it as `signed_blob_id` to `POST /api/import/videos`.
+
+### DELETE `/api/import/multipart_upload?signed_id=...&upload_id=...`
+
+Throws away the parts sent so far. Storage bills unfinished parts and lists them nowhere, so abort an upload you will not finish. **Response — 204 No Content.**
 
 ---
 

@@ -103,6 +103,36 @@ RSpec.describe VideoImport::Importer do
     expect(out.string).to start_with("\rUploading Heat.mkv:").and end_with("100%\n")
   end
 
+  describe "a file larger than storage takes in one upload" do
+    let(:limit) { VideoImport::UploadLimit.new(contents.bytesize - 1) }
+    let(:importer) { described_class.new(api: api, out: out, encoder: VideoImport::PassThrough.new, limit: limit) }
+    let(:part_url) { "https://storage.test/bucket/blob-key?partNumber=1" }
+
+    it "goes up in parts and is filed as the blob the parts were joined into" do
+      stub_auth("token")
+      stub_request(:post, "#{host}/api/import/multipart_upload")
+        .to_return(status: 201, body: JSON.generate(signed_id: "joined-blob", upload_id: "upload-1", part_size: contents.bytesize))
+      stub_request(:post, "#{host}/api/import/multipart_upload/parts").to_return(status: 201, body: JSON.generate(url: part_url, headers: {}))
+      stub_request(:put, part_url).to_return(headers: {"ETag" => "\"etag-1\""})
+      stub_request(:post, "#{host}/api/import/multipart_upload/completion").to_return(body: JSON.generate(signed_id: "joined-blob"))
+      stub_register
+
+      importer.call(@movie)
+
+      expect(WebMock).to have_requested(:put, part_url).with(body: contents)
+      expect(WebMock).to have_requested(:post, "#{host}/api/import/videos").with(body: hash_including(signed_blob_id: "joined-blob"))
+      expect(WebMock).not_to have_requested(:post, "#{host}/api/import/direct_uploads")
+    end
+  end
+
+  it "sends a file exactly as large as one upload takes in one PUT" do
+    stub_successful_import
+
+    described_class.new(api: api, out: out, encoder: VideoImport::PassThrough.new, limit: VideoImport::UploadLimit.new(contents.bytesize)).call(@movie)
+
+    expect(WebMock).to have_requested(:put, upload_url).with(body: contents)
+  end
+
   it "files the video with a token fetched after the upload, so a long upload cannot outlive it" do
     stub_successful_import
 
@@ -116,14 +146,6 @@ RSpec.describe VideoImport::Importer do
       missing = File.join(File.dirname(@movie), "Nope.mkv")
 
       expect { importer.call(missing) }.to raise_error(VideoImport::Error, "no such file: #{missing}")
-      expect(WebMock).not_to have_requested(:any, /.*/)
-    end
-
-    it "refuses a file larger than one upload takes, before asking the server for anything" do
-      too_small = VideoImport::UploadLimit.new(contents.bytesize - 1)
-      importer = described_class.new(api: api, out: out, encoder: VideoImport::PassThrough.new, limit: too_small)
-
-      expect { importer.call(@movie) }.to raise_error(VideoImport::Error, /\AHeat\.mkv is [\d.]+ GB, over the [\d.]+ GB storage takes in one upload\z/)
       expect(WebMock).not_to have_requested(:any, /.*/)
     end
 

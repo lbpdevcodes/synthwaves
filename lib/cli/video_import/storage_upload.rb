@@ -1,33 +1,35 @@
 module VideoImport
-  # PUTs a file to a presigned storage URL, streaming it from disk.
+  # PUTs a file, or one part of it, to a presigned storage URL, streaming it
+  # from disk and moving the meter it is given as the bytes go.
   class StorageUpload
     # Storage answers only once the whole body is in, and may take a while
     # to confirm a large one.
     READ_TIMEOUT = 600
 
-    def initialize(url:, headers:, out:)
+    def initialize(url:, headers:, meter:)
       @uri = URI(url)
       @headers = headers
-      @out = out
+      @meter = meter
     end
 
+    # Returns the ETag storage gave what it took.
     def put(source)
       response = source.open { |file| Connection.deliver(uri, request_for(source, file), read_timeout: READ_TIMEOUT) }
-      return if response.is_a?(Net::HTTPSuccess)
+      return response["ETag"] if response.is_a?(Net::HTTPSuccess)
 
       raise Error, "storage rejected the upload (#{response.code}): #{reason(response.body.to_s)}"
     end
 
     private
 
-    attr_reader :uri, :headers, :out
+    attr_reader :uri, :headers, :meter
 
     # The presigned URL signs Content-Length, so the body goes out as one
     # sized stream, never chunked.
     def request_for(source, file)
       Net::HTTP::Put.new(uri, headers).tap do |request|
         request.content_length = source.byte_size
-        request.body_stream = Progress.new(file, Meter.new(label: "Uploading #{source.filename}", total: source.byte_size, out: out))
+        request.body_stream = Progress.new(file, meter)
       end
     end
 

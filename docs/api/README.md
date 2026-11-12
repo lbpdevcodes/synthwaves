@@ -29,11 +29,15 @@ API keys are managed through the web UI at `/api_keys`. Each key has a `client_i
 
 Tracks, albums, artists, playlists, merging, and genre tags are listed under [Library management](jwt-api.md#library-management).
 
-### Import API (4 endpoints)
+### Import API (8 endpoints)
 
 | Method | Path                         | Description                | Doc                                                         |
 | ------ | ---------------------------- | -------------------------- | ----------------------------------------------------------- |
 | POST   | `/api/import/direct_uploads` | Create a direct upload URL | [import-api.md](import-api.md#post-apiimportdirect_uploads) |
+| POST   | `/api/import/multipart_upload` | Start an upload in parts (over 5 GB) | [import-api.md](import-api.md#uploads-in-parts-apiimportmultipart_upload) |
+| POST   | `/api/import/multipart_upload/parts` | Sign one part's PUT | [import-api.md](import-api.md#uploads-in-parts-apiimportmultipart_upload) |
+| POST   | `/api/import/multipart_upload/completion` | Join the parts | [import-api.md](import-api.md#uploads-in-parts-apiimportmultipart_upload) |
+| DELETE | `/api/import/multipart_upload` | Throw the parts away | [import-api.md](import-api.md#uploads-in-parts-apiimportmultipart_upload) |
 | POST   | `/api/import/tracks`         | Import a track             | [import-api.md](import-api.md#post-apiimporttracks)         |
 | POST   | `/api/import/playlists`      | Import a playlist          | [import-api.md](import-api.md#post-apiimportplaylists)      |
 | POST   | `/api/import/videos`         | Import a video             | [import-api.md](import-api.md#post-apiimportvideos)         |
