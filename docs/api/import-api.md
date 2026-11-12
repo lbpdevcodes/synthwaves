@@ -220,6 +220,10 @@ Import a video using a previously uploaded blob from the direct uploads endpoint
 | `folder_name` | string | No | Folder name (created if it doesn't exist) |
 | `season_number` | integer | No | Season number |
 | `episode_number` | integer | No | Episode number |
+| `thumbnail_signed_blob_id` | string | No | Signed blob ID of a JPEG thumbnail, from a direct upload |
+| `details` | object | No | What ffprobe reads from the file: `duration` (seconds), `width`, `height`, `video_codec`, `audio_codec`, `audio_channels`, `bitrate` (kb/s), `container` (ffprobe's format name) |
+
+**A file the server keeps as it is is filed ready.** Send a thumbnail and `details` that say `VideoConversionJob` would keep the file as it is: H.264, AAC with 2 channels or fewer, in an MP4 (`VideoConversionStrategy`). The video is then filed `ready` with them, and no conversion job runs, so the server never downloads the file. `bin/import_video` sends both, with the job's own thumbnail command and the fields `VideoMetadataExtractor` reads. Without them, or when the details say the file needs converting, the video is filed `processing`, and the job reads it, converts it if needed, makes the thumbnail and marks it `ready`.
 
 ### Request
 
@@ -252,13 +256,13 @@ curl -X POST https://your-server/api/import/videos \
 | `id` | integer | Video ID |
 | `title` | string | Video title |
 | `folder` | string | Folder name (null if no folder) |
-| `status` | string | Processing status (`processing` on creation) |
+| `status` | string | `ready` for a file filed with its thumbnail and details (see above), else `processing` |
 
 ### Errors
 
 | Status | Body | Cause |
 |--------|------|-------|
-| 422 | `{"error": "Invalid signed blob ID"}` | Bad or expired `signed_blob_id` |
+| 422 | `{"error": "Invalid signed blob ID"}` | Bad or expired `signed_blob_id` or `thumbnail_signed_blob_id` |
 | 422 | `{"error": "..."}` | Validation failure |
 
 ---

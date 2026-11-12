@@ -70,36 +70,11 @@ class VideoConversionJob < ApplicationJob
 
   private
 
-  MP4_CONTAINERS = %w[mov,mp4,m4a,3gp,3g2,mj2 mp4 m4v].freeze
-
   # bin/import_video makes this same choice and runs the chosen method's
   # ffmpeg arguments locally (VideoImport::Conversion), so uploads arrive with
   # nothing to convert; spec/lib/cli/video_import/server_agreement_spec.rb
   # keeps the two in step.
-  def conversion_strategy(metadata)
-    return :full unless metadata[:video_codec]
-
-    h264 = metadata[:video_codec] == "h264"
-    aac = metadata[:audio_codec]&.match?(/aac/)
-    mp4_container = MP4_CONTAINERS.any? { |c| metadata[:container]&.include?(c) }
-    normalize_audio = needs_audio_normalization?(metadata)
-
-    if h264 && aac && mp4_container && !normalize_audio
-      :none
-    elsif h264 && aac && !normalize_audio
-      :remux
-    elsif h264
-      :transcode_audio
-    else
-      :full
-    end
-  end
-
-  def needs_audio_normalization?(metadata)
-    return false unless metadata[:audio_channels]
-
-    metadata[:audio_channels] > 2
-  end
+  def conversion_strategy(metadata) = VideoConversionStrategy.for(metadata)
 
   def remux_to_mp4(input_path, output_path)
     success = system(

@@ -7,7 +7,8 @@ require "json"
 require_relative "../support/video_clips"
 
 # Plays synthwaves.fm and its storage for one run of the script: answers each
-# request by path, and refuses a subtitle file whose name mentions "notes".
+# request by path, files a video sent with its details ready, and refuses a
+# subtitle file whose name mentions "notes".
 class FakeSynthwaves
   attr_reader :requests
 
@@ -51,7 +52,7 @@ class FakeSynthwaves
     in ["POST", "/api/v1/auth/token"] then [200, {token: "token"}]
     in ["POST", "/api/import/direct_uploads"] then [201, {signed_id: "blob", direct_upload: {url: "#{url}/storage", headers: {}}}]
     in ["PUT", "/storage"] then [200, {}]
-    in ["POST", "/api/import/videos"] then [201, {id: 7, title: "Heat", status: "processing"}]
+    in ["POST", "/api/import/videos"] then [201, {id: 7, title: "Heat", status: JSON.parse(body).key?("details") ? "ready" : "processing"}]
     in ["POST", "/api/import/videos/7/subtitles"] then subtitle_reply(JSON.parse(body).fetch("filename"))
     end
   end
@@ -191,6 +192,21 @@ RSpec.describe "bin/import_video" do
 
     def subs(name, contents) = File.join(dir, "Subs", name).tap { |path| FileUtils.mkdir_p(File.dirname(path)) && File.write(path, contents) }
 
+    it "files a video the server keeps as it is with its details and thumbnail, so the server never downloads it" do
+      skip "needs ffmpeg and ffprobe on PATH" unless VideoClips.tools?
+      clip = VideoClips.h264(dir)
+
+      out, err, status = run_script(clip, "--no-subtitles", "--host", server.url)
+
+      expect(out).to include(%(Filed "Heat" as video 7 (ready).\nIt is ready to watch: #{server.url}/videos/7\n))
+      stored = server.requests.select { |method, *| method == "PUT" }.map { |*, body| body.byteslice(0, 2).bytes }
+      filed = JSON.parse(server.requests.find { |_, path, _| path == "/api/import/videos" }.last)
+      expect(stored).to eq([File.binread(clip, 2).bytes, [0xFF, 0xD8]])
+      expect(filed).to include("thumbnail_signed_blob_id" => "blob")
+      expect(filed["details"]).to include("video_codec" => "h264", "audio_codec" => "aac", "audio_channels" => 2, "width" => 320, "height" => 240)
+      expect([err, status.exitstatus]).to eq(["", 0])
+    end
+
     it "sends each subtitle file once the video is filed" do
       subs("English.srt", "english")
       subs("Canadian.fre.srt", "french")
@@ -202,6 +218,7 @@ RSpec.describe "bin/import_video" do
       expect(calls.index("POST /api/import/videos")).to be < calls.index("POST /api/import/videos/7/subtitles")
       expect(sent).to eq(["Canadian.fre.srt", "English.srt"])
       expect(out).to include("Added subtitles: Canadian.fre\nAdded subtitles: English\n")
+      expect(out).to include("It appears under Watch → Videos once the server has processed it: #{server.url}/videos/7\n")
       expect([err, status.exitstatus]).to eq(["", 0])
     end
 

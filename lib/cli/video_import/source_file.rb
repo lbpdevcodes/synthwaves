@@ -3,7 +3,8 @@ module VideoImport
   class SourceFile
     CONTENT_TYPES = {
       ".mp4" => "video/mp4", ".m4v" => "video/mp4", ".mov" => "video/quicktime",
-      ".mkv" => "video/x-matroska", ".webm" => "video/webm", ".avi" => "video/x-msvideo"
+      ".mkv" => "video/x-matroska", ".webm" => "video/webm", ".avi" => "video/x-msvideo",
+      ".jpg" => "image/jpeg"
     }.freeze
 
     attr_reader :path

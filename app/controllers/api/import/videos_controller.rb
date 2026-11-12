@@ -1,6 +1,7 @@
 class API::Import::VideosController < API::Import::BaseController
   def create
     blob = ActiveStorage::Blob.find_signed!(params[:signed_blob_id])
+    thumbnail = ActiveStorage::Blob.find_signed!(params[:thumbnail_signed_blob_id]) if params[:thumbnail_signed_blob_id].present?
 
     folder = find_or_create_folder(params[:folder_name]) if params[:folder_name].present?
 
@@ -15,6 +16,7 @@ class API::Import::VideosController < API::Import::BaseController
       status: "processing"
     )
     video.file.attach(blob)
+    PreparedVideo.new(video, details: details_params, thumbnail: thumbnail).apply
     video.save!
 
     render json: {
@@ -30,6 +32,8 @@ class API::Import::VideosController < API::Import::BaseController
   end
 
   private
+
+  def details_params = params.fetch(:details, {}).permit(*PreparedVideo::DETAILS)
 
   def find_or_create_folder(name)
     current_user.folders.find_or_create_by!(name: name)

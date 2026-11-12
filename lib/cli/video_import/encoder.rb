@@ -17,6 +17,10 @@ module VideoImport
       Dir.mktmpdir("import_video") { |dir| yield encode(source, probe, settings, dir) }
     end
 
+    # What the server would work out about the prepared file, so it need not
+    # download it (ReadyDetails).
+    def ready_details(source, &store) = ReadyDetails.new(out: @out, ffmpeg: @ffmpeg, ffprobe: @ffprobe).for(source, &store)
+
     private
 
     def encode(source, probe, settings, dir)
