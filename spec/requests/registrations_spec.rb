@@ -171,6 +171,17 @@ RSpec.describe "Registrations", type: :request do
         .and change(APIKey, :count).by(-1)
     end
 
+    it "deletes every folder of a nested library, names repeated under two shows included" do
+      user = create(:user)
+      login_user(user)
+      tv = create(:folder, user: user, name: "TV")
+      %w[South\ Park The\ Wire].each do |show|
+        create(:folder, user: user, parent: create(:folder, user: user, parent: tv, name: show), name: "Season 1")
+      end
+
+      expect { delete registration_path }.to change(Folder, :count).by(-5)
+    end
+
     it "clears the session" do
       user = create(:user)
       login_user(user)

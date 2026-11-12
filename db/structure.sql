@@ -90,12 +90,6 @@ CREATE INDEX "index_internet_radio_stations_on_internet_radio_category_id" ON "i
 CREATE UNIQUE INDEX "index_internet_radio_stations_on_uuid" ON "internet_radio_stations" ("uuid") /*application='SynthWaves'*/;
 CREATE INDEX "index_internet_radio_stations_on_country_code" ON "internet_radio_stations" ("country_code") /*application='SynthWaves'*/;
 CREATE INDEX "index_internet_radio_stations_on_active" ON "internet_radio_stations" ("active") /*application='SynthWaves'*/;
-CREATE TABLE IF NOT EXISTS "folders" ("id" integer PRIMARY KEY AUTOINCREMENT NOT NULL, "user_id" integer NOT NULL, "name" varchar NOT NULL, "description" text, "created_at" datetime(6) NOT NULL, "updated_at" datetime(6) NOT NULL, CONSTRAINT "fk_rails_2a04d378cf"
-FOREIGN KEY ("user_id")
-  REFERENCES "users" ("id")
-);
-CREATE INDEX "index_folders_on_user_id" ON "folders" ("user_id") /*application='SynthWaves'*/;
-CREATE UNIQUE INDEX "index_folders_on_user_id_and_name" ON "folders" ("user_id", "name") /*application='SynthWaves'*/;
 CREATE TABLE IF NOT EXISTS "videos" ("id" integer PRIMARY KEY AUTOINCREMENT NOT NULL, "user_id" integer NOT NULL, "title" varchar NOT NULL, "description" text, "duration" float, "width" integer, "height" integer, "file_format" varchar, "file_size" bigint, "video_codec" varchar, "audio_codec" varchar, "bitrate" integer, "status" varchar DEFAULT 'processing' NOT NULL, "error_message" varchar, "created_at" datetime(6) NOT NULL, "updated_at" datetime(6) NOT NULL, "folder_id" integer, "season_number" integer /*application='SynthWaves'*/, "episode_number" integer /*application='SynthWaves'*/, "download_status" varchar /*application='SynthWaves'*/, "download_error" varchar /*application='SynthWaves'*/, "youtube_video_id" varchar /*application='SynthWaves'*/, "audio_channels" integer /*application='SynthWaves'*/, CONSTRAINT "fk_rails_ba925d1105"
 FOREIGN KEY ("user_id")
   REFERENCES "users" ("id")
@@ -183,7 +177,18 @@ FOREIGN KEY ("video_id")
 );
 CREATE INDEX "index_video_subtitles_on_video_id" ON "video_subtitles" ("video_id") /*application='SynthWaves'*/;
 CREATE UNIQUE INDEX "index_video_subtitles_on_video_id_and_label" ON "video_subtitles" ("video_id", "label") /*application='SynthWaves'*/;
+CREATE TABLE IF NOT EXISTS "folders" ("id" integer PRIMARY KEY AUTOINCREMENT NOT NULL, "user_id" integer NOT NULL, "name" varchar NOT NULL, "description" text, "created_at" datetime(6) NOT NULL, "updated_at" datetime(6) NOT NULL, "parent_id" integer, CONSTRAINT "fk_rails_2a04d378cf"
+FOREIGN KEY ("user_id")
+  REFERENCES "users" ("id")
+, CONSTRAINT "fk_rails_58e285f76e"
+FOREIGN KEY ("parent_id")
+  REFERENCES "folders" ("id")
+);
+CREATE INDEX "index_folders_on_user_id" ON "folders" ("user_id") /*application='SynthWaves'*/;
+CREATE INDEX "index_folders_on_parent_id" ON "folders" ("parent_id") /*application='SynthWaves'*/;
+CREATE UNIQUE INDEX "index_folders_on_user_id_and_parent_id_and_name" ON "folders" ("user_id", "parent_id", "name") /*application='SynthWaves'*/;
 INSERT INTO "schema_migrations" (version) VALUES
+('20261112235036'),
 ('20261112202404'),
 ('20261112011904'),
 ('20261028003748'),
