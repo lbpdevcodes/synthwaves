@@ -27,7 +27,7 @@ module VideoImport
     def request_for(source, file)
       Net::HTTP::Put.new(uri, headers).tap do |request|
         request.content_length = source.byte_size
-        request.body_stream = Progress.new(file, total: source.byte_size, label: "Uploading #{source.filename}", out: out)
+        request.body_stream = Progress.new(file, Meter.new(label: "Uploading #{source.filename}", total: source.byte_size, out: out))
       end
     end
 
