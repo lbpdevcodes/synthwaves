@@ -191,6 +191,20 @@ RSpec.describe "bin/import_video" do
 
     def subs(name, contents) = File.join(dir, "Subs", name).tap { |path| FileUtils.mkdir_p(File.dirname(path)) && File.write(path, contents) }
 
+    it "files a video the server keeps as it is with its details and thumbnail, so the server never downloads it" do
+      skip "needs ffmpeg and ffprobe on PATH" unless VideoClips.tools?
+      clip = VideoClips.h264(dir)
+
+      _out, err, status = run_script(clip, "--no-subtitles", "--host", server.url)
+
+      stored = server.requests.select { |method, *| method == "PUT" }.map { |*, body| body.byteslice(0, 2).bytes }
+      filed = JSON.parse(server.requests.find { |_, path, _| path == "/api/import/videos" }.last)
+      expect(stored).to eq([File.binread(clip, 2).bytes, [0xFF, 0xD8]])
+      expect(filed).to include("thumbnail_signed_blob_id" => "blob")
+      expect(filed["details"]).to include("video_codec" => "h264", "audio_codec" => "aac", "audio_channels" => 2, "width" => 320, "height" => 240)
+      expect([err, status.exitstatus]).to eq(["", 0])
+    end
+
     it "sends each subtitle file once the video is filed" do
       subs("English.srt", "english")
       subs("Canadian.fre.srt", "french")

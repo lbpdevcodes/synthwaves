@@ -27,8 +27,9 @@ class Video < ApplicationRecord
 
   private
 
+  # A video filed ready (PreparedVideo) has nothing left to convert.
   def convert_video
-    return unless file.attached?
+    return unless file.attached? && status == "processing"
 
     VideoConversionJob.perform_later(id)
   end
