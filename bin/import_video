@@ -73,7 +73,8 @@ rescue VideoImport::Error => e
 end
 
 puts "Filed \"#{filed["title"]}\" as video #{filed["id"]} (#{filed["status"]})."
-puts "It appears under Watch → Videos once the server has made its thumbnail: #{options[:host]}/videos/#{filed["id"]}"
+page = "#{options[:host]}/videos/#{filed["id"]}"
+puts((filed["status"] == "ready") ? "It is ready to watch: #{page}" : "It appears under Watch → Videos once the server has processed it: #{page}")
 
 failures = VideoImport::SubtitleUpload.new(api: api, out: $stdout).call(filed["id"], subtitles)
 unless failures.empty?
