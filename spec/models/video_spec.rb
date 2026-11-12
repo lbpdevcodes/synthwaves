@@ -20,6 +20,13 @@ RSpec.describe Video, type: :model do
       expect(video.errors[:folder]).to include("must be one of your folders")
     end
 
+    it "still saves other changes to a video already filed in a foreign folder" do
+      video = create(:video)
+      video.update_column(:folder_id, create(:folder).id)
+
+      expect(video.reload.update(status: "ready", title: "Converted")).to be true
+    end
+
     it "accepts a folder from the video's own library" do
       user = create(:user)
       video = build(:video, user: user, folder: create(:folder, user: user))
