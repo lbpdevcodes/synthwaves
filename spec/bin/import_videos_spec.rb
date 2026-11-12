@@ -119,5 +119,23 @@ RSpec.describe "bin/import_videos" do
       expect(status.exitstatus).to eq(0)
       expect(File.read(File.join(@folder, "synthwaves-uploaded.log")).lines.size).to eq(1)
     end
+
+    # macOS keeps some folders from a terminal that has not been given access
+    # (~/Movies/TV, the TV app's library). A sandbox that refuses to open one
+    # folder fails the same way: Operation not permitted.
+    it "names a folder it is not permitted to read, and lists the videos in the rest" do
+      skip "needs macOS sandbox-exec" unless File.executable?("/usr/bin/sandbox-exec")
+      movie("Shrek (2001) [1080p]/Shrek.2001.1080p.BluRay.x264.YIFY.mp4")
+      locked = place("TV/Media").tap { |dir| FileUtils.mkdir_p(dir) }
+      refuse = %((version 1)(allow default)(deny file-read-data (subpath "#{File.realpath(File.dirname(locked))}")))
+
+      out, _err, status = Open3.capture3(no_credentials, "/usr/bin/sandbox-exec", "-p", refuse, RbConfig.ruby, script, @folder, "--dry-run")
+
+      expect(out.lines.map(&:chomp)).to eq([
+        "Skipping the folder #{File.join(@folder, "TV")}: it can't be read (Operation not permitted)",
+        %(Would upload "Shrek" (Shrek.2001.1080p.BluRay.x264.YIFY.mp4) with no subtitles)
+      ])
+      expect(status.exitstatus).to eq(0)
+    end
   end
 end

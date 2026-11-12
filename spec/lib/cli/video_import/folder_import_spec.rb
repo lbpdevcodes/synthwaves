@@ -150,6 +150,39 @@ RSpec.describe VideoImport::FolderImport do
     expect(folder_import.call).to be(true)
   end
 
+  it "leaves out hidden files, like the ._ copies macOS writes on other drives" do
+    place("Shrek.2001.1080p.mp4")
+    place("._Shrek.2001.1080p.mp4")
+
+    folder_import.call(dry_run: true)
+
+    expect(out.string).to eq(%(Would upload "Shrek" (Shrek.2001.1080p.mp4) with no subtitles\n))
+  end
+
+  it "names a folder it has no permission to read, and carries on with the rest" do
+    place("Shrek.2001.1080p.mp4")
+    locked = File.dirname(place("Locked/Elf.2003.1080p.mp4"))
+    File.chmod(0o000, locked)
+
+    folder_import.call(dry_run: true)
+
+    expect(out.string.lines.map(&:chomp)).to eq([
+      "Skipping the folder #{locked}: it can't be read (Permission denied)",
+      %(Would upload "Shrek" (Shrek.2001.1080p.mp4) with no subtitles)
+    ])
+  ensure
+    File.chmod(0o755, locked) if locked
+  end
+
+  it "does not follow a link to another folder" do
+    place("Shrek.2001.1080p.mp4")
+    File.symlink(@folder, File.join(@folder, "again"))
+
+    folder_import.call(dry_run: true)
+
+    expect(out.string).to eq(%(Would upload "Shrek" (Shrek.2001.1080p.mp4) with no subtitles\n))
+  end
+
   it "uploads nothing on a dry run" do
     place("Shrek.2001.1080p.mp4")
 
