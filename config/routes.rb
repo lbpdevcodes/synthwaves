@@ -43,11 +43,13 @@ Rails.application.routes.draw do
   end
   resources :folders, only: [:show, :new, :create, :edit, :update, :destroy] do
     resources :uploads, only: [:new, :create], controller: "folder_uploads"
+    resources :videos, only: [:new, :create], controller: "folder_videos"
   end
   resources :videos, only: [:new, :create, :show, :edit, :update, :destroy] do
     member do
       get :stream
     end
+    resource :folder, only: [:update, :destroy], controller: "video_folders"
     resources :subtitles, only: [:show, :create, :destroy], controller: "video_subtitles"
   end
   resources :internet_radio_stations, only: [:index, :show, :edit, :update, :destroy], path: "internet-radio" do

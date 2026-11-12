@@ -14,6 +14,14 @@ class Folder < ApplicationRecord
     cover_image.attached? ? cover_image : first_thumbnail
   end
 
+  # The owner's videos outside this folder, for picking ones to add: loose
+  # videos first, then those in other folders, by folder name and title.
+  def videos_to_add
+    user.videos.where.not(folder_id: id).or(user.videos.where(folder_id: nil))
+      .left_joins(:folder).includes(:folder)
+      .order(Arel.sql("videos.folder_id IS NOT NULL"), "folders.name", :title)
+  end
+
   # Files every video in this folder, or none of them.
   def add_videos(videos)
     transaction { videos.each { |video| video.update!(folder: self) } }

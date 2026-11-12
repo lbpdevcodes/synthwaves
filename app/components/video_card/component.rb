@@ -1,5 +1,9 @@
 module VideoCard
   class Component < ViewComponent::Base
+    # Controls over the card's top-left corner, such as the folder menu. They
+    # sit beside the card link, never inside it.
+    renders_one :actions
+
     def initialize(video:, show_episode_number: false)
       @video = video
       @show_episode_number = show_episode_number

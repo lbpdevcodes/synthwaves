@@ -43,6 +43,18 @@ RSpec.describe "TV", type: :request do
       expect(response.body).not_to include("Upload Season")
     end
 
+    it "gives each loose video a folder menu that submits outside the TV frame" do
+      video = create(:video, user: user)
+      create(:folder, user: user, name: "The Wire")
+
+      get tv_path(tab: "videos")
+
+      move = doc.css("form[action='#{video_folder_path(video)}']").first
+      expect(move.text).to include("The Wire")
+      expect(move["data-turbo-frame"]).to eq("_top")
+      expect(doc.at_css("form[action='#{folders_path}'] input[name='video_ids[]'][value='#{video.id}']")).to be_present
+    end
+
     it "offers both a video upload and a new folder when the library is empty" do
       get tv_path(tab: "videos")
 

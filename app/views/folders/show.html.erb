@@ -31,6 +31,7 @@
       <div class="mt-3 flex flex-wrap items-center gap-2">
         <%= render "favorites/button", favorable: @folder, favorited: Current.user.favorites.exists?(favorable: @folder) %>
         <%= render Button::Component.new(label: "Upload videos", behavior: :navigation, link_url: new_folder_upload_path(@folder), turbo_frame: "modal") %>
+        <%= render Button::Component.new(label: "Add videos", behavior: :navigation, link_url: new_folder_video_path(@folder), style: :secondary, turbo_frame: "modal") %>
         <%= render Dropdown::Component.new(position: :left, width: "w-48") do |dropdown| %>
           <% dropdown.with_trigger do %>
             <span class="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-white bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors">
@@ -81,7 +82,9 @@
     <% if @videos.any? %>
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         <% @videos.each do |video| %>
-          <%= render VideoCard::Component.new(video: video, show_episode_number: true) %>
+          <%= render VideoCard::Component.new(video: video, show_episode_number: true) do |card| %>
+            <% card.with_actions { render FolderMenu::Component.new(video: video, folders: current_user_folders) } %>
+          <% end %>
         <% end %>
       </div>
 
@@ -98,8 +101,11 @@
         <% elsif @folder.videos.none? %>
           <div data-folder-empty>
             <p class="text-lg mb-2">This folder is empty</p>
-            <p class="mb-4">Upload video files into it to start the series.</p>
-            <%= render Button::Component.new(label: "Upload videos", behavior: :navigation, link_url: new_folder_upload_path(@folder), turbo_frame: "modal") %>
+            <p class="mb-4">Upload video files into it, or add videos you already have.</p>
+            <div class="flex flex-wrap justify-center gap-3">
+              <%= render Button::Component.new(label: "Upload videos", behavior: :navigation, link_url: new_folder_upload_path(@folder), turbo_frame: "modal") %>
+              <%= render Button::Component.new(label: "Add videos you already have", behavior: :navigation, link_url: new_folder_video_path(@folder), style: :secondary, turbo_frame: "modal") %>
+            </div>
           </div>
         <% elsif @processing_count > 0 %>
           <p class="text-lg mb-2">

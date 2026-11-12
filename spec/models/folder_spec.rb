@@ -67,6 +67,20 @@ RSpec.describe Folder, type: :model do
     end
   end
 
+  describe "#videos_to_add" do
+    it "lists the owner's videos outside this folder, loose ones first, then by folder and title" do
+      folder = create(:folder, user: folder_owner = create(:user))
+      create(:video, user: folder_owner, folder: folder, title: "Already in")
+      create(:video, title: "Someone else's")
+      in_zulu = create(:video, user: folder_owner, folder: create(:folder, user: folder_owner, name: "Zulu"), title: "A")
+      in_alpha = create(:video, user: folder_owner, folder: create(:folder, user: folder_owner, name: "Alpha"), title: "B")
+      loose_b = create(:video, user: folder_owner, title: "Loose B")
+      loose_a = create(:video, :processing, user: folder_owner, title: "Loose A")
+
+      expect(folder.videos_to_add).to eq([loose_a, loose_b, in_alpha, in_zulu])
+    end
+  end
+
   describe "#remove_videos" do
     it "takes the folder's own videos out and leaves other folders' videos alone" do
       folder = create(:folder)

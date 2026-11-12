@@ -38,8 +38,18 @@ RSpec.describe VideoCard::Component, type: :component do
 
   it "links to video show page" do
     html = render_component(video: video)
-    link = html.at_css("a")
+    link = html.at_css("a.collection-card")
     expect(link["href"]).to eq("/videos/#{video.id}")
+  end
+
+  it "draws its actions beside the card link, never inside it" do
+    html = render_inline(described_class.new(video: video)) do |card|
+      card.with_actions { "<button data-test-action>Move</button>".html_safe }
+    end
+
+    action = html.at_css("[data-test-action]")
+    expect(action).to be_present
+    expect(action.ancestors("a")).to be_empty
   end
 
   it "includes collection-card class for view toggle support" do

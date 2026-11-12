@@ -181,6 +181,12 @@ A `Folder` is a series of videos, ordered by `season_number` and `episode_number
 - **Upload videos** opens `folder_uploads/new`: `bulk_upload_controller.js` direct-uploads the files, then `FolderVideoUploadService` files one video per blob in that folder, reading the season, episode and title from each file name (`FilenameEpisodeParser`). The page under the modal refreshes. The grid lists ready videos only, so the header counts the new ones as processing until `VideoConversionJob` finishes.
 - A video's folder must belong to the video's owner (`Video#folder_in_same_library`), whichever path sets it: the web form, the import API or Subsonic.
 - `Folder#cover` is the folder's own cover image, else its first ready episode's thumbnail. The card and the folder page both use it.
+- **Moving videos.** Every video card (TV grid, folder grid) and the video page carry `FolderMenu::Component`, drawn in `VideoCard`'s `actions` slot beside the card link. It lists the owner's folders (`current_user_folders`), marks the current one, and answers in place with a flash:
+  - Picking a folder sends `PATCH /videos/:id/folder`, and "Remove from X" sends `DELETE /videos/:id/folder` (`VideoFoldersController`).
+  - "New folder…" posts `folder[name]` with `video_ids[]` to `folders#create`, which then refreshes the page instead of visiting the new folder, as "New playlist…" does. A taken name explains itself in the flash.
+  - Its forms submit with `data-turbo-frame="_top"`, because the grids sit inside the `tv-content` and `folder-videos` frames.
+- **Add videos** on the folder page opens `folder_videos/new`, a checklist of `Folder#videos_to_add` (loose videos first, then other folders') filtered by `list_filter_controller.js`.
+- The video edit page sets `season_number` and `episode_number`, which order a folder's videos.
 - **Native apps manage folders over Subsonic** (`API::Subsonic::FoldersController`, documented in `docs/api/subsonic/video.md`): `getFolders`, `getFolder`, `createFolder`, `updateFolder` (`videoIdToAdd` / `videoIdToRemove`), `deleteFolder` and `getFolderCover`. Moving goes through `Folder#add_videos` / `#remove_videos`, all or nothing. Subsonic clients repeat a parameter without brackets (`videoId=1&videoId=2`), which Rails collapses to the last value, so `param_values` in the Subsonic base controller reads the raw query string and form body. A missing parameter answers error 10 and a validation failure error 0.
 
 ### Video Subtitles
@@ -230,6 +236,8 @@ When adding a new job, assign it to the appropriate queue via `queue_as` in the 
 - Standard RESTful: artists, albums, tracks, playlists, favorites, play_histories
 - `GET /track_uploads/new`, `POST /track_uploads` - Multi-file track upload into an album (`album_id`, or `artist_id` + `album_title`)
 - `GET /folders/:folder_id/uploads/new`, `POST /folders/:folder_id/uploads` - Multi-file video upload into a folder (optional `season_number`)
+- `GET /folders/:folder_id/videos/new`, `POST /folders/:folder_id/videos` - Pick existing videos to move into a folder (`video_ids[]`)
+- `PATCH`/`DELETE /videos/:video_id/folder` - Move one video into a folder (`folder_id`), or out of its folder
 - `POST /albums/:id/create_playlist` - Create playlist from album
 - `GET /tracks/:id/stream` - Audio streaming endpoint
 - `GET /search`, `GET /search/dropdown` - Search

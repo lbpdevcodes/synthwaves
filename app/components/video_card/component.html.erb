@@ -1,42 +1,49 @@
-<%= link_to helpers.url_for(video), class: "group block bg-gray-800/60 border border-gray-700 rounded-xl overflow-hidden hover:border-neon-cyan/50 hover:bg-gray-800 transition-all duration-200 collection-card", data: { turbo_frame: "_top" } do %>
-  <div class="collection-card-inner">
-  <div class="relative aspect-video bg-gray-900 collection-card-image">
-    <% if video.thumbnail.attached? %>
-      <%= image_tag video.thumbnail, class: "w-full h-full object-cover", loading: "lazy" %>
-    <% else %>
-      <div class="w-full h-full flex items-center justify-center">
-        <svg class="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/>
-        </svg>
-      </div>
-    <% end %>
-    <% if video.status == "processing" %>
-      <div class="absolute inset-0 bg-black/60 flex items-center justify-center">
-        <div class="w-6 h-6 border-2 border-neon-cyan border-t-transparent rounded-full animate-spin"></div>
-      </div>
-    <% elsif video.status == "failed" %>
-      <div class="absolute inset-0 bg-black/60 flex items-center justify-center">
-        <span class="text-red-400 text-xs font-medium">Failed</span>
-      </div>
-    <% end %>
-    <% if formatted_duration && video.status == "ready" %>
-      <div class="absolute bottom-1.5 right-1.5 px-1.5 py-0.5 bg-black/80 rounded text-xs text-white font-medium">
-        <%= formatted_duration %>
-      </div>
-    <% end %>
-    <% if resolution_label && video.status == "ready" %>
-      <div class="absolute top-1.5 right-1.5 px-1.5 py-0.5 bg-neon-cyan/20 border border-neon-cyan/30 rounded text-[10px] text-neon-cyan font-medium">
-        <%= resolution_label %>
-      </div>
-    <% end %>
-  </div>
-  <div class="p-3 collection-card-body">
-    <h3 class="text-sm font-medium text-white truncate group-hover:text-neon-cyan transition-colors">
-      <% if show_episode_number? %><span class="text-gray-400"><%= episode_label %></span> <% end %><%= video.title %>
-    </h3>
-    <% if video.description.present? %>
-      <p class="text-xs text-gray-400 truncate mt-0.5"><%= video.description %></p>
-    <% end %>
-  </div>
-  </div>
-<% end %>
+<div class="relative group/card">
+  <% if actions? %>
+    <div class="absolute top-2 left-2 z-10 opacity-0 group-hover/card:opacity-100 focus-within:opacity-100 coarse:opacity-100 transition-opacity">
+      <%= actions %>
+    </div>
+  <% end %>
+  <%= link_to helpers.url_for(video), class: "group block bg-gray-800/60 border border-gray-700 rounded-xl overflow-hidden hover:border-neon-cyan/50 hover:bg-gray-800 transition-all duration-200 collection-card", data: { turbo_frame: "_top" } do %>
+    <div class="collection-card-inner">
+    <div class="relative aspect-video bg-gray-900 collection-card-image">
+      <% if video.thumbnail.attached? %>
+        <%= image_tag video.thumbnail, class: "w-full h-full object-cover", loading: "lazy" %>
+      <% else %>
+        <div class="w-full h-full flex items-center justify-center">
+          <svg class="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+          </svg>
+        </div>
+      <% end %>
+      <% if video.status == "processing" %>
+        <div class="absolute inset-0 bg-black/60 flex items-center justify-center">
+          <div class="w-6 h-6 border-2 border-neon-cyan border-t-transparent rounded-full animate-spin"></div>
+        </div>
+      <% elsif video.status == "failed" %>
+        <div class="absolute inset-0 bg-black/60 flex items-center justify-center">
+          <span class="text-red-400 text-xs font-medium">Failed</span>
+        </div>
+      <% end %>
+      <% if formatted_duration && video.status == "ready" %>
+        <div class="absolute bottom-1.5 right-1.5 px-1.5 py-0.5 bg-black/80 rounded text-xs text-white font-medium">
+          <%= formatted_duration %>
+        </div>
+      <% end %>
+      <% if resolution_label && video.status == "ready" %>
+        <div class="absolute top-1.5 right-1.5 px-1.5 py-0.5 bg-neon-cyan/20 border border-neon-cyan/30 rounded text-[10px] text-neon-cyan font-medium">
+          <%= resolution_label %>
+        </div>
+      <% end %>
+    </div>
+    <div class="p-3 collection-card-body">
+      <h3 class="text-sm font-medium text-white truncate group-hover:text-neon-cyan transition-colors">
+        <% if show_episode_number? %><span class="text-gray-400"><%= episode_label %></span> <% end %><%= video.title %>
+      </h3>
+      <% if video.description.present? %>
+        <p class="text-xs text-gray-400 truncate mt-0.5"><%= video.description %></p>
+      <% end %>
+    </div>
+    </div>
+  <% end %>
+</div>

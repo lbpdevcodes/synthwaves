@@ -43,6 +43,37 @@ RSpec.describe "Folders", type: :request do
       expect(response).to have_http_status(:unprocessable_content)
       expect(Nokogiri::HTML(response.body).at_css("turbo-frame#modal dialog").text).to include("Name has already been taken")
     end
+
+    context "from a video's folder menu" do
+      let(:turbo) { {"Accept" => "text/vnd.turbo-stream.html, text/html"} }
+      let(:video) { create(:video, user: user) }
+
+      it "creates the folder, files the video in it, and stays on the page" do
+        post folders_path, params: {folder: {name: "The Wire"}, video_ids: [video.id]}, headers: turbo
+
+        expect(video.reload.folder).to eq(user.folders.find_by!(name: "The Wire"))
+        expect(Nokogiri::HTML(response.body).at_css("turbo-stream[action='refresh']:not([request-id])")).to be_present
+        expect(flash[:notice]).to eq("Created The Wire with 1 video.")
+      end
+
+      it "creates nothing and returns 404 for another user's video" do
+        expect {
+          post folders_path, params: {folder: {name: "The Wire"}, video_ids: [create(:video).id]}, headers: turbo
+        }.not_to change(Folder, :count)
+
+        expect(response).to have_http_status(:not_found)
+      end
+
+      it "stays on the page and says why when the name is taken" do
+        create(:folder, user: user, name: "The Wire")
+
+        post folders_path, params: {folder: {name: "The Wire"}, video_ids: [video.id]}, headers: turbo
+
+        expect(video.reload.folder).to be_nil
+        expect(Nokogiri::HTML(response.body).at_css("turbo-stream[action='refresh']")).to be_present
+        expect(flash[:notice]).to eq("Couldn't create the folder: Name has already been taken.")
+      end
+    end
   end
 
   describe "GET /folders/:id" do
@@ -56,9 +87,21 @@ RSpec.describe "Folders", type: :request do
       get folder_path(folder)
 
       expect(doc.at_css("a[href='#{new_folder_upload_path(folder)}']")["data-turbo-frame"]).to eq("modal")
+      expect(doc.at_css("a[href='#{new_folder_video_path(folder)}']")["data-turbo-frame"]).to eq("modal")
       expect(doc.at_css("a[href='#{edit_folder_path(folder)}']")["data-turbo-frame"]).to eq("modal")
       delete_form = doc.at_css("form[action='#{folder_path(folder)}']:has(input[value='delete'])")
       expect(delete_form["data-turbo-confirm"]).to eq('Delete "The Wire"?')
+    end
+
+    it "lets each video in the folder be taken out of it" do
+      folder = create(:folder, user: user, name: "The Wire")
+      video = create(:video, user: user, folder: folder)
+
+      get folder_path(folder)
+
+      remove = doc.css("form[action='#{video_folder_path(video)}']").find { |form| form.at_css("input[value='delete']") }
+      expect(remove.text).to include("Remove from The Wire")
+      expect(remove["data-turbo-frame"]).to eq("_top")
     end
 
     it "invites an upload when the folder is empty" do
@@ -69,6 +112,7 @@ RSpec.describe "Folders", type: :request do
       empty = doc.at_css("[data-folder-empty]")
       expect(empty.text).to include("This folder is empty")
       expect(empty.at_css("a[href='#{new_folder_upload_path(folder)}']")["data-turbo-frame"]).to eq("modal")
+      expect(empty.at_css("a[href='#{new_folder_video_path(folder)}']")["data-turbo-frame"]).to eq("modal")
     end
 
     it "says the videos are processing when none is ready yet" do
