@@ -121,7 +121,9 @@ Rails.application.routes.draw do
       resources :tracks, only: [:create]
       resources :playlists, only: [:create]
       resources :direct_uploads, only: [:create]
-      resources :videos, only: [:create]
+      resources :videos, only: [:create] do
+        resources :subtitles, only: [:create]
+      end
     end
   end
 
