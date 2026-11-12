@@ -56,6 +56,17 @@ RSpec.describe "Videos", type: :request do
       expect(response).to have_http_status(:ok)
     end
 
+    it "offers the folder menu beside Edit" do
+      folder = create(:folder, user: user, name: "The Wire")
+      video = create(:video, user: user, folder: folder)
+
+      get video_path(video)
+
+      doc = Nokogiri::HTML(response.body)
+      remove = doc.css("form[action='#{video_folder_path(video)}']").find { |form| form.at_css("input[value='delete']") }
+      expect(remove.text).to include("Remove from The Wire")
+    end
+
     it "shows processing state" do
       video = create(:video, :processing, user: user)
       get video_path(video)
@@ -95,6 +106,16 @@ RSpec.describe "Videos", type: :request do
   end
 
   describe "GET /videos/:id/edit" do
+    it "has season and episode fields" do
+      video = create(:video, user: user, season_number: 1, episode_number: 3)
+
+      get edit_video_path(video)
+
+      doc = Nokogiri::HTML(response.body)
+      expect(doc.at_css("input[name='video[season_number]']")["value"]).to eq("1")
+      expect(doc.at_css("input[name='video[episode_number]']")["value"]).to eq("3")
+    end
+
     it "lists the video's subtitles, each with a way to remove it" do
       video = create(:video, user: user)
       subtitle = create(:video_subtitle, video: video, label: "French (Canadian)")
@@ -147,6 +168,14 @@ RSpec.describe "Videos", type: :request do
       patch video_path(video), params: {video: {folder_id: folder.id}}
 
       expect(video.reload.folder).to eq(folder)
+    end
+
+    it "saves the season and episode, which order a folder's videos" do
+      video = create(:video, user: user)
+
+      patch video_path(video), params: {video: {season_number: "2", episode_number: "5"}}
+
+      expect(video.reload).to have_attributes(season_number: 2, episode_number: 5)
     end
 
     it "refuses to move a video into another user's folder" do

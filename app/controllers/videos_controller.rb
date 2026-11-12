@@ -70,6 +70,6 @@ class VideosController < ApplicationController
   end
 
   def video_params
-    params.require(:video).permit(:title, :description, :folder_id)
+    params.require(:video).permit(:title, :description, :folder_id, :season_number, :episode_number)
   end
 end

@@ -10,12 +10,8 @@ class FoldersController < ApplicationController
 
   def create
     @folder = Current.user.folders.new(folder_params)
-
-    if @folder.save
-      respond_created @folder, notice: "Created #{@folder.name}."
-    else
-      render :new, status: :unprocessable_content
-    end
+    videos = Current.user.videos.find(Array(params[:video_ids]))
+    save_with(videos) ? respond_to_create(videos) : respond_to_invalid(videos)
   end
 
   def show
@@ -59,6 +55,28 @@ class FoldersController < ApplicationController
   end
 
   private
+
+  def save_with(videos)
+    Folder.transaction { @folder.save && @folder.add_videos(videos) }
+  end
+
+  # A folder made from a video's menu (it arrives with video_ids) keeps the
+  # user on that page; one made from the New Folder form opens.
+  def respond_to_create(videos)
+    if videos.any?
+      respond_in_place "Created #{@folder.name} with #{helpers.pluralize(videos.size, "video")}.", fallback: @folder
+    else
+      respond_created @folder, notice: "Created #{@folder.name}."
+    end
+  end
+
+  def respond_to_invalid(videos)
+    if videos.any?
+      respond_in_place "Couldn't create the folder: #{@folder.errors.full_messages.to_sentence}.", fallback: tv_path(tab: "videos")
+    else
+      render :new, status: :unprocessable_content
+    end
+  end
 
   def deleted_notice
     moved = @folder.videos.count

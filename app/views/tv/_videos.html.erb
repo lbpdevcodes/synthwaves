@@ -47,6 +47,8 @@
   <% end %>
 
   <% @videos.each do |video| %>
-    <%= render VideoCard::Component.new(video: video) %>
+    <%= render VideoCard::Component.new(video: video) do |card| %>
+      <% card.with_actions { render FolderMenu::Component.new(video: video, folders: current_user_folders) } %>
+    <% end %>
   <% end %>
 <% end %>
