@@ -149,6 +149,16 @@ RSpec.describe "Videos", type: :request do
       expect(video.reload.folder).to eq(folder)
     end
 
+    it "refuses to move a video into another user's folder" do
+      foreign_folder = create(:folder, user: create(:user))
+      video = create(:video, user: user)
+
+      patch video_path(video), params: {video: {folder_id: foreign_folder.id}}
+
+      expect(response).to have_http_status(:unprocessable_content)
+      expect(video.reload.folder).to be_nil
+    end
+
     it "removes video from a folder" do
       folder = create(:folder, user: user)
       video = create(:video, user: user, folder: folder)

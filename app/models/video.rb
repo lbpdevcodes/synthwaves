@@ -19,6 +19,7 @@ class Video < ApplicationRecord
   has_many :subtitles, -> { order(:label) }, class_name: "VideoSubtitle", dependent: :destroy
 
   validates :title, presence: true
+  validate :folder_in_same_library, if: :folder
 
   scope :ready, -> { where(status: "ready") }
   scope :search, ->(q) { q.present? ? where("title LIKE ?", "%#{q}%") : all }
@@ -29,6 +30,10 @@ class Video < ApplicationRecord
   after_create_commit :convert_video
 
   private
+
+  def folder_in_same_library
+    errors.add(:folder, "must be one of your folders") if folder.user_id != user_id
+  end
 
   # A video filed ready (PreparedVideo) has nothing left to convert.
   def convert_video
