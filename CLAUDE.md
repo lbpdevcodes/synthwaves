@@ -284,7 +284,8 @@ Then it asks `POST /api/import/direct_uploads` for a presigned URL, PUTs the fil
 **Subtitles go up after the video.** Before uploading, the script lists the `.srt`/`.vtt` files that came with the video (`VideoImport::SubtitleFiles`): those in `Subs/` beside it or `Subs/<video name>/`, then those beside it named after it (`Heat.en.srt`). It looks beside the original file, never the temp encode, and sends a byte-identical file once. Once the video is filed, `VideoImport::SubtitleUpload` posts each to `POST /api/import/videos/:id/subtitles`. A refused file does not stop the rest; the script names it, points at the video's edit page, and exits 1.
 
 - The code is stdlib-only, in `lib/cli/video_import/`, which `autoload_lib` ignores so Rails never loads it.
-- One PUT has no resume: a dropped connection restarts from zero. S3-style storage caps one PUT at 5 GB; a larger file needs multipart upload, which nothing here supports yet.
+- One PUT has no resume: a dropped connection restarts from zero.
+- **Storage takes at most 5 GB in one PUT** (Linode answers `EntityTooLarge`), and nothing here uploads in parts (`VideoImport::UploadLimit`). Life Is Beautiful, a 10.4 GB H.264 rip, came to 8.4 GB with only its sound converted. So when the file to upload is over 5 GB, whether converted or kept as it is, the encoder encodes the video in full from the source instead, with `Conversion::FULL`, and says so. A 2-hour 1080p film usually comes to 2–4 GB that way. A file still over the limit, or one sent with `--no-encode`, is refused by `Importer` before it asks the server for anything.
 - `rake videos:push` (`lib/tasks/push_videos.rake`) is the older bulk path: it reads `credentials.remote`, walks a folder, re-encodes locally and **deletes each source file after upload**.
 
 ### A whole folder: `bin/import_videos`

@@ -3,10 +3,11 @@ module VideoImport
   # The encoder decides what goes up (the source, or a copy it encoded) and
   # what to file it with.
   class Importer
-    def initialize(api:, out:, encoder:)
+    def initialize(api:, out:, encoder:, limit: UploadLimit.new)
       @api = api
       @out = out
       @encoder = encoder
+      @limit = limit
     end
 
     def call(path, **video)
@@ -23,7 +24,10 @@ module VideoImport
       @api.register_video(signed_id, **video, **ready)
     end
 
+    # Storage would take the whole file before refusing one over the limit.
     def store(source)
+      raise Error, @limit.over(source) unless @limit.fits?(source)
+
       upload = @api.create_direct_upload(source)
       StorageUpload.new(url: upload.url, headers: upload.headers, out: @out).put(source)
       upload.signed_id

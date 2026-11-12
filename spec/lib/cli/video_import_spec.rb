@@ -119,6 +119,14 @@ RSpec.describe VideoImport::Importer do
       expect(WebMock).not_to have_requested(:any, /.*/)
     end
 
+    it "refuses a file larger than one upload takes, before asking the server for anything" do
+      too_small = VideoImport::UploadLimit.new(contents.bytesize - 1)
+      importer = described_class.new(api: api, out: out, encoder: VideoImport::PassThrough.new, limit: too_small)
+
+      expect { importer.call(@movie) }.to raise_error(VideoImport::Error, /\AHeat\.mkv is [\d.]+ GB, over the [\d.]+ GB storage takes in one upload\z/)
+      expect(WebMock).not_to have_requested(:any, /.*/)
+    end
+
     it "names the server's reason when the credentials are refused" do
       stub_request(:post, "#{host}/api/v1/auth/token")
         .to_return(status: 401, body: JSON.generate(error: "Invalid client_id or secret_key"))
