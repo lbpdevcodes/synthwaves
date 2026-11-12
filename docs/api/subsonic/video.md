@@ -73,18 +73,43 @@ Returns details for a single video.
       "title": "Episode 1",
       "duration": 3600,
       ...
+      "subtitles": [
+        {"id": "4", "label": "English (SDH)", "language": "en", "kind": "captions"},
+        {"id": "3", "label": "French", "language": "fr", "kind": "subtitles"}
+      ]
     }
   }
 }
 ```
 
-Uses the standard [video shape](README.md#video).
+Uses the standard [video shape](README.md#video), plus `subtitles`: the video's subtitle tracks by label, `[]` when it has none. `language` (an ISO 639-1 code) is left out when the file name didn't give one, and `kind` is `subtitles` or `captions`. Only `getVideo` lists them, so `getVideos` and `getFolder` don't read every track of every video. Fetch a track's text with [`getVideoSubtitle`](#getvideosubtitle).
 
 ### Errors
 
 | Code | Message | Cause |
 |------|---------|-------|
 | 70 | Video not found | Invalid video ID |
+
+---
+
+## `getVideoSubtitle`
+
+Returns one subtitle track of a video as WebVTT (`text/vtt`), the format the server stores every track in (SRT uploads are converted).
+
+**Path:** `/rest/getVideoSubtitle`
+
+### Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `videoId` | string | Yes | Video ID |
+| `id` | string | Yes | Subtitle ID, from the video's `subtitles` in [`getVideo`](#getvideo) |
+
+### Errors
+
+| Code | Message | Cause |
+|------|---------|-------|
+| 70 | Subtitle not found | The video isn't the user's, or the subtitle isn't that video's |
 
 ---
 

@@ -91,12 +91,64 @@ RSpec.describe "Subsonic Video API", type: :request do
       expect(v["seasonNumber"]).to eq(1)
     end
 
+    it "lists no subtitles for a video without any" do
+      video = create(:video, user: user)
+
+      get "/api/rest/getVideo", params: auth_params.merge(id: video.id)
+
+      expect(JSON.parse(response.body)["subsonic-response"]["video"]["subtitles"]).to eq([])
+    end
+
+    it "lists each subtitle's id, label, language and kind, by label" do
+      video = create(:video, user: user)
+      french = create(:video_subtitle, video: video, label: "French", language: "fr")
+      english = create(:video_subtitle, video: video, label: "English (SDH)", language: "en", kind: "captions")
+
+      get "/api/rest/getVideo", params: auth_params.merge(id: video.id)
+
+      expect(JSON.parse(response.body)["subsonic-response"]["video"]["subtitles"]).to eq([
+        {"id" => english.id.to_s, "label" => "English (SDH)", "language" => "en", "kind" => "captions"},
+        {"id" => french.id.to_s, "label" => "French", "language" => "fr", "kind" => "subtitles"}
+      ])
+    end
+
     it "returns error for nonexistent video" do
       get "/api/rest/getVideo", params: auth_params.merge(id: 999999)
 
       json = JSON.parse(response.body)
       expect(json["subsonic-response"]["status"]).to eq("failed")
       expect(json["subsonic-response"]["error"]["code"]).to eq(70)
+    end
+  end
+
+  describe "getVideoSubtitle" do
+    it "returns the subtitle's WebVTT" do
+      video = create(:video, user: user)
+      subtitle = create(:video_subtitle, video: video, vtt: "WEBVTT\n\n00:00:01.000 --> 00:00:02.000\nHola\n")
+
+      get "/api/rest/getVideoSubtitle", params: auth_params.merge(videoId: video.id, id: subtitle.id)
+
+      expect(response.media_type).to eq("text/vtt")
+      expect(response.body).to eq("WEBVTT\n\n00:00:01.000 --> 00:00:02.000\nHola\n")
+    end
+
+    it "returns error for another user's video" do
+      subtitle = create(:video_subtitle, video: create(:video, user: create(:user)))
+
+      get "/api/rest/getVideoSubtitle", params: auth_params.merge(videoId: subtitle.video_id, id: subtitle.id)
+
+      json = JSON.parse(response.body)
+      expect(json["subsonic-response"]["status"]).to eq("failed")
+      expect(json["subsonic-response"]["error"]).to eq("code" => 70, "message" => "Subtitle not found")
+    end
+
+    it "returns error for a subtitle of another video" do
+      video = create(:video, user: user)
+      subtitle = create(:video_subtitle, video: create(:video, user: user))
+
+      get "/api/rest/getVideoSubtitle", params: auth_params.merge(videoId: video.id, id: subtitle.id)
+
+      expect(JSON.parse(response.body)["subsonic-response"]["error"]["code"]).to eq(70)
     end
   end
 

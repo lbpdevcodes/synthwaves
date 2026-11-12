@@ -9,9 +9,16 @@ class API::Subsonic::VideoController < API::Subsonic::BaseController
 
   def get_video
     video = current_user.videos.find(params[:id])
-    render_subsonic(video: video_to_entry(video))
+    render_subsonic(video: Subsonic::VideoSerializer.to_detail(video))
   rescue ActiveRecord::RecordNotFound
     render_subsonic_error(70, "Video not found")
+  end
+
+  def get_video_subtitle
+    subtitle = current_user.videos.find(params[:videoId]).subtitles.find(params[:id])
+    render plain: subtitle.vtt, content_type: "text/vtt"
+  rescue ActiveRecord::RecordNotFound
+    render_subsonic_error(70, "Subtitle not found")
   end
 
   def stream
