@@ -2,6 +2,7 @@
 # real tools to mean anything (encoding, and what the server's conversion job
 # does with the result).
 require "json"
+require "tmpdir"
 
 module VideoClips
   module_function
@@ -29,6 +30,28 @@ module VideoClips
     data = JSON.parse(IO.popen(["ffprobe", "-v", "error", "-show_streams", "-show_format", "-of", "json", path], &:read))
     video, audio = %w[video audio].map { |type| data["streams"].find { |stream| stream["codec_type"] == type } }
     {video: video&.dig("codec_name"), audio: audio&.dig("codec_name"), channels: audio&.dig("channels"), container: data.dig("format", "format_name")}
+  end
+
+  # H.264 in Matroska with a text subtitle track inside it for each of
+  # tracks ({language:, title:, text:}), the way release MKVs carry them.
+  def with_subtitles(path, tracks)
+    Dir.mktmpdir do |scratch|
+      inputs = tracks.each_with_index.flat_map do |track, index|
+        srt = File.join(scratch, "#{index}.srt")
+        File.write(srt, "1\n00:00:00,000 --> 00:00:00,900\n#{track.fetch(:text)}\n")
+        ["-i", srt]
+      end
+      system("ffmpeg", "-v", "error", "-y", "-f", "lavfi", "-i", "testsrc2=s=320x240:r=24:d=1", "-f", "lavfi", "-i", "sine=d=1",
+        *inputs, "-map", "0:v", "-map", "1:a", *tracks.each_index.flat_map { |index| ["-map", "#{index + 2}:s"] },
+        "-c:v", "libx264", "-c:a", "aac", "-c:s", "srt", *subtitle_metadata(tracks), "-shortest", path, exception: true)
+    end
+    path
+  end
+
+  def subtitle_metadata(tracks)
+    tracks.each_with_index.flat_map do |track, index|
+      track.slice(:language, :title).flat_map { |key, value| ["-metadata:s:s:#{index}", "#{key}=#{value}"] }
+    end
   end
 
   # A hash of one stream's packets (:video or :audio). It changes when the

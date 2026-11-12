@@ -1,0 +1,61 @@
+#!/usr/bin/env ruby
+# Uploads every finished video in a folder to synthwaves.fm, one at a time,
+# the way bin/import_video uploads one: each is converted here first when the
+# server would convert it, and its subtitles go up after it.
+#
+# - Titles come from the file names (Dazed.and.Confused.1993.1080p.mkv is
+#   "Dazed and Confused"). Fix any in FOLDER/synthwaves-titles.txt, one
+#   "Theres Something About Mary = There's Something About Mary" per line.
+# - Every video the server files is written to FOLDER/synthwaves-uploaded.log,
+#   and a title in that log is never uploaded again, so a rerun is safe.
+# - A video still downloading (a .part file, or a file still being written)
+#   is skipped; rerun once it has finished.
+# - Subtitles: the files beside a video, or else the text tracks inside it.
+#
+# Usage:
+#   bin/import_videos ~/Movies --dry-run   # what it would upload, and why it skips the rest
+#   bin/import_videos ~/Movies
+#
+# Credentials come from an API key (create one at /api_keys):
+#   export SYNTHWAVES_CLIENT_ID=bc_...
+#   export SYNTHWAVES_SECRET_KEY=...
+
+require "optparse"
+require_relative "../lib/cli/video_import"
+
+def fail_with(message) = abort("import_videos: #{message}")
+
+options = {host: ENV.fetch("SYNTHWAVES_HOST", "https://synthwaves.fm"), dry_run: false}
+parser = OptionParser.new do |opts|
+  opts.banner = "Usage: bin/import_videos FOLDER [options]"
+  opts.on("--dry-run", "Say what it would upload and skip, and upload nothing") { options[:dry_run] = true }
+  opts.on("--host URL", "Default: ENV[SYNTHWAVES_HOST] or https://synthwaves.fm") { |v| options[:host] = v }
+end
+
+begin
+  parser.parse!
+rescue OptionParser::ParseError => e
+  fail_with(e.message)
+end
+
+folder = ARGV.first or abort(parser.help)
+folder = File.expand_path(folder)
+fail_with("no such folder: #{folder}") unless File.directory?(folder)
+
+importer = subtitle_upload = nil
+unless options[:dry_run]
+  client_id, secret_key = ENV.values_at("SYNTHWAVES_CLIENT_ID", "SYNTHWAVES_SECRET_KEY")
+  if [client_id, secret_key].any? { |value| value.to_s.empty? }
+    fail_with("set SYNTHWAVES_CLIENT_ID and SYNTHWAVES_SECRET_KEY (create an API key at /api_keys)")
+  end
+
+  api = VideoImport::API.new(host: options[:host], client_id: client_id, secret_key: secret_key)
+  importer = VideoImport::Importer.new(api: api, out: $stdout, encoder: VideoImport::Encoder.new(out: $stdout))
+  subtitle_upload = VideoImport::SubtitleUpload.new(api: api, out: $stdout)
+
+  # Keep the Mac from sleeping through a long run (macOS only).
+  Process.detach(Process.spawn("caffeinate", "-i", "-w", Process.pid.to_s)) if system("which", "caffeinate", out: File::NULL, err: File::NULL)
+end
+
+folder_import = VideoImport::FolderImport.new(folder: folder, out: $stdout, importer: importer, subtitle_upload: subtitle_upload)
+exit(folder_import.call(dry_run: options[:dry_run]) ? 0 : 1)

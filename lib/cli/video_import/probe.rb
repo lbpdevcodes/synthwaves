@@ -31,6 +31,8 @@ module VideoImport
 
     def duration = @data.dig("format", "duration").to_f
 
+    def subtitle_streams = @data.fetch("streams", []).select { |stream| stream["codec_type"] == "subtitle" }
+
     private
 
     def video_codec = stream("video")["codec_name"]
