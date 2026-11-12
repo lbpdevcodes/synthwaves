@@ -56,11 +56,12 @@ RSpec.describe "TV", type: :request do
         end
       end
 
-      it "leaves the TV player and the recordings stream out of the layout" do
+      it "leaves the TV player, its picture-in-picture box and the recordings stream out of the layout" do
         get tv_path
 
         doc = Nokogiri::HTML(response.body)
         expect(doc.at_css("[data-controller~='hls-player']")).to be_nil
+        expect(doc.at_css("#pip-player")).to be_nil
         expect(doc.css("turbo-cable-stream-source").map { |s| s["signed-stream-name"] })
           .not_to include(Turbo::StreamsChannel.signed_stream_name("recordings_#{user.id}"))
       end

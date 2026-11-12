@@ -17,7 +17,6 @@ ActiveSupport::Inflector.inflections(:en) do |inflect|
   # (CreateIPTVCategories, ChangeEPGProgrammeForeignKeyToNullify).
   inflect.acronym "IPTV"
   inflect.acronym "EPG"
-  inflect.acronym "PIP"
 end
 
 # These inflection rules are supported but not enabled by default:

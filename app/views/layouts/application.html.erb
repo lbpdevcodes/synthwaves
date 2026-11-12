@@ -40,7 +40,6 @@
     <%= render 'navbar' unless turbo_native_app? %>
     <%= render 'alerts' %>
     <%= turbo_frame_tag "modal" %>
-    <%= render PIP::Component.new %>
     <!-- Screensaver -->
     <div class="hidden fixed inset-0 z-[9998] bg-black" data-turbo-permanent data-controller="screensaver">
       <canvas data-screensaver-target="canvas" class="w-full h-full"></canvas>
