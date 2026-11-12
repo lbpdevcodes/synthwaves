@@ -19,6 +19,14 @@ module VideoImport
       post("api/import/videos", {signed_blob_id: signed_blob_id, **video}, failure: "video import rejected")
     end
 
+    # The bytes go base64-encoded: a subtitle file need not be UTF-8, and
+    # JSON must be. Array#pack, because Ruby 4 moved base64 out of the
+    # standard library.
+    def add_subtitle(video_id, path)
+      body = {filename: File.basename(path), content_base64: [File.binread(path)].pack("m0")}
+      post("api/import/videos/#{video_id}/subtitles", body, failure: "subtitle rejected")
+    end
+
     private
 
     attr_reader :host, :client_id, :secret_key

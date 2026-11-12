@@ -9,10 +9,16 @@
 # nothing expensive left to do. That needs ffmpeg (brew install ffmpeg);
 # --no-encode skips it and leaves the conversion to the server.
 #
+# Subtitle files that came with the video go up after it: .srt and .vtt files
+# in a Subs folder beside it (or Subs/<video name>/), and those beside it
+# named after it (Heat.en.srt). The player's captions menu lists each one.
+# --subtitle names the files instead; --no-subtitles sends none.
+#
 # Usage:
 #   bin/import_video ~/Movies/Heat.mkv
 #   bin/import_video ~/Movies/Heat.mkv --title "Heat (1995)"
 #   bin/import_video s01e02.mkv --folder "The Wire" --season 1 --episode 2
+#   bin/import_video Heat.mkv --subtitle Heat.English.srt --subtitle Heat.French.srt
 #
 # Credentials come from an API key (create one at /api_keys):
 #   export SYNTHWAVES_CLIENT_ID=bc_...
@@ -32,6 +38,10 @@ parser = OptionParser.new do |opts|
   opts.on("--season N", Integer, "Season number") { |v| video[:season_number] = v }
   opts.on("--episode N", Integer, "Episode number") { |v| video[:episode_number] = v }
   opts.on("--no-encode", "Upload as-is; the server converts it") { |v| options[:encode] = v }
+  opts.on("--subtitle PATH", "Send this subtitle file (repeatable); default: the ones found beside the video") do |v|
+    options[:subtitles] = (options[:subtitles] || []) << File.expand_path(v)
+  end
+  opts.on("--no-subtitles", "Send no subtitle files") { options[:subtitles] = [] }
   opts.on("--host URL", "Default: ENV[SYNTHWAVES_HOST] or https://synthwaves.fm") { |v| options[:host] = v }
 end
 
@@ -47,13 +57,24 @@ if [client_id, secret_key].any? { |value| value.to_s.empty? }
   fail_with("set SYNTHWAVES_CLIENT_ID and SYNTHWAVES_SECRET_KEY (create an API key at /api_keys)")
 end
 
+movie = File.expand_path(path)
+subtitles = options[:subtitles] || VideoImport::SubtitleFiles.beside(movie)
+subtitles.reject { |file| File.file?(file) }.each { |file| fail_with("no such subtitle file: #{file}") }
+puts "Subtitles: #{subtitles.empty? ? "none" : subtitles.map { |file| File.basename(file) }.join(", ")}"
+
 api = VideoImport::API.new(host: options[:host], client_id: client_id, secret_key: secret_key)
 encoder = options[:encode] ? VideoImport::Encoder.new(out: $stdout) : VideoImport::PassThrough.new
 begin
-  filed = VideoImport::Importer.new(api: api, out: $stdout, encoder: encoder).call(File.expand_path(path), **video)
+  filed = VideoImport::Importer.new(api: api, out: $stdout, encoder: encoder).call(movie, **video)
 rescue VideoImport::Error => e
   fail_with(e.message)
 end
 
 puts "Filed \"#{filed["title"]}\" as video #{filed["id"]} (#{filed["status"]})."
 puts "It appears under Watch → Videos once the server has converted it: #{options[:host]}/videos/#{filed["id"]}"
+
+failures = VideoImport::SubtitleUpload.new(api: api, out: $stdout).call(filed["id"], subtitles)
+unless failures.empty?
+  failures.each { |failure| warn "import_video: could not add #{failure}" }
+  fail_with("video #{filed["id"]} is uploaded; add the missing subtitles at #{options[:host]}/videos/#{filed["id"]}/edit")
+end
