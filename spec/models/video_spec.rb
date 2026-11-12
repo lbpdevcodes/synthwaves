@@ -98,5 +98,27 @@ RSpec.describe Video, type: :model do
 
       expect { video.save! }.to have_enqueued_job(VideoConversionJob).with(video.id)
     end
+
+    it "enqueues no conversion for a video filed ready" do
+      video = build(:video, status: "ready")
+      video.file.attach(io: StringIO.new("fake video"), filename: "test.mp4", content_type: "video/mp4")
+
+      expect { video.save! }.not_to have_enqueued_job(VideoConversionJob)
+    end
+
+    # ActiveStorage's video analyzer downloads the whole file to read it,
+    # and nothing reads what it finds: VideoConversionJob, or the details
+    # bin/import_video sends, fill the video's own columns.
+    it "never analyzes its file, which would download it" do
+      analyze = ActiveStorage.analyze
+      ActiveStorage.analyze = :later # production's default; the test environment analyzes lazily
+      uploaded = ActiveStorage::Blob.create_and_upload!(io: StringIO.new("fake video"), filename: "test.mp4", content_type: "video/mp4")
+      video = build(:video, status: "ready")
+      video.file.attach(uploaded) # a direct upload, as the import endpoint attaches it
+
+      expect { video.save! }.not_to have_enqueued_job(ActiveStorage::AnalyzeJob)
+    ensure
+      ActiveStorage.analyze = analyze
+    end
   end
 end

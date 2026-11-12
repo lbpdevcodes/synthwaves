@@ -73,7 +73,10 @@ RSpec.describe VideoImport::Importer do
   it "uploads the copy the encoder hands over, under the copy's name" do
     encoded = File.join(File.dirname(@movie), "Heat.mp4")
     File.binwrite(encoded, "encoded frames")
-    encoder = Class.new { define_method(:prepare) { |_source, &upload| upload.call(VideoImport::SourceFile.at(encoded)) } }.new
+    encoder = Class.new do
+      define_method(:prepare) { |_source, &upload| upload.call(VideoImport::SourceFile.at(encoded)) }
+      define_method(:ready_details) { |_source| {} }
+    end.new
     stub_successful_import
 
     described_class.new(api: api, out: out, encoder: encoder).call(@movie)

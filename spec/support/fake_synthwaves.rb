@@ -2,7 +2,8 @@ require "socket"
 require "json"
 
 # Plays synthwaves.fm and its storage for one run of the script: answers each
-# request by path, and refuses a subtitle file whose name mentions "notes".
+# request by path, files a video sent with its details ready, and refuses a
+# subtitle file whose name mentions "notes".
 class FakeSynthwaves
   attr_reader :requests
 
@@ -46,7 +47,7 @@ class FakeSynthwaves
     in ["POST", "/api/v1/auth/token"] then [200, {token: "token"}]
     in ["POST", "/api/import/direct_uploads"] then [201, {signed_id: "blob", direct_upload: {url: "#{url}/storage", headers: {}}}]
     in ["PUT", "/storage"] then [200, {}]
-    in ["POST", "/api/import/videos"] then [201, {id: 7, title: "Heat", status: "processing"}]
+    in ["POST", "/api/import/videos"] then [201, {id: 7, title: "Heat", status: JSON.parse(body).key?("details") ? "ready" : "processing"}]
     in ["POST", "/api/import/videos/7/subtitles"] then subtitle_reply(JSON.parse(body).fetch("filename"))
     end
   end

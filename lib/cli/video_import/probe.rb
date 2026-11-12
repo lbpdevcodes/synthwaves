@@ -2,7 +2,7 @@ module VideoImport
   # What ffprobe reports about a video file, read the way the server's
   # VideoMetadataExtractor reads it: the first video and audio streams.
   class Probe
-    # VideoConversionJob::MP4_CONTAINERS, matched against ffprobe's format name.
+    # VideoConversionStrategy::MP4_CONTAINERS, matched against ffprobe's format name.
     MP4_CONTAINERS = %w[mov,mp4,m4a,3gp,3g2,mj2 mp4 m4v].freeze
 
     def self.of(path, ffprobe:)
@@ -33,11 +33,21 @@ module VideoImport
 
     def subtitle_streams = @data.fetch("streams", []).select { |stream| stream["codec_type"] == "subtitle" }
 
+    # What the server's VideoMetadataExtractor reads from the same file.
+    def details
+      format = @data.fetch("format", {})
+      {duration: format["duration"]&.to_f, width: video["width"], height: video["height"],
+       video_codec: video_codec, audio_codec: audio["codec_name"], audio_channels: audio["channels"],
+       bitrate: format["bit_rate"] && format["bit_rate"].to_i / 1000, container: format["format_name"]}
+    end
+
     private
 
     def video_codec = stream("video")["codec_name"]
 
     def audio = stream("audio")
+
+    def video = stream("video")
 
     def container = @data.dig("format", "format_name").to_s
 
