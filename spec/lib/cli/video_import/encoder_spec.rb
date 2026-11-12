@@ -52,6 +52,56 @@ RSpec.describe VideoImport::Encoder do
     expect(copy.last).to include(video: "h264", audio: "aac", channels: 2, container: a_string_including("mp4"))
   end
 
+  context "when the file to upload would be larger than one upload takes" do
+    # Lossless H.264 is several times larger than the full encode's, so half
+    # its size is too small for the video copied as it is, and big enough for
+    # the video encoded in full.
+    def lossless(name, *audio) = VideoClips.make(File.join(@dir, name), "-c:v", "libx264", "-qp", "0", *audio)
+
+    def encoder_for(clip) = described_class.new(out: out, limit: VideoImport::UploadLimit.new(File.size(clip) / 2))
+
+    def handed_over_by(encoder, clip)
+      encoder.prepare(VideoImport::SourceFile.at(clip)) { |source| [source.byte_size, VideoClips.streams(source.path), VideoClips.stream_hash(source.path, :video)] }
+    end
+
+    it "encodes the video in full when converting only the sound leaves it too large" do
+      clip = lossless("lossless.mkv", "-c:a", "ac3", "-ac", "2")
+
+      size, streams, video = handed_over_by(encoder_for(clip), clip)
+
+      expect(size).to be <= File.size(clip) / 2
+      expect(streams).to include(video: "h264", audio: "aac", channels: 2, container: a_string_including("mp4"))
+      expect(video).not_to eq(VideoClips.stream_hash(clip, :video))
+    end
+
+    it "encodes a video in full only once, leaving one still too large for the upload to refuse" do
+      clip = VideoClips.mpeg4_surround(@dir)
+      encoder = described_class.new(out: out, limit: VideoImport::UploadLimit.new(1))
+
+      encoder.prepare(VideoImport::SourceFile.at(clip)) { |_source| }
+
+      expect(out.string.scan("Encoding clip.mkv: 100%").size).to eq(1)
+    end
+
+    it "says why it encodes the video in full" do
+      clip = lossless("lossless.mkv", "-c:a", "ac3", "-ac", "2")
+
+      encoder_for(clip).prepare(VideoImport::SourceFile.at(clip)) { |_source| }
+
+      expect(out.string).to match(/^lossless\.mp4 is [\d.]+ GB, over the [\d.]+ GB storage takes in one upload, so the video gets encoded in full$/)
+    end
+
+    it "encodes the video in full when the file the server would keep as it is is too large" do
+      clip = lossless("lossless.mp4", "-ac", "2")
+
+      size, streams, video = handed_over_by(encoder_for(clip), clip)
+
+      expect(size).to be <= File.size(clip) / 2
+      expect(streams).to include(video: "h264", audio: "aac", channels: 2, container: a_string_including("mp4"))
+      expect(video).not_to eq(VideoClips.stream_hash(clip, :video))
+    end
+  end
+
   it "reports how far the encoding has got" do
     encoder.prepare(VideoImport::SourceFile.at(VideoClips.mpeg4_surround(@dir))) { |_source| }
 
