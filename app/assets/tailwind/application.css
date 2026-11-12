@@ -157,6 +157,9 @@
 
 /* ===== View toggle: list mode overrides ===== */
 
+/* view_toggle_controller sets the mode on the grid itself, so match the grid
+   carrying it as well as a grid inside it. */
+.collection-grid[data-view-mode="list"],
 [data-view-mode="list"] .collection-grid {
   display: flex;
   flex-direction: column;
@@ -200,6 +203,32 @@
 
 [data-view-mode="list"] .collection-card-image-round {
   border-radius: 0.375rem;
+}
+
+[data-view-mode="list"] .collection-card-stack {
+  display: none;
+}
+
+/* Video and collection cards draw their border on the link itself rather
+   than on the inner box; flatten it the same way so the rows divide. */
+[data-view-mode="list"] .collection-card {
+  border-radius: 0;
+  border-left-width: 0;
+  border-right-width: 0;
+  border-top-width: 0;
+}
+
+/* A row's thumbnail is too small to carry a card's actions (always shown on
+   touch screens); put them at the row's right end, where a collection row
+   keeps its edit pencil, and open their menu leftward. */
+[data-view-mode="list"] .collection-card-actions {
+  left: auto;
+  right: 0.5rem;
+}
+
+[data-view-mode="list"] .collection-card-actions [data-dropdown-target="menu"] {
+  left: auto;
+  right: 0;
 }
 
 /* Fullscreen now-playing background */

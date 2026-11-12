@@ -15,27 +15,37 @@ RSpec.describe FolderCard::Component, type: :component do
     expect(html.text).to include("My Show")
   end
 
-  it "renders video count" do
-    create(:video, user: user, folder: folder)
-    create(:video, user: user, folder: folder)
-
-    html = render_component(folder: folder)
-    expect(html.text).to include("2 videos")
+  def count_line(html)
+    html.at_css(".collection-card-body p")&.text&.strip
   end
 
-  it "renders singular video count" do
-    create(:video, user: user, folder: folder)
+  it "counts its videos on the card body, which list mode still shows" do
+    create_list(:video, 2, user: user, folder: folder)
 
-    html = render_component(folder: folder)
-    expect(html.text).to include("1 video")
+    expect(count_line(render_component(folder: folder))).to eq("2 videos")
   end
 
-  it "renders season count" do
+  it "counts a single video in the singular" do
+    create(:video, user: user, folder: folder)
+
+    expect(count_line(render_component(folder: folder))).to eq("1 video")
+  end
+
+  it "counts seasons and videos together" do
     create(:video, user: user, folder: folder, season_number: 1)
     create(:video, user: user, folder: folder, season_number: 2)
 
+    expect(count_line(render_component(folder: folder))).to eq("2 seasons · 2 videos")
+  end
+
+  it "says it is empty when it holds no videos" do
+    expect(count_line(render_component(folder: folder))).to eq("Empty")
+  end
+
+  it "draws a stacked edge behind the card so it reads as a collection" do
     html = render_component(folder: folder)
-    expect(html.text).to include("2 seasons")
+
+    expect(html.css(".collection-card-stack").size).to eq(2)
   end
 
   it "links to folder show page" do

@@ -100,7 +100,7 @@
           <p>Try adjusting your search or filters.</p>
         <% elsif @folder.videos.none? %>
           <div data-folder-empty>
-            <p class="text-lg mb-2">This folder is empty</p>
+            <p class="text-lg mb-2">This collection is empty</p>
             <p class="mb-4">Upload video files into it, or add videos you already have.</p>
             <div class="flex flex-wrap justify-center gap-3">
               <%= render Button::Component.new(label: "Upload videos", behavior: :navigation, link_url: new_folder_upload_path(@folder), turbo_frame: "modal") %>
@@ -113,7 +113,7 @@
           </p>
         <% else %>
           <p class="text-lg mb-2">No ready videos</p>
-          <p><%= pluralize(@failed_count, "video") %> in this folder failed to process.</p>
+          <p><%= pluralize(@failed_count, "video") %> in this collection failed to process.</p>
         <% end %>
       </div>
     <% end %>

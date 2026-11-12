@@ -1,4 +1,4 @@
-<%= render layout: "shared/modal_or_page", locals: {title: "Edit Folder"} do %>
+<%= render layout: "shared/modal_or_page", locals: {title: "Edit Collection"} do %>
   <%= render "form", folder: @folder, cancel_path: folder_path(@folder) %>
   <%= render "shared/delete_record", url: folder_path(@folder), confirm: folder_delete_confirmation(@folder) %>
 <% end %>

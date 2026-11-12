@@ -1,6 +1,10 @@
 <div class="relative group/card">
+  <%# Two card edges peeking out above, so a collection reads as many videos.
+      List mode hides them. %>
+  <div aria-hidden="true" class="collection-card-stack absolute inset-x-4 -top-2 h-1 rounded-t-lg border border-b-0 border-gray-700/70 bg-gray-800/40"></div>
+  <div aria-hidden="true" class="collection-card-stack absolute inset-x-2 -top-1 h-1 rounded-t-lg border border-b-0 border-gray-700 bg-gray-800/60"></div>
   <%= render "shared/card_edit_link", url: helpers.edit_folder_path(folder), name: folder.name %>
-  <%= link_to helpers.folder_path(folder), class: "group block bg-gray-800/60 border border-gray-700 rounded-xl overflow-hidden hover:border-neon-cyan/50 hover:bg-gray-800 transition-all duration-200 collection-card", data: { turbo_frame: "_top" } do %>
+  <%= link_to helpers.folder_path(folder), class: "relative group block h-full bg-gray-800/60 border border-gray-700 rounded-xl overflow-hidden hover:border-neon-cyan/50 hover:bg-gray-800 transition-all duration-200 collection-card", data: { turbo_frame: "_top" } do %>
     <div class="collection-card-inner">
       <div class="relative aspect-video bg-gray-900 collection-card-image">
         <% if (cover = folder.cover) %>
@@ -12,15 +16,10 @@
             </svg>
           </div>
         <% end %>
-        <div class="absolute bottom-1.5 right-1.5 px-1.5 py-0.5 bg-black/80 rounded text-xs text-white font-medium">
-          <%= video_count %> video<%= "s" unless video_count == 1 %>
-        </div>
       </div>
       <div class="p-3 collection-card-body">
         <h3 class="text-sm font-medium text-white truncate group-hover:text-neon-cyan transition-colors"><%= folder.name %></h3>
-        <% if season_count > 0 %>
-          <p class="text-xs text-gray-400 mt-0.5"><%= season_count %> season<%= "s" unless season_count == 1 %></p>
-        <% end %>
+        <p class="text-xs text-gray-400 truncate mt-0.5"><%= count_line %></p>
       </div>
     </div>
   <% end %>

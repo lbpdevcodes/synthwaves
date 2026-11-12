@@ -76,4 +76,37 @@ RSpec.describe VideoCard::Component, type: :component do
       expect(html.text).not_to include("E")
     end
   end
+
+  context "with show_folder" do
+    let(:user) { create(:user) }
+
+    def second_line(video, show_folder: true)
+      html = render_inline(described_class.new(video: video, show_folder: show_folder))
+      html.at_css(".collection-card-body p")&.text&.strip
+    end
+
+    def episode(folder_name, **attrs)
+      create(:video, user: user, description: "A description", folder: create(:folder, user: user, name: folder_name), **attrs)
+    end
+
+    it "names the collection with the season and episode" do
+      expect(second_line(episode("South Park", season_number: 3, episode_number: 2))).to eq("South Park · S3E2")
+    end
+
+    it "names the collection with the episode alone when there is no season" do
+      expect(second_line(episode("Batman", episode_number: 2))).to eq("Batman · E2")
+    end
+
+    it "names the collection alone when the video has no episode number" do
+      expect(second_line(episode("Batman"))).to eq("Batman")
+    end
+
+    it "keeps the description for a video in no collection" do
+      expect(second_line(create(:video, user: user, description: "A description"))).to eq("A description")
+    end
+
+    it "keeps the description when the option is off" do
+      expect(second_line(episode("Batman"), show_folder: false)).to eq("A description")
+    end
+  end
 end

@@ -2,11 +2,11 @@
   <% if actions? %>
     <%# Lifted above the other cards' controls while in use, so an open menu
         that reaches the next row isn't painted over by that row's buttons. %>
-    <div class="absolute top-2 left-2 z-10 group-hover/card:z-20 focus-within:z-20 opacity-0 group-hover/card:opacity-100 focus-within:opacity-100 coarse:opacity-100 transition-opacity">
+    <div class="collection-card-actions absolute top-2 left-2 z-10 group-hover/card:z-20 focus-within:z-20 opacity-0 group-hover/card:opacity-100 focus-within:opacity-100 coarse:opacity-100 transition-opacity">
       <%= actions %>
     </div>
   <% end %>
-  <%= link_to helpers.url_for(video), class: "group block bg-gray-800/60 border border-gray-700 rounded-xl overflow-hidden hover:border-neon-cyan/50 hover:bg-gray-800 transition-all duration-200 collection-card", data: { turbo_frame: "_top" } do %>
+  <%= link_to helpers.url_for(video), class: "group block h-full bg-gray-800/60 border border-gray-700 rounded-xl overflow-hidden hover:border-neon-cyan/50 hover:bg-gray-800 transition-all duration-200 collection-card", data: { turbo_frame: "_top" } do %>
     <div class="collection-card-inner">
     <div class="relative aspect-video bg-gray-900 collection-card-image">
       <% if video.thumbnail.attached? %>
@@ -42,8 +42,8 @@
       <h3 class="text-sm font-medium text-white truncate group-hover:text-neon-cyan transition-colors">
         <% if show_episode_number? %><span class="text-gray-400"><%= episode_label %></span> <% end %><%= video.title %>
       </h3>
-      <% if video.description.present? %>
-        <p class="text-xs text-gray-400 truncate mt-0.5"><%= video.description %></p>
+      <% if (line = second_line) %>
+        <p class="text-xs text-gray-400 truncate mt-0.5"><%= line %></p>
       <% end %>
     </div>
     </div>

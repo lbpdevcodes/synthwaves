@@ -29,3 +29,8 @@
 
 en:
   hello: "Hello world"
+
+  favorites:
+    kinds:
+      # The web UI calls folders collections.
+      folder: "Collection"

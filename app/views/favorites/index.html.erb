@@ -6,7 +6,7 @@
       <% @favorites.each do |favorite| %>
         <div class="bg-gray-800 rounded-lg border border-gray-700 p-4 flex items-center justify-between hover:bg-gray-700">
           <div>
-            <span class="text-xs text-gray-400 uppercase"><%= favorite.favorable_type %></span>
+            <span class="text-xs text-gray-400 uppercase"><%= t("favorites.kinds.#{favorite.favorable_type.underscore}", default: favorite.favorable_type) %></span>
             <div class="font-medium text-white">
               <% case favorite.favorable %>
               <% when Track %>

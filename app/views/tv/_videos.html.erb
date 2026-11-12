@@ -1,54 +1,35 @@
 <%= render CollectionLayout::Component.new(
-  collection: @videos,
+  collection: @items,
   page_key: "tv-videos",
   form_url: tv_path,
   turbo_frame: "tv-content",
   tab: "videos",
   placeholder: "Search videos...",
   query: @query,
+  sort_options: VideoLibrary::SORTS,
+  sort: @sort,
+  direction: @direction,
   pagy: @pagy,
   container_classes: "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 collection-grid",
   empty_label: "videos"
 ) do |c| %>
-  <% c.with_before_grid do %>
-    <% if @folders.any? %>
-      <div class="mb-8">
-        <h2 class="text-lg font-bold font-display text-white mb-4">Folders</h2>
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 collection-grid" data-view-toggle-target="container">
-          <% @folders.each do |folder| %>
-            <%= render FolderCard::Component.new(folder: folder) %>
-          <% end %>
-        </div>
-      </div>
-      <% if @videos.any? %>
-        <h2 class="text-lg font-bold font-display text-white mb-4">Videos</h2>
-      <% end %>
-    <% end %>
-  <% end %>
-
   <% c.with_empty_state do %>
-    <% if @folders.empty? %>
-      <div class="text-center py-16 text-gray-400" data-empty-library>
-        <svg class="w-16 h-16 mx-auto mb-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/>
-        </svg>
-        <% if @query.present? %>
-          <p class="text-lg mb-2">No videos found</p>
-          <p>Try a different search query.</p>
-        <% else %>
-          <p class="text-lg mb-2">No videos yet</p>
-          <p>
-            <%= link_to "Upload a video", new_video_path, class: "text-neon-cyan hover:underline", data: { turbo_frame: "_top" } %>,
-            or <%= link_to "create a folder", new_folder_path, class: "text-neon-cyan hover:underline", data: { turbo_frame: "modal" } %> for a series.
-          </p>
-        <% end %>
-      </div>
-    <% end %>
+    <div class="text-center py-16 text-gray-400" data-empty-library>
+      <svg class="w-16 h-16 mx-auto mb-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+      </svg>
+      <% if @query.present? %>
+        <p class="text-lg mb-2">No videos found</p>
+        <p>Try a different search query.</p>
+      <% else %>
+        <p class="text-lg mb-2">No videos yet</p>
+        <p>
+          <%= link_to "Upload a video", new_video_path, class: "text-neon-cyan hover:underline", data: { turbo_frame: "_top" } %>,
+          or <%= link_to "create a collection", new_folder_path, class: "text-neon-cyan hover:underline", data: { turbo_frame: "modal" } %> for a series.
+        </p>
+      <% end %>
+    </div>
   <% end %>
 
-  <% @videos.each do |video| %>
-    <%= render VideoCard::Component.new(video: video) do |card| %>
-      <% card.with_actions { render FolderMenu::Component.new(video: video, folders: current_user_folders) } %>
-    <% end %>
-  <% end %>
+  <%= render @items %>
 <% end %>

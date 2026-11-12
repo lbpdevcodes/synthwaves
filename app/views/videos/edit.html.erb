@@ -23,8 +23,8 @@
     </div>
 
     <div>
-      <%= f.label :folder_id, "Folder", class: "block text-sm font-medium text-gray-400 mb-1" %>
-      <%= f.collection_select :folder_id, @folders, :id, :name, { include_blank: "(No folder)" }, class: "w-full rounded-lg bg-gray-800 border-gray-700 text-white focus:outline-neon-cyan px-3 py-2 text-sm border" %>
+      <%= f.label :folder_id, "Collection", class: "block text-sm font-medium text-gray-400 mb-1" %>
+      <%= f.collection_select :folder_id, @folders, :id, :name, { include_blank: "(No collection)" }, class: "w-full rounded-lg bg-gray-800 border-gray-700 text-white focus:outline-neon-cyan px-3 py-2 text-sm border" %>
     </div>
 
     <div class="grid grid-cols-2 gap-3">
@@ -36,7 +36,7 @@
         <%= f.label :episode_number, "Episode", class: "block text-sm font-medium text-gray-400 mb-1" %>
         <%= f.number_field :episode_number, min: 0, class: "w-full rounded-lg bg-gray-800 border-gray-700 text-white focus:outline-neon-cyan px-3 py-2 text-sm border" %>
       </div>
-      <p class="col-span-2 -mt-1 text-xs text-gray-500">A folder lists its videos in season and episode order.</p>
+      <p class="col-span-2 -mt-1 text-xs text-gray-500">A collection lists its videos in season and episode order.</p>
     </div>
 
     <div>
