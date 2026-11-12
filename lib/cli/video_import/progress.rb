@@ -1,12 +1,10 @@
 module VideoImport
-  # Wraps the file being uploaded and prints how much of it has been read.
+  # Wraps the file being uploaded and moves a Meter as it is read.
   # Net::HTTP pulls the request body through #read, so bytes read are bytes sent.
   class Progress
-    def initialize(io, total:, label:, out:)
+    def initialize(io, meter)
       @io = io
-      @total = [total, 1].max
-      @label = label
-      @out = out
+      @meter = meter
       @sent = 0
     end
 
@@ -18,8 +16,7 @@ module VideoImport
 
     def advance(bytes)
       @sent += bytes
-      @out.print("\r#{@label}: #{(@sent * 100 / @total).to_s.rjust(3)}%")
-      @out.puts if @sent >= @total
+      @meter.update(@sent)
     end
   end
 end

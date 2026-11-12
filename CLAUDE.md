@@ -238,9 +238,12 @@ The browser upload at `/videos/new` posts the whole file through Rails in one re
 ```bash
 bin/import_video ~/Movies/Heat.mkv [--title T]
 bin/import_video s01e02.mkv --folder "The Wire" --season 1 --episode 2
+bin/import_video clip.webm --no-encode   # skip the local encode; the server converts
 ```
 
-It asks `POST /api/import/direct_uploads` for a presigned URL, PUTs the file straight to object storage as one stream (Rails never sees the bytes, memory stays flat), then files it with `POST /api/import/videos`. Each API call fetches a fresh JWT, so an upload longer than the token's hour still files. The source file is never deleted. `VideoConversionJob` converts it server-side; it shows under Watch → Videos once `ready`.
+**It encodes locally first.** The production server has 1 CPU, and `VideoConversionJob`'s `:full` path (any video that is not H.264) re-encodes the whole film there: hours for a feature. So the script probes the file with ffprobe and, when the video is not H.264, encodes a temporary MP4 with `convert_to_mp4`'s exact arguments (`Encoder::SERVER_SETTINGS`), uploads that and deletes it. The server then finds nothing to convert and only grabs a thumbnail. An H.264 file uploads as-is: the server's remaining paths for it (remux, audio-only) are cheap. Needs ffmpeg (`brew install ffmpeg`). `spec/lib/cli/video_import/server_agreement_spec.rb` runs the real `VideoConversionJob` on the script's output, so changing the server's conversion settings without the script's fails a spec.
+
+Then it asks `POST /api/import/direct_uploads` for a presigned URL, PUTs the file straight to object storage as one stream (Rails never sees the bytes, memory stays flat), and files it with `POST /api/import/videos`. Each API call fetches a fresh JWT, so an upload longer than the token's hour still files. The source file is never deleted or changed. It shows under Watch → Videos once `ready`.
 
 - The code is stdlib-only, in `lib/cli/video_import/`, which `autoload_lib` ignores so Rails never loads it.
 - One PUT has no resume: a dropped connection restarts from zero. S3-style storage caps one PUT at 5 GB; a larger file needs multipart upload, which nothing here supports yet.

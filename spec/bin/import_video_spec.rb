@@ -1,6 +1,8 @@
 require "open3"
 require "rbconfig"
 require "tmpdir"
+require "fileutils"
+require_relative "../support/video_clips"
 
 RSpec.describe "bin/import_video" do
   let(:script) { File.expand_path("../../bin/import_video", __dir__) }
@@ -31,6 +33,29 @@ RSpec.describe "bin/import_video" do
 
     expect(err).to include("import_video: no such file: #{missing}")
     expect(status.exitstatus).to eq(1)
+  end
+
+  context "with a file ffprobe cannot read" do
+    let(:dir) { Dir.mktmpdir }
+    let(:notes) { File.join(dir, "notes.mkv").tap { |path| File.write(path, "not a video") } }
+    let(:dead_host) { "http://127.0.0.1:9" }
+
+    after { FileUtils.rm_rf(dir) }
+
+    it "checks the file with ffprobe before uploading anything" do
+      skip "needs ffmpeg and ffprobe on PATH" unless VideoClips.tools?
+      _out, err, status = run_script(notes, "--host", dead_host)
+
+      expect(err).to include("import_video: could not read #{notes} as a video")
+      expect(status.exitstatus).to eq(1)
+    end
+
+    it "uploads it untouched with --no-encode, leaving conversion to the server" do
+      _out, err, status = run_script(notes, "--no-encode", "--host", dead_host)
+
+      expect(err).to include("import_video: connection to 127.0.0.1 failed")
+      expect(status.exitstatus).to eq(1)
+    end
   end
 
   it "names an option it cannot read and fails" do

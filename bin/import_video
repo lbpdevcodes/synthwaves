@@ -4,6 +4,11 @@
 # a presigned URL, so a large file never passes through the Rails server and
 # never sits whole in memory. The source file is left where it is.
 #
+# A video that is not H.264 is first encoded here, into a temporary MP4 with
+# the server's own conversion settings, so the small production server has
+# nothing expensive left to do. That needs ffmpeg (brew install ffmpeg);
+# --no-encode skips it and leaves the conversion to the server.
+#
 # Usage:
 #   bin/import_video ~/Movies/Heat.mkv
 #   bin/import_video ~/Movies/Heat.mkv --title "Heat (1995)"
@@ -18,7 +23,7 @@ require_relative "../lib/cli/video_import"
 
 def fail_with(message) = abort("import_video: #{message}")
 
-options = {host: ENV.fetch("SYNTHWAVES_HOST", "https://synthwaves.fm")}
+options = {host: ENV.fetch("SYNTHWAVES_HOST", "https://synthwaves.fm"), encode: true}
 video = {}
 parser = OptionParser.new do |opts|
   opts.banner = "Usage: bin/import_video PATH [options]"
@@ -26,6 +31,7 @@ parser = OptionParser.new do |opts|
   opts.on("--folder NAME", "File it in a folder (a series), created if missing") { |v| video[:folder_name] = v }
   opts.on("--season N", Integer, "Season number") { |v| video[:season_number] = v }
   opts.on("--episode N", Integer, "Episode number") { |v| video[:episode_number] = v }
+  opts.on("--no-encode", "Upload as-is; the server converts it") { |v| options[:encode] = v }
   opts.on("--host URL", "Default: ENV[SYNTHWAVES_HOST] or https://synthwaves.fm") { |v| options[:host] = v }
 end
 
@@ -42,8 +48,9 @@ if [client_id, secret_key].any? { |value| value.to_s.empty? }
 end
 
 api = VideoImport::API.new(host: options[:host], client_id: client_id, secret_key: secret_key)
+encoder = options[:encode] ? VideoImport::Encoder.new(out: $stdout) : VideoImport::PassThrough.new
 begin
-  filed = VideoImport::Importer.new(api: api, out: $stdout).call(File.expand_path(path), **video)
+  filed = VideoImport::Importer.new(api: api, out: $stdout, encoder: encoder).call(File.expand_path(path), **video)
 rescue VideoImport::Error => e
   fail_with(e.message)
 end

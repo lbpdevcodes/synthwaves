@@ -9,7 +9,7 @@ RSpec.describe VideoImport::Importer do
   let(:signed_headers) { {"Content-Type" => "video/x-matroska", "Content-MD5" => "signed-md5"} }
   let(:out) { StringIO.new }
   let(:api) { VideoImport::API.new(host: host, client_id: "bc_id", secret_key: "secret") }
-  let(:importer) { described_class.new(api: api, out: out) }
+  let(:importer) { described_class.new(api: api, out: out, encoder: VideoImport::PassThrough.new) }
   let(:contents) { "frame" * 20 }
 
   around do |example|
@@ -68,6 +68,18 @@ RSpec.describe VideoImport::Importer do
       filename: "Heat.mkv", byte_size: contents.bytesize,
       checksum: Digest::MD5.base64digest(contents), content_type: "video/x-matroska"
     })
+  end
+
+  it "uploads the copy the encoder hands over, under the copy's name" do
+    encoded = File.join(File.dirname(@movie), "Heat.mp4")
+    File.binwrite(encoded, "encoded frames")
+    encoder = Class.new { define_method(:prepare) { |_source, &upload| upload.call(VideoImport::SourceFile.at(encoded)) } }.new
+    stub_successful_import
+
+    described_class.new(api: api, out: out, encoder: encoder).call(@movie)
+
+    expect(WebMock).to have_requested(:post, "#{host}/api/import/direct_uploads").with(body: hash_including(filename: "Heat.mp4"))
+    expect(WebMock).to have_requested(:put, upload_url).with(body: "encoded frames")
   end
 
   it "files the uploaded blob with the title, folder, season and episode given" do
