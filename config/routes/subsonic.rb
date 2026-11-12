@@ -32,6 +32,10 @@ SUBSONIC_ENDPOINTS = {
   "getPlaybackPosition" => "video#get_playback_position",
   "getFolders" => "folders#get_folders",
   "getFolder" => "folders#get_folder",
+  "createFolder" => "folders#create_folder",
+  "updateFolder" => "folders#update_folder",
+  "deleteFolder" => "folders#delete_folder",
+  "getFolderCover" => "folders#get_folder_cover",
   "getInternetRadioStations" => "radio#get_internet_radio_stations"
 }.freeze
 

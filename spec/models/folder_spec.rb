@@ -47,6 +47,40 @@ RSpec.describe Folder, type: :model do
     end
   end
 
+  describe "#add_videos" do
+    it "files each video in the folder, moving it out of any other" do
+      folder = create(:folder)
+      loose = create(:video, user: folder.user)
+      elsewhere = create(:video, user: folder.user, folder: create(:folder, user: folder.user))
+
+      folder.add_videos([loose, elsewhere])
+
+      expect(folder.videos.reload).to contain_exactly(loose, elsewhere)
+    end
+
+    it "files none of them when one belongs to another user" do
+      folder = create(:folder)
+      mine = create(:video, user: folder.user)
+
+      expect { folder.add_videos([mine, create(:video)]) }.to raise_error(ActiveRecord::RecordInvalid)
+      expect(mine.reload.folder).to be_nil
+    end
+  end
+
+  describe "#remove_videos" do
+    it "takes the folder's own videos out and leaves other folders' videos alone" do
+      folder = create(:folder)
+      inside = create(:video, user: folder.user, folder: folder)
+      other_folder = create(:folder, user: folder.user)
+      elsewhere = create(:video, user: folder.user, folder: other_folder)
+
+      folder.remove_videos([inside, elsewhere])
+
+      expect(inside.reload.folder).to be_nil
+      expect(elsewhere.reload.folder).to eq(other_folder)
+    end
+  end
+
   describe ".search" do
     it "returns folders matching by name" do
       matching = create(:folder, name: "Season One")

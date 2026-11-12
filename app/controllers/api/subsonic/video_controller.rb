@@ -34,16 +34,7 @@ class API::Subsonic::VideoController < API::Subsonic::BaseController
 
   def get_thumbnail
     video = current_user.videos.find(params[:id])
-    if video.thumbnail.attached?
-      if params[:size].present?
-        variant = video.thumbnail.variant(resize_to_fill: [params[:size].to_i, params[:size].to_i])
-        redirect_to rails_representation_url(variant), allow_other_host: true
-      else
-        redirect_to rails_blob_url(video.thumbnail), allow_other_host: true
-      end
-    else
-      head :not_found
-    end
+    video.thumbnail.attached? ? redirect_to_image(video.thumbnail) : head(:not_found)
   rescue ActiveRecord::RecordNotFound
     head :not_found
   end
@@ -66,19 +57,5 @@ class API::Subsonic::VideoController < API::Subsonic::BaseController
     render_subsonic(playbackPosition: {id: video.id.to_s, position: position&.position || 0})
   rescue ActiveRecord::RecordNotFound
     render_subsonic_error(70, "Video not found")
-  end
-
-  private
-
-  def rails_blob_url(blob)
-    Rails.application.routes.url_helpers.rails_blob_url(
-      blob, host: request.host_with_port, protocol: request.scheme
-    )
-  end
-
-  def rails_representation_url(variant)
-    Rails.application.routes.url_helpers.rails_representation_url(
-      variant, host: request.host_with_port, protocol: request.scheme
-    )
   end
 end

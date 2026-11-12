@@ -74,6 +74,8 @@ Error responses set `status` to `"failed"` and include an `error` object:
 
 | Code | Meaning |
 |------|---------|
+| 0 | Generic error, such as a validation failure. The message gives the reason. |
+| 10 | Required parameter is missing |
 | 40 | Wrong username or password |
 | 70 | Resource not found |
 
@@ -130,7 +132,7 @@ Returned by `getArtist` (as `album`), `getAlbum`, `getAlbumList2`, `search3`, an
 
 ### `video`
 
-Returned by `getVideos`, `getVideo`, and `getFolder`.
+Returned by `getVideos`, `getVideo`, and in a folder's `video` list (`getFolder`, `createFolder`, `updateFolder`).
 
 ```json
 {
@@ -160,4 +162,4 @@ Returned by `getVideos`, `getVideo`, and `getFolder`.
 - [Lists](lists.md) — `getAlbumList2`, `getRandomSongs`
 - [Playlists](playlists.md) — `getPlaylists`, `getPlaylist`, `createPlaylist`, `deletePlaylist`
 - [Interaction](interaction.md) — `star`, `unstar`, `getStarred2`, `scrobble`
-- [Video](video.md) — `getVideos`, `getVideo`, `videoStream`, `getVideoThumbnail`, `savePlaybackPosition`, `getPlaybackPosition`, `getFolders`, `getFolder`
+- [Video](video.md) — `getVideos`, `getVideo`, `getVideoSubtitle`, `videoStream`, `getVideoThumbnail`, `savePlaybackPosition`, `getPlaybackPosition`, `getFolders`, `getFolder`, `createFolder`, `updateFolder`, `deleteFolder`, `getFolderCover`

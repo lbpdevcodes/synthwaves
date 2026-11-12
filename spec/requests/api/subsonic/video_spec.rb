@@ -203,6 +203,15 @@ RSpec.describe "Subsonic Video API", type: :request do
       expect(response.location).to include("thumb.jpg")
     end
 
+    it "redirects to a resized copy when the client asks for a size" do
+      video = create(:video, user: user)
+      video.thumbnail.attach(io: StringIO.new("thumb"), filename: "thumb.jpg", content_type: "image/jpeg")
+
+      get "/api/rest/getVideoThumbnail", params: auth_params.merge(id: video.id, size: 200)
+
+      expect(response.location).to include("/representations/")
+    end
+
     it "returns 404 when no thumbnail attached" do
       video = create(:video, user: user)
       video.thumbnail.purge if video.thumbnail.attached?

@@ -1,29 +1,67 @@
 class API::Subsonic::FoldersController < API::Subsonic::BaseController
+  rescue_from ActiveRecord::RecordNotFound do |error|
+    render_subsonic_error(70, "#{error.model} not found")
+  end
+
+  rescue_from ActiveRecord::RecordInvalid do |error|
+    render_subsonic_error(0, error.record.errors.full_messages.to_sentence)
+  end
+
   def get_folders
-    folders = current_user.folders.includes(:videos)
-    folder_entries = folders.map do |folder|
-      {
-        id: folder.id.to_s,
-        name: folder.name,
-        videoCount: folder.videos.ready.size
-      }
+    counts = current_user.videos.ready.group(:folder_id).count
+    entries = current_user.folders.order(:name).map do |folder|
+      Subsonic::FolderSerializer.to_entry(folder, video_count: counts.fetch(folder.id, 0))
     end
 
-    render_subsonic(folders: {folder: folder_entries})
+    render_subsonic(folders: {folder: entries})
   end
 
   def get_folder
-    folder = current_user.folders.find(params[:id])
-    videos = folder.videos.ready.ordered
+    render_folder(current_user.folders.find(params[:id]))
+  end
 
-    render_subsonic(
-      folder: {
-        id: folder.id.to_s,
-        name: folder.name,
-        video: videos.map { |v| video_to_entry(v) }
-      }
-    )
-  rescue ActiveRecord::RecordNotFound
-    render_subsonic_error(70, "Folder not found")
+  def create_folder
+    return render_missing_param(:name) if params[:name].blank?
+
+    folder = Folder.transaction do
+      current_user.folders.create!(name: params[:name], description: params[:description]).tap do |created|
+        created.add_videos(find_videos(:videoId))
+      end
+    end
+    render_folder(folder)
+  end
+
+  def update_folder
+    return render_missing_param(:id) if params[:id].blank?
+
+    folder = current_user.folders.find(params[:id])
+    Folder.transaction do
+      folder.update!(params.slice(:name, :description).permit(:name, :description))
+      folder.add_videos(find_videos(:videoIdToAdd))
+      folder.remove_videos(find_videos(:videoIdToRemove))
+    end
+    render_folder(folder)
+  end
+
+  def delete_folder
+    return render_missing_param(:id) if params[:id].blank?
+
+    current_user.folders.find(params[:id]).destroy!
+    render_subsonic
+  end
+
+  def get_folder_cover
+    cover = current_user.folders.find_by(id: params[:id])&.cover
+    cover ? redirect_to_image(cover) : head(:not_found)
+  end
+
+  private
+
+  def find_videos(param)
+    current_user.videos.find(param_values(param))
+  end
+
+  def render_folder(folder)
+    render_subsonic(folder: Subsonic::FolderSerializer.to_detail(folder))
   end
 end
