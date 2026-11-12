@@ -40,13 +40,22 @@ RSpec.describe FolderCard::Component, type: :component do
 
   it "links to folder show page" do
     html = render_component(folder: folder)
-    link = html.at_css("a")
+    link = html.at_css("a.collection-card")
     expect(link["href"]).to eq("/folders/#{folder.id}")
+  end
+
+  it "offers an edit pencil beside the card link that opens in the modal" do
+    html = render_component(folder: folder)
+
+    edit = html.at_css("a[href='/folders/#{folder.id}/edit']")
+    expect(edit["data-turbo-frame"]).to eq("modal")
+    expect(edit["aria-label"]).to eq("Edit My Show")
+    expect(edit.ancestors("a")).to be_empty
   end
 
   it "shows folder icon when no thumbnails" do
     html = render_component(folder: folder)
-    expect(html.at_css("svg")).to be_present
+    expect(html.at_css(".collection-card-image svg")).to be_present
   end
 
   it "includes collection-card class for view toggle support" do

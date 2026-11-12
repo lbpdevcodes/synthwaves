@@ -1,0 +1,36 @@
+<%= form_with model: folder, class: "space-y-5" do |f| %>
+  <% if folder.errors.any? %>
+    <div class="bg-red-900/20 border border-red-800 rounded-lg p-4">
+      <ul class="text-sm text-red-400">
+        <% folder.errors.full_messages.each do |msg| %>
+          <li><%= msg %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <div>
+    <%= f.label :name, class: "block text-sm font-medium text-gray-400 mb-1" %>
+    <%= f.text_field :name, required: true, placeholder: "e.g. The Wire",
+          class: "w-full rounded-lg bg-gray-800 border border-gray-700 px-3 py-2 text-white focus:outline-neon-cyan" %>
+  </div>
+
+  <div>
+    <%= f.label :description, class: "block text-sm font-medium text-gray-400 mb-1" %>
+    <%= f.text_area :description, rows: 3,
+          class: "w-full rounded-lg bg-gray-800 border border-gray-700 px-3 py-2 text-white focus:outline-neon-cyan" %>
+  </div>
+
+  <div>
+    <%= f.label :cover_image, "Cover image", class: "block text-sm font-medium text-gray-400 mb-1" %>
+    <% if folder.cover_image.attached? %>
+      <div class="mb-2">
+        <%= image_tag folder.cover_image, class: "w-24 h-24 rounded-lg object-cover" %>
+      </div>
+    <% end %>
+    <%= f.file_field :cover_image, accept: "image/*", class: "w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-gray-700 file:text-white hover:file:bg-gray-600 file:cursor-pointer" %>
+    <p class="mt-1 text-sm text-gray-400">Optional. Without one, the folder shows its first episode's thumbnail.</p>
+  </div>
+
+  <%= render "shared/form_actions", form: f, cancel_path: cancel_path %>
+<% end %>

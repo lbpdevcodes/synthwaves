@@ -2,6 +2,7 @@ require "rails_helper"
 
 RSpec.describe "Folders", type: :request do
   let(:user) { create(:user) }
+  let(:modal) { {"Turbo-Frame" => "modal"} }
 
   before { login_user(user) }
 
@@ -10,113 +11,86 @@ RSpec.describe "Folders", type: :request do
       get new_folder_path
       expect(response).to have_http_status(:ok)
     end
+
+    it "opens New Folder in the modal" do
+      get new_folder_path, headers: modal
+
+      form = Nokogiri::HTML(response.body).at_css("turbo-frame#modal dialog form[action='#{folders_path}']")
+      expect(form.at_css("input[name='folder[name]']")).to be_present
+      expect(form.at_css("textarea[name='folder[description]']")).to be_present
+      expect(form.at_css("input[type='file'][name='folder[cover_image]']")).to be_present
+    end
   end
 
   describe "POST /folders" do
-    def create_video_blob(filename: "test.mp4")
-      ActiveStorage::Blob.create_and_upload!(
-        io: Rails.root.join("spec/fixtures/files/test.mp4").open,
-        filename: filename,
-        content_type: "video/mp4"
-      )
+    it "creates an empty folder from the modal and visits it" do
+      post folders_path, params: {folder: {name: "The Wire", description: "Baltimore"}}, headers: modal
+
+      folder = user.folders.find_by!(name: "The Wire")
+      expect(folder.description).to eq("Baltimore")
+      expect(folder.videos).to be_empty
+      expect(Nokogiri::HTML(response.body).at_css("turbo-stream[action='visit']")["location"]).to eq(folder_path(folder))
+      expect(flash[:notice]).to eq("Created The Wire.")
     end
 
-    it "creates a folder and videos from uploaded files" do
-      blob1 = create_video_blob(filename: "Episode 1.mp4")
-      blob2 = create_video_blob(filename: "Episode 2.mp4")
+    it "keeps the modal open with the error when the name is taken" do
+      create(:folder, user: user, name: "The Wire")
 
       expect {
-        post folders_path, params: {
-          folder_name: "My Show",
-          season_number: "1",
-          signed_blob_ids: [blob1.signed_id, blob2.signed_id],
-          filenames: ["Episode 1.mp4", "Episode 2.mp4"]
-        }
-      }.to change(Folder, :count).by(1)
-        .and change(Video, :count).by(2)
-
-      folder = Folder.last
-      expect(folder.name).to eq("My Show")
-      expect(folder.user).to eq(user)
-      expect(folder.videos.count).to eq(2)
-      expect(response).to redirect_to(folder_path(folder))
-    end
-
-    it "reuses an existing folder with the same name" do
-      existing = create(:folder, user: user, name: "My Show")
-      blob = create_video_blob
-
-      expect {
-        post folders_path, params: {
-          folder_name: "My Show",
-          season_number: "1",
-          signed_blob_ids: [blob.signed_id],
-          filenames: ["test.mp4"]
-        }
+        post folders_path, params: {folder: {name: "The Wire"}}, headers: modal
       }.not_to change(Folder, :count)
 
-      expect(existing.videos.count).to eq(1)
-    end
-
-    it "parses episode numbers from filenames" do
-      blob = create_video_blob(filename: "S01E03 - The Pilot.mp4")
-
-      post folders_path, params: {
-        folder_name: "My Show",
-        season_number: "1",
-        signed_blob_ids: [blob.signed_id],
-        filenames: ["S01E03 - The Pilot.mp4"]
-      }
-
-      video = Video.last
-      expect(video.season_number).to eq(1)
-      expect(video.episode_number).to eq(3)
-      expect(video.title).to eq("The Pilot")
-    end
-
-    it "assigns sequential episode numbers when not parseable" do
-      blob1 = create_video_blob(filename: "random_file.mp4")
-      blob2 = create_video_blob(filename: "another_file.mp4")
-
-      post folders_path, params: {
-        folder_name: "My Show",
-        season_number: "2",
-        signed_blob_ids: [blob1.signed_id, blob2.signed_id],
-        filenames: ["random_file.mp4", "another_file.mp4"]
-      }
-
-      videos = Video.last(2).sort_by(&:episode_number)
-      expect(videos.map(&:episode_number)).to eq([1, 2])
-      expect(videos.map(&:season_number)).to eq([2, 2])
-    end
-
-    it "enqueues VideoConversionJob for each video" do
-      blob1 = create_video_blob
-      blob2 = create_video_blob
-
-      expect {
-        post folders_path, params: {
-          folder_name: "My Show",
-          season_number: "1",
-          signed_blob_ids: [blob1.signed_id, blob2.signed_id],
-          filenames: ["test1.mp4", "test2.mp4"]
-        }
-      }.to have_enqueued_job(VideoConversionJob).exactly(2).times
-    end
-
-    it "rejects when folder name is blank" do
-      blob = create_video_blob
-      post folders_path, params: {folder_name: "", signed_blob_ids: [blob.signed_id], filenames: ["test.mp4"]}
       expect(response).to have_http_status(:unprocessable_content)
-    end
-
-    it "rejects when no files are uploaded" do
-      post folders_path, params: {folder_name: "My Show", signed_blob_ids: []}
-      expect(response).to have_http_status(:unprocessable_content)
+      expect(Nokogiri::HTML(response.body).at_css("turbo-frame#modal dialog").text).to include("Name has already been taken")
     end
   end
 
   describe "GET /folders/:id" do
+    def doc
+      Nokogiri::HTML(response.body)
+    end
+
+    it "offers Upload videos, and Edit and Delete under More, each opening in the modal" do
+      folder = create(:folder, user: user, name: "The Wire")
+
+      get folder_path(folder)
+
+      expect(doc.at_css("a[href='#{new_folder_upload_path(folder)}']")["data-turbo-frame"]).to eq("modal")
+      expect(doc.at_css("a[href='#{edit_folder_path(folder)}']")["data-turbo-frame"]).to eq("modal")
+      delete_form = doc.at_css("form[action='#{folder_path(folder)}']:has(input[value='delete'])")
+      expect(delete_form["data-turbo-confirm"]).to eq('Delete "The Wire"?')
+    end
+
+    it "invites an upload when the folder is empty" do
+      folder = create(:folder, user: user)
+
+      get folder_path(folder)
+
+      empty = doc.at_css("[data-folder-empty]")
+      expect(empty.text).to include("This folder is empty")
+      expect(empty.at_css("a[href='#{new_folder_upload_path(folder)}']")["data-turbo-frame"]).to eq("modal")
+    end
+
+    it "says the videos are processing when none is ready yet" do
+      folder = create(:folder, user: user)
+      create_list(:video, 2, :processing, user: user, folder: folder)
+
+      get folder_path(folder)
+
+      expect(doc.text).to include("2 videos are processing. They'll appear here when they're ready.")
+      expect(doc.at_css("[data-folder-empty]")).to be_nil
+    end
+
+    it "says the videos failed when none is ready and none is processing" do
+      folder = create(:folder, user: user)
+      create(:video, :failed, user: user, folder: folder)
+
+      get folder_path(folder)
+
+      expect(doc.text).to include("1 video in this folder failed to process.")
+      expect(doc.at_css("[data-folder-empty]")).to be_nil
+    end
+
     it "returns success for own folder" do
       folder = create(:folder, user: user)
       get folder_path(folder)
@@ -197,6 +171,18 @@ RSpec.describe "Folders", type: :request do
       get edit_folder_path(folder)
       expect(response).to have_http_status(:ok)
     end
+
+    it "opens Edit in the modal, with a Delete that says where the videos go" do
+      folder = create(:folder, user: user, name: "The Wire")
+      create_list(:video, 2, user: user, folder: folder)
+
+      get edit_folder_path(folder), headers: modal
+
+      dialog = Nokogiri::HTML(response.body).at_css("turbo-frame#modal dialog")
+      expect(dialog.at_css("input[name='folder[name]']")["value"]).to eq("The Wire")
+      delete_form = dialog.at_css("form[action='#{folder_path(folder)}'][data-turbo-frame='_top']:has(input[value='delete'])")
+      expect(delete_form["data-turbo-confirm"]).to eq('Delete "The Wire"? 2 videos in it will stay in your library, under Videos.')
+    end
   end
 
   describe "PATCH /folders/:id" do
@@ -215,6 +201,15 @@ RSpec.describe "Folders", type: :request do
       patch folder_path(folder), params: {folder: {name: ""}}
       expect(response).to have_http_status(:unprocessable_content)
     end
+
+    it "refreshes the page under the modal after an edit" do
+      folder = create(:folder, user: user)
+
+      patch folder_path(folder), params: {folder: {name: "Renamed"}}, headers: modal
+
+      expect(Nokogiri::HTML(response.body).at_css("turbo-stream[action='refresh']:not([request-id])")).to be_present
+      expect(folder.reload.name).to eq("Renamed")
+    end
   end
 
   describe "DELETE /folders/:id" do
@@ -226,6 +221,24 @@ RSpec.describe "Folders", type: :request do
       expect(Video.exists?(video.id)).to be true
       expect(video.reload.folder_id).to be_nil
       expect(response).to redirect_to(tv_path(tab: "videos"))
+    end
+
+    it "says how many videos went back to Videos when deleted from its own page" do
+      folder = create(:folder, user: user, name: "The Wire")
+      create_list(:video, 2, user: user, folder: folder)
+
+      delete folder_path(folder), headers: {"Referer" => folder_url(folder)}
+
+      expect(response).to redirect_to(tv_path(tab: "videos"))
+      expect(flash[:notice]).to eq("Deleted The Wire. 2 videos moved back to Videos.")
+    end
+
+    it "names only the folder when it held no videos" do
+      folder = create(:folder, user: user, name: "The Wire")
+
+      delete folder_path(folder)
+
+      expect(flash[:notice]).to eq("Deleted The Wire.")
     end
   end
 end

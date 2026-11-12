@@ -172,6 +172,16 @@ Owners edit their own artists, albums and tracks in a modal over the current pag
 - Playlist rows reorder by drag (`sortable_controller.js`, SortableJS pinned in `vendor/javascript`) or by Move up / Move down buttons. Both `PATCH /playlists/:id/tracks/:id` — a drag with the `position` it was dropped on (`Playlist#move_track!`), a button with a `direction` (`Playlist#step_track!`, which finds the real neighbour across pages and numbering gaps). Controls hide while the list is filtered. The API and MCP full-order rewrite share `Playlist#reorder!`.
 - "Upload tracks" (album More menu, artist page) opens `track_uploads/new`: `bulk_upload_controller.js` direct-uploads several files, then `TrackUpload` files them as tracks in one album (titled by file name) and enqueues `MetadataExtractionJob` to read the tags — except for `AudioConversionJob::CONVERTIBLE_FORMATS`, whose conversion reads them.
 
+### Video Folders
+
+A `Folder` is a series of videos, ordered by `season_number` and `episode_number`. Owners manage folders in the modal, like the rest of the library:
+
+- **New Folder** (TV → Videos) opens `folders/new`. Creating one lands on its empty page, which offers **Upload videos**. Edit and Delete sit under the folder page's More menu and behind the pencil on `FolderCard`.
+- Deleting a folder keeps its videos (`dependent: :nullify`), which go back to the Videos grid. The confirmation (`folder_delete_confirmation`) and the flash both give the count.
+- **Upload videos** opens `folder_uploads/new`: `bulk_upload_controller.js` direct-uploads the files, then `FolderVideoUploadService` files one video per blob in that folder, reading the season, episode and title from each file name (`FilenameEpisodeParser`). The page under the modal refreshes. The grid lists ready videos only, so the header counts the new ones as processing until `VideoConversionJob` finishes.
+- A video's folder must belong to the video's owner (`Video#folder_in_same_library`), whichever path sets it: the web form or the import API.
+- `Folder#cover` is the folder's own cover image, else its first ready episode's thumbnail. The card and the folder page both use it.
+
 ### Video Subtitles
 
 An uploaded video's subtitles are `VideoSubtitle` rows (`label`, `language`, `kind` subtitles/captions, `vtt` text). The video page renders one `<track>` per row, so the browser's own captions menu switches them.
@@ -218,6 +228,7 @@ When adding a new job, assign it to the appropriate queue via `queue_as` in the 
 
 - Standard RESTful: artists, albums, tracks, playlists, favorites, play_histories
 - `GET /track_uploads/new`, `POST /track_uploads` - Multi-file track upload into an album (`album_id`, or `artist_id` + `album_title`)
+- `GET /folders/:folder_id/uploads/new`, `POST /folders/:folder_id/uploads` - Multi-file video upload into a folder (optional `season_number`)
 - `POST /albums/:id/create_playlist` - Create playlist from album
 - `GET /tracks/:id/stream` - Audio streaming endpoint
 - `GET /search`, `GET /search/dropdown` - Search

@@ -4,7 +4,7 @@
       <h1 class="text-3xl font-bold font-display">TV</h1>
       <div class="flex items-center gap-3 flex-wrap">
         <% if @tab == "videos" %>
-          <%= render Button::Component.new(label: "Upload Season", behavior: :navigation, link_url: new_folder_path, style: :ghost, turbo_frame: "_top") %>
+          <%= render Button::Component.new(label: "New Folder", behavior: :navigation, link_url: new_folder_path, style: :ghost, turbo_frame: "modal") %>
           <%= render Button::Component.new(label: "Upload Video", behavior: :navigation, link_url: new_video_path, turbo_frame: "_top") %>
         <% elsif @tab == "guide" %>
           <%= form_with url: import_iptv_channels_path, method: :post, class: "flex items-center gap-2", data: { turbo_frame: "_top" } do %>

@@ -4,10 +4,8 @@
   </div>
 
   <div class="flex flex-col sm:flex-row items-start gap-6 mb-8">
-    <% if @folder.cover_image.attached? %>
-      <%= image_tag @folder.cover_image, class: "w-32 h-32 rounded-lg object-cover" %>
-    <% elsif (first_thumb = @folder.videos.detect { |v| v.thumbnail.attached? }) %>
-      <%= image_tag first_thumb.thumbnail, class: "w-32 h-32 rounded-lg object-cover" %>
+    <% if (cover = @folder.cover) %>
+      <%= image_tag cover, class: "w-32 h-32 rounded-lg object-cover" %>
     <% else %>
       <div class="w-32 h-32 rounded-lg bg-gray-800 flex items-center justify-center">
         <svg class="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -32,8 +30,19 @@
       </div>
       <div class="mt-3 flex flex-wrap items-center gap-2">
         <%= render "favorites/button", favorable: @folder, favorited: Current.user.favorites.exists?(favorable: @folder) %>
-        <%= render Button::Component.new(label: "Edit", behavior: :navigation, link_url: edit_folder_path(@folder), style: :secondary) %>
-        <%= button_to "Delete", folder_path(@folder), method: :delete, data: { turbo_confirm: "Are you sure? Videos will be kept but unlinked." }, class: "px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700" %>
+        <%= render Button::Component.new(label: "Upload videos", behavior: :navigation, link_url: new_folder_upload_path(@folder), turbo_frame: "modal") %>
+        <%= render Dropdown::Component.new(position: :left, width: "w-48") do |dropdown| %>
+          <% dropdown.with_trigger do %>
+            <span class="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-white bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors">
+              More
+              <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path d="M10 6a2 2 0 110-4 2 2 0 010 4zm0 6a2 2 0 110-4 2 2 0 010 4zm0 6a2 2 0 110-4 2 2 0 010 4z"/></svg>
+            </span>
+          <% end %>
+          <%= render Button::Component.new(label: "Edit", behavior: :navigation, link_url: edit_folder_path(@folder), style: :menu_item, turbo_frame: "modal") %>
+          <%= button_to "Delete", folder_path(@folder), method: :delete,
+                form: { data: { turbo_frame: "_top", turbo_confirm: folder_delete_confirmation(@folder) } },
+                class: "block w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-gray-700" %>
+        <% end %>
       </div>
     </div>
   </div>
@@ -86,9 +95,19 @@
         <% if @query.present? || @season.present? %>
           <p class="text-lg mb-2">No matching videos</p>
           <p>Try adjusting your search or filters.</p>
+        <% elsif @folder.videos.none? %>
+          <div data-folder-empty>
+            <p class="text-lg mb-2">This folder is empty</p>
+            <p class="mb-4">Upload video files into it to start the series.</p>
+            <%= render Button::Component.new(label: "Upload videos", behavior: :navigation, link_url: new_folder_upload_path(@folder), turbo_frame: "modal") %>
+          </div>
+        <% elsif @processing_count > 0 %>
+          <p class="text-lg mb-2">
+            <%= @processing_count == 1 ? "1 video is processing. It'll appear here when it's ready." : "#{@processing_count} videos are processing. They'll appear here when they're ready." %>
+          </p>
         <% else %>
-          <p class="text-lg mb-2">No ready videos yet</p>
-          <p>Videos are still being processed.</p>
+          <p class="text-lg mb-2">No ready videos</p>
+          <p><%= pluralize(@failed_count, "video") %> in this folder failed to process.</p>
         <% end %>
       </div>
     <% end %>

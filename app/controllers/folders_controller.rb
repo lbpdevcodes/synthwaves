@@ -1,46 +1,21 @@
 class FoldersController < ApplicationController
+  include ModalForm
+  include DestroyRedirect
+
   before_action :set_folder, only: [:show, :edit, :update, :destroy]
 
   def new
     @folder = Folder.new
-    @existing_folders = Current.user.folders.order(:name)
   end
 
   def create
-    folder_name = params[:folder_name].to_s.strip
-    signed_blob_ids = Array(params[:signed_blob_ids]).reject(&:blank?)
-    filenames = Array(params[:filenames]).reject(&:blank?)
+    @folder = Current.user.folders.new(folder_params)
 
-    if folder_name.blank?
-      @folder = Folder.new
-      @folder.errors.add(:name, "can't be blank")
-      @existing_folders = Current.user.folders.order(:name)
+    if @folder.save
+      respond_created @folder, notice: "Created #{@folder.name}."
+    else
       render :new, status: :unprocessable_content
-      return
     end
-
-    if signed_blob_ids.empty?
-      @folder = Folder.new(name: folder_name)
-      @folder.errors.add(:base, "At least one video file is required")
-      @existing_folders = Current.user.folders.order(:name)
-      render :new, status: :unprocessable_content
-      return
-    end
-
-    @folder = FolderVideoUploadService.call(
-      user: Current.user,
-      folder_name: folder_name,
-      signed_blob_ids: signed_blob_ids,
-      filenames: filenames,
-      season_number: params[:season_number].presence&.to_i
-    )
-
-    redirect_to @folder, notice: "#{signed_blob_ids.size} video(s) uploaded to #{@folder.name}."
-  rescue ActiveRecord::RecordInvalid => e
-    @folder ||= Folder.new(name: folder_name)
-    @folder.errors.add(:base, e.message)
-    @existing_folders = Current.user.folders.order(:name)
-    render :new, status: :unprocessable_content
   end
 
   def show
@@ -71,18 +46,26 @@ class FoldersController < ApplicationController
 
   def update
     if @folder.update(folder_params)
-      redirect_to @folder, notice: "Folder updated."
+      respond_saved @folder, notice: "Folder updated."
     else
       render :edit, status: :unprocessable_content
     end
   end
 
   def destroy
+    notice = deleted_notice
     @folder.destroy
-    redirect_to tv_path(tab: "videos"), notice: "Folder deleted."
+    redirect_after_destroy folder_path(@folder), parent: tv_path(tab: "videos"), notice: notice
   end
 
   private
+
+  def deleted_notice
+    moved = @folder.videos.count
+    return "Deleted #{@folder.name}." if moved.zero?
+
+    "Deleted #{@folder.name}. #{helpers.pluralize(moved, "video")} moved back to Videos."
+  end
 
   def set_folder
     @folder = Current.user.folders.find(params[:id])

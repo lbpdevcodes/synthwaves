@@ -1,0 +1,41 @@
+<%= render layout: "shared/modal_or_page", locals: {title: "Upload to #{@folder.name}"} do %>
+  <%= form_with url: folder_uploads_path(@folder), class: "space-y-5",
+        data: { controller: "bulk-upload", action: "submit->bulk-upload#submit",
+                bulk_upload_label_value: "Upload", bulk_upload_finishing_label_value: "Adding videos..." } do |f| %>
+    <% if @error %>
+      <div class="bg-red-900/20 border border-red-800 rounded-lg p-4">
+        <p class="text-sm text-red-400"><%= @error %></p>
+      </div>
+    <% end %>
+
+    <div>
+      <%= label_tag :season_number, "Season (optional)", class: "block text-sm font-medium text-gray-400 mb-1" %>
+      <%= number_field_tag :season_number, params[:season_number], min: 0, placeholder: "e.g. 1",
+            class: "w-full rounded-lg bg-gray-800 border border-gray-700 px-3 py-2 text-white focus:outline-neon-cyan" %>
+    </div>
+
+    <div>
+      <label class="block text-sm font-medium text-gray-400 mb-1">Video files</label>
+      <input type="file" accept="video/*,.mkv" multiple required
+             data-bulk-upload-target="input"
+             data-action="change->bulk-upload#filesChanged"
+             class="block w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-neon-cyan/10 file:text-neon-cyan hover:file:bg-neon-cyan/20">
+      <p class="mt-1 text-xs text-gray-500">Episode numbers are read from file names (S01E03, E03, "03 - Title"). Files without one are numbered in the order you picked them.</p>
+    </div>
+
+    <div data-bulk-upload-target="preview" class="hidden">
+      <ul data-bulk-upload-target="list" class="space-y-1 text-sm text-gray-400 bg-gray-800/50 rounded-lg border border-gray-700 p-3 max-h-48 overflow-y-auto">
+      </ul>
+    </div>
+
+    <div class="flex items-center gap-3">
+      <%= f.submit "Upload", class: "px-4 py-2 bg-neon-pink text-white rounded-lg hover:shadow-neon-pink cursor-pointer disabled:opacity-60",
+            data: { bulk_upload_target: "submit" } %>
+      <% if turbo_frame_request? %>
+        <button type="button" data-action="modal#close" class="px-4 py-2 text-gray-300 hover:text-white rounded-lg">Cancel</button>
+      <% else %>
+        <%= render Button::Component.new(label: "Cancel", behavior: :navigation, link_url: folder_path(@folder), style: :ghost) %>
+      <% end %>
+    </div>
+  <% end %>
+<% end %>

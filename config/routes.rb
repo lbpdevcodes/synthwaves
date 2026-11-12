@@ -41,7 +41,9 @@ Rails.application.routes.draw do
     post :import, on: :collection
     post :sync_epg, on: :member
   end
-  resources :folders, only: [:show, :new, :create, :edit, :update, :destroy]
+  resources :folders, only: [:show, :new, :create, :edit, :update, :destroy] do
+    resources :uploads, only: [:new, :create], controller: "folder_uploads"
+  end
   resources :videos, only: [:new, :create, :show, :edit, :update, :destroy] do
     member do
       get :stream
