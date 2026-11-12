@@ -222,7 +222,7 @@ It returns a `YoutubeImport` (title, tracks in playlist order, playlist). `Youtu
 
 Three Solid Queue queues isolate work by resource profile (configured in `config/queue.yml`):
 
-- **conversion** (2 threads) — CPU-heavy ffmpeg work: `AudioConversionJob`, `VideoConversionJob`, `StreamRecordingJob`
+- **conversion** (2 threads) — CPU-heavy ffmpeg work: `AudioConversionJob`, `VideoConversionJob`
 - **imports** (2 threads) — long-running network downloads: `MediaDownloadJob`, `VideoDownloadJob`, `YoutubeImportJob`
 - **default** (3 threads) — everything else: `MetadataExtractionJob`, `DownloadZipJob`, and other lightweight/quick jobs
 

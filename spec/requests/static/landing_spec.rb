@@ -9,16 +9,13 @@ RSpec.describe "Static::Landing", type: :request do
         expect(response).to have_http_status(:success)
       end
 
-      it "displays all nine feature cards" do
-        expect(response.body).to include("Music Library")
-        expect(response.body).to include("Playlists")
-        expect(response.body).to include("Stream Anywhere")
-        expect(response.body).to include("Live TV")
-        expect(response.body).to include("TV Guide & DVR")
-        expect(response.body).to include("Podcasts")
-        expect(response.body).to include("Internet Radio")
-        expect(response.body).to include("Themes")
-        expect(response.body).not_to include("AI Assistant")
+      it "displays the six feature cards" do
+        features = Nokogiri::HTML(response.body).css("#features h3").map { |h3| h3.text.strip }
+        expect(features).to eq(["Music Library", "Playlists", "Stream Anywhere", "Podcasts", "Internet Radio", "Themes"])
+      end
+
+      it "no longer pitches live TV" do
+        expect(response.body).not_to match(/live TV|TV Guide|DVR/i)
       end
 
       it "pitches music ownership in the hero" do

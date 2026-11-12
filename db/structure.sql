@@ -79,30 +79,6 @@ FOREIGN KEY ("user_id")
 );
 CREATE INDEX "index_downloads_on_user_id" ON "downloads" ("user_id") /*application='SynthWavesFm'*/;
 CREATE INDEX "idx_on_user_id_downloadable_type_downloadable_id_5f957f527c" ON "downloads" ("user_id", "downloadable_type", "downloadable_id") /*application='SynthWavesFm'*/;
-CREATE TABLE IF NOT EXISTS "iptv_categories" ("id" integer PRIMARY KEY AUTOINCREMENT NOT NULL, "name" varchar NOT NULL, "slug" varchar NOT NULL, "channels_count" integer DEFAULT 0, "created_at" datetime(6) NOT NULL, "updated_at" datetime(6) NOT NULL);
-CREATE UNIQUE INDEX "index_iptv_categories_on_name" ON "iptv_categories" ("name") /*application='SynthWaves'*/;
-CREATE UNIQUE INDEX "index_iptv_categories_on_slug" ON "iptv_categories" ("slug") /*application='SynthWaves'*/;
-CREATE TABLE IF NOT EXISTS "iptv_channels" ("id" integer PRIMARY KEY AUTOINCREMENT NOT NULL, "name" varchar NOT NULL, "tvg_id" varchar, "stream_url" varchar NOT NULL, "logo_url" varchar, "country" varchar, "language" varchar, "iptv_category_id" integer, "active" boolean DEFAULT TRUE NOT NULL, "created_at" datetime(6) NOT NULL, "updated_at" datetime(6) NOT NULL, "epg_url" varchar /*application='SynthWaves'*/, CONSTRAINT "fk_rails_d8bbb12557"
-FOREIGN KEY ("iptv_category_id")
-  REFERENCES "iptv_categories" ("id")
-);
-CREATE INDEX "index_iptv_channels_on_iptv_category_id" ON "iptv_channels" ("iptv_category_id") /*application='SynthWaves'*/;
-CREATE UNIQUE INDEX "index_iptv_channels_on_tvg_id" ON "iptv_channels" ("tvg_id") /*application='SynthWaves'*/;
-CREATE INDEX "index_iptv_channels_on_name" ON "iptv_channels" ("name") /*application='SynthWaves'*/;
-CREATE INDEX "index_iptv_channels_on_country" ON "iptv_channels" ("country") /*application='SynthWaves'*/;
-CREATE INDEX "index_iptv_channels_on_active" ON "iptv_channels" ("active") /*application='SynthWaves'*/;
-CREATE TABLE IF NOT EXISTS "epg_programmes" ("id" integer PRIMARY KEY AUTOINCREMENT NOT NULL, "channel_id" varchar NOT NULL, "title" varchar NOT NULL, "subtitle" varchar, "description" text, "starts_at" datetime(6) NOT NULL, "ends_at" datetime(6) NOT NULL, "created_at" datetime(6) NOT NULL, "updated_at" datetime(6) NOT NULL);
-CREATE INDEX "index_epg_programmes_on_ends_at" ON "epg_programmes" ("ends_at") /*application='SynthWaves'*/;
-CREATE TABLE IF NOT EXISTS "user_recordings" ("id" integer PRIMARY KEY AUTOINCREMENT NOT NULL, "user_id" integer NOT NULL, "recording_id" integer NOT NULL, "created_at" datetime(6) NOT NULL, "updated_at" datetime(6) NOT NULL, CONSTRAINT "fk_rails_e0df93d08f"
-FOREIGN KEY ("user_id")
-  REFERENCES "users" ("id")
-, CONSTRAINT "fk_rails_076b6fda66"
-FOREIGN KEY ("recording_id")
-  REFERENCES "recordings" ("id")
-);
-CREATE INDEX "index_user_recordings_on_user_id" ON "user_recordings" ("user_id") /*application='SynthWaves'*/;
-CREATE INDEX "index_user_recordings_on_recording_id" ON "user_recordings" ("recording_id") /*application='SynthWaves'*/;
-CREATE UNIQUE INDEX "index_user_recordings_on_user_id_and_recording_id" ON "user_recordings" ("user_id", "recording_id") /*application='SynthWaves'*/;
 CREATE TABLE IF NOT EXISTS "internet_radio_categories" ("id" integer PRIMARY KEY AUTOINCREMENT NOT NULL, "name" varchar NOT NULL, "slug" varchar NOT NULL, "stations_count" integer DEFAULT 0, "created_at" datetime(6) NOT NULL, "updated_at" datetime(6) NOT NULL);
 CREATE UNIQUE INDEX "index_internet_radio_categories_on_name" ON "internet_radio_categories" ("name") /*application='SynthWaves'*/;
 CREATE UNIQUE INDEX "index_internet_radio_categories_on_slug" ON "internet_radio_categories" ("slug") /*application='SynthWaves'*/;
@@ -114,18 +90,6 @@ CREATE INDEX "index_internet_radio_stations_on_internet_radio_category_id" ON "i
 CREATE UNIQUE INDEX "index_internet_radio_stations_on_uuid" ON "internet_radio_stations" ("uuid") /*application='SynthWaves'*/;
 CREATE INDEX "index_internet_radio_stations_on_country_code" ON "internet_radio_stations" ("country_code") /*application='SynthWaves'*/;
 CREATE INDEX "index_internet_radio_stations_on_active" ON "internet_radio_stations" ("active") /*application='SynthWaves'*/;
-CREATE TABLE IF NOT EXISTS "recordings" ("id" integer PRIMARY KEY AUTOINCREMENT NOT NULL, "iptv_channel_id" integer NOT NULL, "epg_programme_id" integer, "title" varchar NOT NULL, "starts_at" datetime(6) NOT NULL, "ends_at" datetime(6) NOT NULL, "status" varchar DEFAULT 'scheduled' NOT NULL, "error_message" varchar, "file_size" integer, "duration" float, "created_at" datetime(6) NOT NULL, "updated_at" datetime(6) NOT NULL, CONSTRAINT "fk_rails_e9afaa6b29"
-FOREIGN KEY ("iptv_channel_id")
-  REFERENCES "iptv_channels" ("id")
-, CONSTRAINT "fk_rails_16ceab2a19"
-FOREIGN KEY ("epg_programme_id")
-  REFERENCES "epg_programmes" ("id")
- ON DELETE SET NULL);
-CREATE INDEX "index_recordings_on_iptv_channel_id" ON "recordings" ("iptv_channel_id") /*application='SynthWaves'*/;
-CREATE INDEX "index_recordings_on_epg_programme_id" ON "recordings" ("epg_programme_id") /*application='SynthWaves'*/;
-CREATE INDEX "index_recordings_on_starts_at" ON "recordings" ("starts_at") /*application='SynthWaves'*/;
-CREATE UNIQUE INDEX "index_recordings_on_iptv_channel_id_and_epg_programme_id" ON "recordings" ("iptv_channel_id", "epg_programme_id") WHERE status NOT IN ('failed', 'cancelled') /*application='SynthWaves'*/;
-CREATE INDEX "index_recordings_on_status" ON "recordings" ("status") /*application='SynthWaves'*/;
 CREATE TABLE IF NOT EXISTS "folders" ("id" integer PRIMARY KEY AUTOINCREMENT NOT NULL, "user_id" integer NOT NULL, "name" varchar NOT NULL, "description" text, "created_at" datetime(6) NOT NULL, "updated_at" datetime(6) NOT NULL, CONSTRAINT "fk_rails_2a04d378cf"
 FOREIGN KEY ("user_id")
   REFERENCES "users" ("id")
@@ -142,7 +106,6 @@ FOREIGN KEY ("folder_id")
 CREATE INDEX "index_videos_on_user_id" ON "videos" ("user_id") /*application='SynthWaves'*/;
 CREATE INDEX "index_videos_on_folder_id" ON "videos" ("folder_id") /*application='SynthWaves'*/;
 CREATE INDEX "index_videos_on_folder_id_and_season_number_and_episode_number" ON "videos" ("folder_id", "season_number", "episode_number") /*application='SynthWaves'*/;
-CREATE UNIQUE INDEX "index_epg_programmes_on_channel_id_and_starts_at" ON "epg_programmes" ("channel_id", "starts_at") /*application='SynthWaves'*/;
 CREATE TABLE IF NOT EXISTS "tags" ("id" integer PRIMARY KEY AUTOINCREMENT NOT NULL, "name" varchar NOT NULL, "tag_type" varchar NOT NULL, "created_at" datetime(6) NOT NULL, "updated_at" datetime(6) NOT NULL);
 CREATE UNIQUE INDEX "index_tags_on_name_and_tag_type" ON "tags" ("name", "tag_type") /*application='SynthWaves'*/;
 CREATE TABLE IF NOT EXISTS "taggings" ("id" integer PRIMARY KEY AUTOINCREMENT NOT NULL, "tag_id" integer NOT NULL, "taggable_type" varchar NOT NULL, "taggable_id" bigint NOT NULL, "user_id" integer NOT NULL, "created_at" datetime(6) NOT NULL, "updated_at" datetime(6) NOT NULL, CONSTRAINT "fk_rails_9fcd2e236b"
@@ -221,6 +184,7 @@ FOREIGN KEY ("video_id")
 CREATE INDEX "index_video_subtitles_on_video_id" ON "video_subtitles" ("video_id") /*application='SynthWaves'*/;
 CREATE UNIQUE INDEX "index_video_subtitles_on_video_id_and_label" ON "video_subtitles" ("video_id", "label") /*application='SynthWaves'*/;
 INSERT INTO "schema_migrations" (version) VALUES
+('20261112202404'),
 ('20261112011904'),
 ('20261028003748'),
 ('20261028003434'),

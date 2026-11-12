@@ -2,7 +2,7 @@
 
 [![Certified Shovelware](https://justin.searls.co/img/shovelware.svg)](https://justin.searls.co/shovelware/)
 
-Self-hosted music, video, live TV, DVR, radio, and podcast streaming for your personal library.
+Self-hosted music, video, radio, and podcast streaming for your personal library.
 
 ![synthwaves.fm](app/assets/images/hero2.jpg)
 
@@ -15,8 +15,8 @@ synthwaves.fm is a self-hosted music and video streaming server built with Rails
 |                                            |                                            |                                                    |
 | ------------------------------------------ | ------------------------------------------ | -------------------------------------------------- |
 | ![Home](docs/screenshots/home.png)         | ![Album](docs/screenshots/album.png)       | ![Library](docs/screenshots/library.png)           |
-| ![Lyrics](docs/screenshots/lyrics.png)     | ![TV Guide](docs/screenshots/tv-guide.png) | ![Live TV](docs/screenshots/live-tv.png)           |
-| ![Podcasts](docs/screenshots/podcasts.png) | ![Videos](docs/screenshots/videos.png)     | ![Video Player](docs/screenshots/video-player.png) |
+| ![Lyrics](docs/screenshots/lyrics.png)     | ![Podcasts](docs/screenshots/podcasts.png) | ![Videos](docs/screenshots/videos.png)             |
+| ![Video Player](docs/screenshots/video-player.png) |                                    |                                                    |
 
 ## Features
 
@@ -87,13 +87,6 @@ synthwaves.fm is a self-hosted music and video streaming server built with Rails
 
 - AirPlay support for compatible speakers and devices
 - Chromecast support
-
-### Live TV
-
-- Import IPTV channels from M3U playlists
-- Electronic Program Guide (EPG) with schedules
-- Record live streams
-- Retro TV channel-surfing interface
 
 ### Listening Stats
 

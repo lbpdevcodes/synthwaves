@@ -19,24 +19,6 @@
       "note": "Tab parameter is validated via presence_in(available_tabs) in the controller"
     },
     {
-      "warning_type": "File Access",
-      "fingerprint": "6d49915a300eff0e2af7a8901369c30f7eac5c0dac0129ba8cb72bc9b4df3fe9",
-      "check_name": "FileAccess",
-      "message": "Model attribute used in file name",
-      "file": "app/jobs/stream_recording_job.rb",
-      "line": 15,
-      "note": "Path uses recording.id (integer primary key), not user input"
-    },
-    {
-      "warning_type": "File Access",
-      "fingerprint": "b7ab8130eb4318350ecb87f68b24e52cc36b8d8b565a9cff2f704a659be2a129",
-      "check_name": "FileAccess",
-      "message": "Model attribute used in file name",
-      "file": "app/jobs/stream_recording_job.rb",
-      "line": 36,
-      "note": "Path uses recording.id (integer primary key), not user input"
-    },
-    {
       "warning_type": "Redirect",
       "fingerprint": "946264337a34d57b977c3de9aafa55b4fffbd9b7824da30f1a0e61604673995a",
       "check_name": "Redirect",

@@ -32,15 +32,10 @@ Rails.application.routes.draw do
     resources :tracks, controller: "playlist_tracks", only: [:create, :update, :destroy], as: :tracks
   end
   resources :podcasts, only: [:show]
-  get "tv-guide", to: "public_tv_guide#index", as: :public_tv_guide
   resources :external_streams, only: [:index, :new, :create, :destroy] do
     resource :stream, only: [:show], controller: "external_stream_proxy"
   end
   get :tv, to: "tv#show"
-  resources :iptv_channels, only: [:show, :new, :create, :edit, :update, :destroy], path: "tv/channels" do
-    post :import, on: :collection
-    post :sync_epg, on: :member
-  end
   resources :folders, only: [:show, :new, :create, :edit, :update, :destroy] do
     resources :uploads, only: [:new, :create], controller: "folder_uploads"
     resources :videos, only: [:new, :create], controller: "folder_videos"
@@ -58,12 +53,6 @@ Rails.application.routes.draw do
       post :import_url
     end
     resource :stream, only: [:show], controller: "internet_radio_streams"
-  end
-  resources :recordings, only: [:index, :show, :create, :destroy] do
-    member do
-      post :cancel
-      get :file
-    end
   end
   resources :youtube_imports, only: [:new, :create] do
     collection do
