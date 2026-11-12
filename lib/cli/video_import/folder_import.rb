@@ -29,7 +29,8 @@ module VideoImport
 
     def items
       fixes = TitleFixes.in(@folder)
-      FolderScan.videos(@folder).map { |path| Item.new(path, fixes.apply(VideoTitle.from(path))) }
+      videos = FolderScan.videos(@folder) { |dir, reason| @out.puts("Skipping the folder #{dir}: it can't be read (#{reason})") }
+      videos.map { |path| Item.new(path, fixes.apply(VideoTitle.from(path))) }
     end
 
     def log = @log ||= UploadLog.in(@folder)
