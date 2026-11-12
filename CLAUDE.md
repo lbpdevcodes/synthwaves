@@ -267,6 +267,21 @@ Then it asks `POST /api/import/direct_uploads` for a presigned URL, PUTs the fil
 - One PUT has no resume: a dropped connection restarts from zero. S3-style storage caps one PUT at 5 GB; a larger file needs multipart upload, which nothing here supports yet.
 - `rake videos:push` (`lib/tasks/push_videos.rake`) is the older bulk path: it reads `credentials.remote`, walks a folder, re-encodes locally and **deletes each source file after upload**.
 
+### A whole folder: `bin/import_videos`
+
+```bash
+bin/import_videos ~/Movies --dry-run   # what it would upload, and why it skips the rest
+bin/import_videos ~/Movies
+```
+
+It runs the same upload as `bin/import_video`, in-process, once per video file under the folder (mkv, mp4, m4v, mov, avi, webm; `VideoImport::FolderScan`), sorted by path, and carries on past a failure. It ends with an Uploaded / Skipped / Failed summary and exits 1 when anything failed. `VideoImport::FolderImport` is the loop.
+
+- **Titles come from file names** (`VideoImport::VideoTitle`). The title is the words before the release year, or before the first quality tag when there is no year (`Dazed.and.Confused.1993.1080p.BluRay.x264-GalaxyRG.mkv` → "Dazed and Confused"). The last year before the tags counts, so `Blade.Runner.2049.2017` keeps 2049. Trailing edition words (EXTENDED, UNRATED, REMASTERED…) are dropped and the words title-cased. A file name cannot carry an apostrophe or a colon, so fixes go in `FOLDER/synthwaves-titles.txt`, one `Theres Something About Mary = There's Something About Mary` per line (`VideoImport::TitleFixes`). A line without `=` stops the run and names the line.
+- **A rerun never uploads a title twice.** Each video the server files goes into `FOLDER/synthwaves-uploaded.log` (`title<TAB>video N<TAB>time`, `VideoImport::UploadLog`) before its subtitles are sent, and titles in the log are skipped. The log knows only what this tool filed. A video uploaded another way needs a line added by hand, or it goes up again.
+- **Unfinished downloads are skipped** (`VideoImport::UnfinishedDownload`): a `.part` file beside the video, or a file another program has open to write (`lsof`). Rerun once they finish.
+- **Subtitles:** the files beside the video, as `bin/import_video` finds them. When there are none, `VideoImport::EmbeddedSubtitles` writes the text tracks inside the file (an MKV's subrip) to temporary `.srt` files named for `SubtitleFilename` (`eng.srt`, `SDH.eng.srt`, and `2_eng.srt` for a repeat, which the server labels "English 2"; `subtitle_names_agreement_spec.rb` runs the real `SubtitleImport` on them) and sends those. Image subtitles (Blu-ray PGS) can't become text, so they are left out.
+- On macOS it keeps the Mac awake with `caffeinate` while it runs.
+
 ## Git Workflow
 
 Branch protection is enabled on `main` — direct pushes are not allowed. All changes must go through a pull request.
