@@ -67,6 +67,12 @@ RSpec.describe MultipartDirectUpload do
       ))
     end
 
+    it "names storage's reason when it will not start the upload" do
+      storage.stub_responses(:create_multipart_upload, "AccessDenied")
+
+      expect { described_class.start(blob, service: service) }.to raise_error(MultipartDirectUpload::Error, /\Astorage refused it \(AccessDenied\)/)
+    end
+
     it "refuses storage that takes no uploads in parts, like the disk" do
       expect { described_class.start(blob) }
         .to raise_error(MultipartDirectUpload::Error, "this server's storage takes no uploads in parts")
@@ -113,6 +119,12 @@ RSpec.describe MultipartDirectUpload do
         .to raise_error(MultipartDirectUpload::Error, "storage holds 104857600 bytes of the 8000000000 sent")
       expect(requests(:delete_object)).to contain_exactly(hash_including(bucket: "videos", key: blob.key))
     end
+
+    it "names storage's reason when it will not join the parts" do
+      storage.stub_responses(:complete_multipart_upload, "InvalidPart")
+
+      expect { upload.complete(parts) }.to raise_error(MultipartDirectUpload::Error, /\Astorage refused it \(InvalidPart\)/)
+    end
   end
 
   describe "#abort" do
@@ -120,6 +132,12 @@ RSpec.describe MultipartDirectUpload do
       described_class.new(blob, upload_id: "upload-1", service: service).abort
 
       expect(requests(:abort_multipart_upload)).to contain_exactly(hash_including(bucket: "videos", key: blob.key, upload_id: "upload-1"))
+    end
+
+    it "counts an upload storage no longer has as thrown away" do
+      storage.stub_responses(:abort_multipart_upload, "NoSuchUpload")
+
+      expect { described_class.new(blob, upload_id: "upload-1", service: service).abort }.not_to raise_error
     end
   end
 end

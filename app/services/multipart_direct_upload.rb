@@ -1,3 +1,6 @@
+# The Gemfile loads the SDK lazily (require: false); the rescues below name its errors.
+require "aws-sdk-s3"
+
 # Uploads one blob's file to S3-style storage in parts, each sent by the
 # client straight to a presigned URL. Storage takes at most 5 GB in one PUT;
 # in parts it takes up to 10,000 of up to 5 GiB each. The parts are joined
@@ -43,6 +46,8 @@ class MultipartDirectUpload
     @upload_id = storage.create_multipart_upload(bucket: bucket, key: blob.key,
       content_type: headers["Content-Type"], content_disposition: headers["Content-Disposition"]).upload_id
     self
+  rescue Aws::S3::Errors::ServiceError => e
+    raise Error, refusal(e)
   end
 
   def part_size = self.class.part_size_for(blob.byte_size)
@@ -58,10 +63,15 @@ class MultipartDirectUpload
     storage.complete_multipart_upload(bucket: bucket, key: blob.key, upload_id: upload_id,
       multipart_upload: {parts: parts.sort_by { |part| part[:part_number] }})
     refuse_wrong_size
+  rescue Aws::S3::Errors::ServiceError => e
+    raise Error, refusal(e)
   end
 
+  # An upload storage no longer has is as thrown away as it gets.
   def abort
     storage.abort_multipart_upload(bucket: bucket, key: blob.key, upload_id: upload_id)
+  rescue Aws::S3::Errors::NoSuchUpload
+    nil
   end
 
   private
@@ -71,6 +81,8 @@ class MultipartDirectUpload
   def storage = service.client.client
 
   def bucket = service.bucket.name
+
+  def refusal(error) = "storage refused it (#{error.code}): #{error.message}"
 
   # What a single PUT would send, so the object ends up the same either way.
   def headers
