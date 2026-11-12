@@ -41,7 +41,7 @@ class SubtitleFilename
     stem = File.basename(filename, ".*")
     base = video_basename.to_s
     rest = stem[base.length..]
-    stem.downcase.start_with?(base.downcase) && rest.match?(WORD_BOUNDARY) ? rest : stem
+    (stem.downcase.start_with?(base.downcase) && rest.match?(WORD_BOUNDARY)) ? rest : stem
   end
 
   def language_token
