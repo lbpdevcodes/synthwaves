@@ -175,4 +175,40 @@ RSpec.describe VideoConversionJob, type: :job do
       expect(job).to have_received(:convert_to_mp4)
     end
   end
+
+  describe "thumbnail" do
+    let(:job) { described_class.new }
+
+    it "seeks to 10% of the video before it starts decoding" do
+      video = create(:video, user: user, status: "processing")
+      video.file.attach(io: StringIO.new("fake video"), filename: "test.mp4", content_type: "video/mp4")
+      metadata = {video_codec: "h264", audio_codec: "aac", audio_channels: 2, container: "mov,mp4,m4a,3gp,3g2,mj2", duration: 5700.0}
+      allow(VideoMetadataExtractor).to receive(:call).and_return(metadata)
+      commands = []
+      allow(job).to receive(:system) { |*args| commands << args }
+
+      job.perform(video.id)
+
+      thumbnail = commands.find { |args| args.include?("-vframes") }
+      expect(thumbnail.index("-ss")).to be < thumbnail.index("-i")
+      expect(thumbnail[thumbnail.index("-ss") + 1]).to eq("570.0")
+    end
+
+    it "takes the same frame as decoding up to that point does" do
+      skip "needs ffmpeg and ffprobe on PATH" unless VideoClips.tools?
+
+      Dir.mktmpdir do |dir|
+        clip = VideoClips.h264_one_keyframe(dir)
+        video = create(:video, user: user, status: "processing")
+        video.file.attach(io: File.open(clip), filename: "long.mp4", content_type: "video/mp4")
+        seek = (VideoMetadataExtractor.call(clip)[:duration] * 0.1).round(2).to_s
+        decoded_up_to = File.join(dir, "reference.jpg")
+        system("ffmpeg", "-v", "error", "-y", "-i", clip, "-ss", seek, "-vframes", "1", "-vf", "scale=640:-1", decoded_up_to, exception: true)
+
+        described_class.perform_now(video.id)
+
+        expect(Digest::MD5.hexdigest(video.reload.thumbnail.download)).to eq(Digest::MD5.file(decoded_up_to).hexdigest)
+      end
+    end
+  end
 end
