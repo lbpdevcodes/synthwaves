@@ -84,8 +84,9 @@ file. Reference it only as `$(cat config/go_synapse_api_key)`.
 - **A card id is not a card key.** `move_card`, `update_card` and
   `add_card_comment` all take the numeric `id`. `SYN-1` is the key a human
   reads. `list_cards` returns both.
-- **`In progress` holds one card.** Move the current card out before you move
-  another in.
+- **`In progress` holds one card per agent session.** Several sessions can
+  work the repo at once. Move your own current card out before you move
+  another in. Never move another session's card.
 - **The card exists before the work does.** No behavior change, fix, feature,
   refactor or production run starts without one.
   [Ticket lifecycle](#ticket-lifecycle) below holds the calls.
@@ -204,7 +205,8 @@ create_card column_id=54 title=<short> description_markdown=<problem + acceptanc
 move_card card_id=<n> column_id=55
 ```
 
-Move whatever sits in `In progress` out first.
+If this session already has a card in `In progress`, move that one out first.
+Leave cards from other sessions where they are.
 
 **3. Record the plan.** When the user approves a plan, copy it into the card
 before the first edit:
