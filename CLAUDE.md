@@ -180,7 +180,7 @@ An uploaded video's subtitles are `VideoSubtitle` rows (`label`, `language`, `ki
 - `SubtitleText` turns SRT or WebVTT bytes into WebVTT: it reads UTF-8, UTF-16 with a byte order mark, or Windows-1252; rewrites SRT timings; drops `<font>` and `{\an8}` tags a browser would print; and refuses a file with no cues.
 - `SubtitleFilename` reads the label, language and kind from the file name against the video's own (`Canadian.fre.srt` → "French (Canadian)", `SDH.eng.HI.srt` → "English (SDH)" captions); `SubtitleLanguage` holds the language codes.
 - `SubtitleImport` files one file (numbering a label the video already has). The edit page (add/remove) and `POST /api/import/videos/:id/subtitles` both go through it.
-- The iOS app plays videos natively and does not show these yet (card SYN-42).
+- **Native apps read them over Subsonic.** `getVideo` lists a video's tracks (`Subsonic::VideoSerializer.to_detail`, without the WebVTT text), and `getVideoSubtitle?videoId=&id=` serves one track's WebVTT. The list endpoints leave tracks out, since `getVideos` isn't paged. The Mac app draws them itself (card SYN-46); the iOS app doesn't show them yet (card SYN-42).
 
 ### ViewComponents
 
@@ -221,7 +221,7 @@ When adding a new job, assign it to the appropriate queue via `queue_as` in the 
 - `POST /albums/:id/create_playlist` - Create playlist from album
 - `GET /tracks/:id/stream` - Audio streaming endpoint
 - `GET /search`, `GET /search/dropdown` - Search
-- `/rest/*`, `/api/rest/*` - Subsonic-compatible API (22 endpoints)
+- `/rest/*`, `/api/rest/*` - Subsonic-compatible API (32 endpoints)
 - `/api/v1/*` - JWT-authenticated REST API
 - `POST /api/v1/youtube_imports` - Synchronous playlist import (metadata only, no audio downloads); replies with `playlist_id`, `track_ids` and `missing_audio`
 - `POST /api/v1/tracks/:id/audio` - Attach audio to an existing track (no-op if already attached)

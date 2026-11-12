@@ -18,5 +18,20 @@ module Subsonic
         created: video.created_at.iso8601
       }.compact
     end
+
+    # One video with its subtitle tracks. Lists leave the tracks out, so a
+    # library of videos isn't read with every track's WebVTT.
+    def self.to_detail(video)
+      to_entry(video).merge(subtitles: subtitle_entries(video))
+    end
+
+    # Leaves out each track's WebVTT text, which getVideoSubtitle serves.
+    def self.subtitle_entries(video)
+      video.subtitles.select(:id, :label, :language, :kind).map { |subtitle| subtitle_entry(subtitle) }
+    end
+
+    def self.subtitle_entry(subtitle)
+      {id: subtitle.id.to_s, label: subtitle.label, language: subtitle.language, kind: subtitle.kind}.compact
+    end
   end
 end

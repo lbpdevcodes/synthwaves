@@ -25,6 +25,7 @@ SUBSONIC_ENDPOINTS = {
   "scrobble" => "interaction#scrobble",
   "getVideos" => "video#get_videos",
   "getVideo" => "video#get_video",
+  "getVideoSubtitle" => "video#get_video_subtitle",
   "videoStream" => "video#stream",
   "getVideoThumbnail" => "video#get_thumbnail",
   "savePlaybackPosition" => "video#save_playback_position",

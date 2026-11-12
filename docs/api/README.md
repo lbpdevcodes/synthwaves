@@ -73,6 +73,7 @@ Tracks, albums, artists, playlists, merging, and genre tags are listed under [Li
 | `scrobble`             | Record a play                  | [interaction.md](subsonic/interaction.md) |
 | `getVideos`            | List videos                    | [video.md](subsonic/video.md)             |
 | `getVideo`             | Get video details              | [video.md](subsonic/video.md)             |
+| `getVideoSubtitle`     | Get a video's subtitle (WebVTT) | [video.md](subsonic/video.md)            |
 | `videoStream`          | Stream video                   | [video.md](subsonic/video.md)             |
 | `getVideoThumbnail`    | Get video thumbnail            | [video.md](subsonic/video.md)             |
 | `savePlaybackPosition` | Save video position            | [video.md](subsonic/video.md)             |
