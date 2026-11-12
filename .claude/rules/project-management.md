@@ -38,7 +38,11 @@ Read that skill before you touch the board.
 | Validation | 58 | The code is complete and the PR is open, but nobody has merged or proven it. |
 | Done | 56 | The PR is merged and the proof exists: a test that failed first, or a real run. |
 
-Keep one card in In progress. Column 56 has `kind: done`, so `move_card` to 56
+Keep one card in In progress per agent session. Several sessions can work the
+repo at once, so the column can hold one card for each. Move your own previous
+card out before you move a new one in. Never move another session's card.
+
+Column 56 has `kind: done`, so `move_card` to 56
 completes the card by itself. Do not also call `update_card operation=complete`.
 
 Validation is not a formality. It maps to the "prove it" standard in
