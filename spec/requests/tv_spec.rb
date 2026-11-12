@@ -24,4 +24,31 @@ RSpec.describe "TV", type: :request do
       expect(response.body).not_to include("Music Only Band")
     end
   end
+
+  describe "GET /tv?tab=videos" do
+    let(:user) { create(:user) }
+
+    before { login_user(user) }
+
+    def doc
+      Nokogiri::HTML(response.body)
+    end
+
+    it "offers New Folder in the modal instead of Upload Season" do
+      get tv_path(tab: "videos")
+
+      new_folder = doc.css("a").find { |a| a.text.strip == "New Folder" }
+      expect(new_folder["href"]).to eq(new_folder_path)
+      expect(new_folder["data-turbo-frame"]).to eq("modal")
+      expect(response.body).not_to include("Upload Season")
+    end
+
+    it "offers both a video upload and a new folder when the library is empty" do
+      get tv_path(tab: "videos")
+
+      empty_state = doc.at_css("[data-empty-library]")
+      expect(empty_state.at_css("a[href='#{new_video_path}']")["data-turbo-frame"]).to eq("_top")
+      expect(empty_state.at_css("a[href='#{new_folder_path}']")["data-turbo-frame"]).to eq("modal")
+    end
+  end
 end

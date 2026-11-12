@@ -15,6 +15,38 @@ RSpec.describe Folder, type: :model do
     it { should validate_uniqueness_of(:name).scoped_to(:user_id) }
   end
 
+  describe "#cover" do
+    def attach_image(attachment, name)
+      attachment.attach(io: StringIO.new("image"), filename: name, content_type: "image/jpeg")
+    end
+
+    it "is the cover image when one is attached" do
+      folder = create(:folder)
+      attach_image(folder.cover_image, "cover.jpg")
+
+      expect(folder.cover.filename.to_s).to eq("cover.jpg")
+    end
+
+    it "falls back to the thumbnail of the first ready video in episode order" do
+      folder = create(:folder)
+      later = create(:video, user: folder.user, folder: folder, season_number: 1, episode_number: 2)
+      first = create(:video, user: folder.user, folder: folder, season_number: 1, episode_number: 1)
+      processing = create(:video, :processing, user: folder.user, folder: folder, season_number: 0, episode_number: 1)
+      attach_image(later.thumbnail, "later.jpg")
+      attach_image(first.thumbnail, "first.jpg")
+      attach_image(processing.thumbnail, "processing.jpg")
+
+      expect(folder.cover.filename.to_s).to eq("first.jpg")
+    end
+
+    it "is nil when there is no cover image and no thumbnail" do
+      folder = create(:folder)
+      create(:video, user: folder.user, folder: folder)
+
+      expect(folder.cover).to be_nil
+    end
+  end
+
   describe ".search" do
     it "returns folders matching by name" do
       matching = create(:folder, name: "Season One")

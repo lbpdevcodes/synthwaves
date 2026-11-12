@@ -23,7 +23,7 @@ FactoryBot.define do
     end
 
     trait :in_folder do
-      folder
+      folder { association :folder, user: user }
       season_number { 1 }
       episode_number { 1 }
     end

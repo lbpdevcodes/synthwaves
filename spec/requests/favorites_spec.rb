@@ -10,6 +10,15 @@ RSpec.describe "Favorites", type: :request do
       get favorites_path
       expect(response).to have_http_status(:ok)
     end
+
+    it "lists a favorite folder, linking to it" do
+      folder = create(:folder, user: user, name: "The Wire")
+      create(:favorite, user: user, favorable: folder)
+
+      get favorites_path
+
+      expect(Nokogiri::HTML(response.body).at_css("a[href='#{folder_path(folder)}']").text).to eq("The Wire")
+    end
   end
 
   describe "POST /favorites" do
@@ -46,6 +55,21 @@ RSpec.describe "Favorites", type: :request do
       expect {
         post favorites_path, params: {favorable_type: "InternetRadioStation", favorable_id: station.id}
       }.to change(Favorite, :count).by(1)
+    end
+
+    it "creates a favorite for one of the user's Folders" do
+      folder = create(:folder, user: user)
+      expect {
+        post favorites_path, params: {favorable_type: "Folder", favorable_id: folder.id}
+      }.to change(Favorite, :count).by(1)
+    end
+
+    it "returns not found for another user's Folder" do
+      folder = create(:folder)
+      expect {
+        post favorites_path, params: {favorable_type: "Folder", favorable_id: folder.id}
+      }.not_to change(Favorite, :count)
+      expect(response).to have_http_status(:not_found)
     end
 
     it "is idempotent for the same favorable" do

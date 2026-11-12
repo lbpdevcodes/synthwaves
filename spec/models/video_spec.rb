@@ -12,6 +12,27 @@ RSpec.describe Video, type: :model do
 
   describe "validations" do
     it { should validate_presence_of(:title) }
+
+    it "refuses a folder from another user's library" do
+      video = build(:video, user: create(:user), folder: create(:folder))
+
+      expect(video).not_to be_valid
+      expect(video.errors[:folder]).to include("must be one of your folders")
+    end
+
+    it "still saves other changes to a video already filed in a foreign folder" do
+      video = create(:video)
+      video.update_column(:folder_id, create(:folder).id)
+
+      expect(video.reload.update(status: "ready", title: "Converted")).to be true
+    end
+
+    it "accepts a folder from the video's own library" do
+      user = create(:user)
+      video = build(:video, user: user, folder: create(:folder, user: user))
+
+      expect(video).to be_valid
+    end
   end
 
   describe "#subtitles" do

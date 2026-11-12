@@ -22,4 +22,12 @@ module LibraryHelper
   def playlist_delete_confirmation(playlist)
     "Delete \"#{playlist.name}\"? Its tracks stay in your library."
   end
+
+  def folder_delete_confirmation(folder)
+    question = "Delete \"#{folder.name}\"?"
+    videos = folder.videos.size
+    return question if videos.zero?
+
+    "#{question} #{pluralize(videos, "video")} in it will stay in your library, under Videos."
+  end
 end
