@@ -20,10 +20,28 @@ RSpec.describe VideoImport::Encoder do
     encoder.prepare(VideoImport::SourceFile.at(clip)) { |source| return source }
   end
 
-  it "hands over an H.264 file as it is" do
+  it "hands over an H.264, stereo AAC MP4 as it is" do
     clip = VideoClips.h264(@dir)
 
     expect(handed_over(clip).path).to eq(clip)
+  end
+
+  it "converts only the sound of an H.264 file with surround sound, to stereo AAC in an MP4" do
+    clip = VideoClips.h264_surround(@dir)
+    copy = encoder.prepare(VideoImport::SourceFile.at(clip)) { |source| [VideoClips.streams(source.path), VideoClips.stream_hash(source.path, :video)] }
+
+    expect(copy.first).to include(audio: "aac", channels: 2, container: a_string_including("mp4"))
+    expect(copy.last).to eq(VideoClips.stream_hash(clip, :video))
+  end
+
+  it "repackages an H.264, stereo AAC Matroska file as an MP4 without converting either stream" do
+    clip = VideoClips.h264_matroska(@dir)
+    copy = encoder.prepare(VideoImport::SourceFile.at(clip)) do |source|
+      [VideoClips.streams(source.path)[:container], %i[video audio].map { |type| VideoClips.stream_hash(source.path, type) }]
+    end
+
+    expect(copy.first).to include("mp4")
+    expect(copy.last).to eq(%i[video audio].map { |type| VideoClips.stream_hash(clip, type) })
   end
 
   it "hands over an H.264, stereo AAC MP4 copy of anything else, named after the source" do

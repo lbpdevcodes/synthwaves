@@ -1,10 +1,11 @@
 require "rails_helper"
 require_relative "../../../../lib/cli/video_import"
 
-# bin/import_video encodes locally so the server has nothing expensive left to
+# bin/import_video converts locally so the server has nothing expensive left to
 # do. This runs the server's real conversion job on what the script uploads,
-# so the two cannot drift apart without a failing spec.
-RSpec.describe "Videos encoded by bin/import_video, on the server" do
+# so the two cannot drift apart without a failing spec. Each clip takes one of
+# the job's conversion paths; the raw clip being replaced shows it does.
+RSpec.describe "Videos prepared by bin/import_video, on the server" do
   around do |example|
     Dir.mktmpdir do |dir|
       @dir = dir
@@ -22,21 +23,32 @@ RSpec.describe "Videos encoded by bin/import_video, on the server" do
     [video.reload, uploaded]
   end
 
-  it "replaces a raw non-H.264 upload with a converted file" do
-    video, uploaded = convert_on_server(VideoClips.mpeg4_surround(@dir))
+  {
+    "is not H.264" => :mpeg4_surround,
+    "is H.264 with sound that is not AAC" => :h264_ac3,
+    "is H.264 with surround sound" => :h264_surround,
+    "is H.264 and stereo AAC in Matroska" => :h264_matroska
+  }.each do |shape, clip|
+    context "with a video that #{shape}" do
+      let(:raw) { VideoClips.public_send(clip, @dir) }
 
-    expect(video.status).to eq("ready")
-    expect(video.file.blob).not_to eq(uploaded)
-  end
+      it "replaces the raw file with a converted one" do
+        video, uploaded = convert_on_server(raw)
 
-  it "keeps the file the script encoded as it is" do
-    encoder = VideoImport::Encoder.new(out: StringIO.new)
+        expect(video.status).to eq("ready")
+        expect(video.file.blob).not_to eq(uploaded)
+      end
 
-    encoder.prepare(VideoImport::SourceFile.at(VideoClips.mpeg4_surround(@dir))) do |encoded|
-      video, uploaded = convert_on_server(encoded.path)
+      it "keeps the file the script prepared as it is" do
+        encoder = VideoImport::Encoder.new(out: StringIO.new)
 
-      expect(video.status).to eq("ready")
-      expect(video.file.blob).to eq(uploaded)
+        encoder.prepare(VideoImport::SourceFile.at(raw)) do |prepared|
+          video, uploaded = convert_on_server(prepared.path)
+
+          expect(video.status).to eq("ready")
+          expect(video.file.blob).to eq(uploaded)
+        end
+      end
     end
   end
 end

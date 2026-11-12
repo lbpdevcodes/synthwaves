@@ -72,6 +72,10 @@ class VideoConversionJob < ApplicationJob
 
   MP4_CONTAINERS = %w[mov,mp4,m4a,3gp,3g2,mj2 mp4 m4v].freeze
 
+  # bin/import_video makes this same choice and runs the chosen method's
+  # ffmpeg arguments locally (VideoImport::Conversion), so uploads arrive with
+  # nothing to convert; spec/lib/cli/video_import/server_agreement_spec.rb
+  # keeps the two in step.
   def conversion_strategy(metadata)
     return :full unless metadata[:video_codec]
 
@@ -119,9 +123,6 @@ class VideoConversionJob < ApplicationJob
     raise "ffmpeg audio transcode failed" unless success
   end
 
-  # bin/import_video encodes locally with these same arguments
-  # (VideoImport::Encoder::SERVER_SETTINGS) so uploads skip this step;
-  # spec/lib/cli/video_import/server_agreement_spec.rb keeps the two in step.
   def convert_to_mp4(input_path, output_path)
     success = system(
       "ffmpeg", "-y", "-i", input_path,
