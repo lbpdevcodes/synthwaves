@@ -1,11 +1,11 @@
 <%= render Dropdown::Component.new(position: :left, width: "w-56") do |dropdown| %>
   <% dropdown.with_trigger do %>
-    <span class="flex p-1.5 rounded-full bg-gray-900/80 text-gray-300 hover:text-neon-cyan" title="Move to folder">
+    <span class="flex p-1.5 rounded-full bg-gray-900/80 text-gray-300 hover:text-neon-cyan" title="Move to collection">
       <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>
-      <span class="sr-only">Move <%= video.title %> to a folder</span>
+      <span class="sr-only">Move <%= video.title %> to a collection</span>
     </span>
   <% end %>
-  <p class="px-4 pt-1 pb-2 text-xs font-medium uppercase tracking-wide text-gray-400">Move to folder</p>
+  <p class="px-4 pt-1 pb-2 text-xs font-medium uppercase tracking-wide text-gray-400">Move to collection</p>
   <div class="max-h-60 overflow-y-auto">
     <% folders.each do |folder| %>
       <% if current?(folder) %>
@@ -21,7 +21,7 @@
   </div>
   <%= form_with url: helpers.folders_path, data: { turbo_frame: "_top" }, class: "px-3 py-2 border-t border-gray-700" do %>
     <%= hidden_field_tag "video_ids[]", video.id, id: nil %>
-    <%= text_field_tag "folder[name]", nil, id: nil, required: true, placeholder: "New folder…", "aria-label": "New folder name",
+    <%= text_field_tag "folder[name]", nil, id: nil, required: true, placeholder: "New collection…", "aria-label": "New collection name",
           class: "w-full rounded-md bg-gray-900 border border-gray-700 px-2 py-1.5 text-sm text-white focus:outline-neon-cyan" %>
   <% end %>
   <% if (folder = current_folder) %>

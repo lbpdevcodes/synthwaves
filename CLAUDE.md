@@ -174,16 +174,17 @@ Owners edit their own artists, albums and tracks in a modal over the current pag
 
 ### Video Folders
 
-A `Folder` is a series of videos, ordered by `season_number` and `episode_number`. Owners manage folders in the modal, like the rest of the library:
+A `Folder` is a series of videos, ordered by `season_number` and `episode_number`. The web UI calls folders **Collections**, since one may hold a TV series or a set of films; models, routes, the import API and Subsonic keep "folder". Owners manage them in the modal, like the rest of the library:
 
-- **New Folder** (TV → Videos) opens `folders/new`. Creating one lands on its empty page, which offers **Upload videos**. Edit and Delete sit under the folder page's More menu and behind the pencil on `FolderCard`.
+- **TV → Videos is one grid** (`VideoLibrary`): the owner's collections and loose ready videos, sorted together by Date Added (a collection counts from its newest video) or Title, under one pager. `render @items` draws each with `folders/_folder` (`FolderCard`, a stacked edge and a "3 seasons · 24 videos" line) or `videos/_video` (`VideoCard`). A search also reaches the episodes inside collections, whose cards name the collection ("South Park · S3E2").
+- **New Collection** (TV → Videos) opens `folders/new`. Creating one lands on its empty page, which offers **Upload videos**. Edit and Delete sit under the folder page's More menu and behind the pencil on `FolderCard`.
 - Deleting a folder keeps its videos (`dependent: :nullify`), which go back to the Videos grid. The confirmation (`folder_delete_confirmation`) and the flash both give the count.
 - **Upload videos** opens `folder_uploads/new`: `bulk_upload_controller.js` direct-uploads the files, then `FolderVideoUploadService` files one video per blob in that folder, reading the season, episode and title from each file name (`FilenameEpisodeParser`). The page under the modal refreshes. The grid lists ready videos only, so the header counts the new ones as processing until `VideoConversionJob` finishes.
 - A video's folder must belong to the video's owner (`Video#folder_in_same_library`), whichever path sets it: the web form, the import API or Subsonic.
 - `Folder#cover` is the folder's own cover image, else its first ready episode's thumbnail. The card and the folder page both use it.
 - **Moving videos.** Every video card (TV grid, folder grid) and the video page carry `FolderMenu::Component`, drawn in `VideoCard`'s `actions` slot beside the card link. It lists the owner's folders (`current_user_folders`), marks the current one, and answers in place with a flash:
   - Picking a folder sends `PATCH /videos/:id/folder`, and "Remove from X" sends `DELETE /videos/:id/folder` (`VideoFoldersController`).
-  - "New folder…" posts `folder[name]` with `video_ids[]` to `folders#create`, which then refreshes the page instead of visiting the new folder, as "New playlist…" does. A taken name explains itself in the flash.
+  - "New collection…" posts `folder[name]` with `video_ids[]` to `folders#create`, which then refreshes the page instead of visiting the new folder, as "New playlist…" does. A taken name explains itself in the flash.
   - Its forms submit with `data-turbo-frame="_top"`, because the grids sit inside the `tv-content` and `folder-videos` frames.
 - **Add videos** on the folder page opens `folder_videos/new`, a checklist of `Folder#videos_to_add` (loose videos first, then other folders') filtered by `list_filter_controller.js`.
 - The video edit page sets `season_number` and `episode_number`, which order a folder's videos.

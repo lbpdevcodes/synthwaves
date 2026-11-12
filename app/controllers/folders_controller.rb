@@ -42,7 +42,7 @@ class FoldersController < ApplicationController
 
   def update
     if @folder.update(folder_params)
-      respond_saved @folder, notice: "Folder updated."
+      respond_saved @folder, notice: "Collection updated."
     else
       render :edit, status: :unprocessable_content
     end
@@ -61,7 +61,7 @@ class FoldersController < ApplicationController
   end
 
   # A folder made from a video's menu (it arrives with video_ids) keeps the
-  # user on that page; one made from the New Folder form opens.
+  # user on that page; one made from the New Collection form opens.
   def respond_to_create(videos)
     if videos.any?
       respond_in_place "Created #{@folder.name} with #{helpers.pluralize(videos.size, "video")}.", fallback: @folder
@@ -72,7 +72,7 @@ class FoldersController < ApplicationController
 
   def respond_to_invalid(videos)
     if videos.any?
-      respond_in_place "Couldn't create the folder: #{@folder.errors.full_messages.to_sentence}.", fallback: tv_path(tab: "videos")
+      respond_in_place "Couldn't create the collection: #{@folder.errors.full_messages.to_sentence}.", fallback: tv_path(tab: "videos")
     else
       render :new, status: :unprocessable_content
     end

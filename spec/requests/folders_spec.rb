@@ -12,10 +12,12 @@ RSpec.describe "Folders", type: :request do
       expect(response).to have_http_status(:ok)
     end
 
-    it "opens New Folder in the modal" do
+    it "opens New Collection in the modal" do
       get new_folder_path, headers: modal
 
-      form = Nokogiri::HTML(response.body).at_css("turbo-frame#modal dialog form[action='#{folders_path}']")
+      dialog = Nokogiri::HTML(response.body).at_css("turbo-frame#modal dialog")
+      expect(dialog.text).to include("New Collection")
+      form = dialog.at_css("form[action='#{folders_path}']")
       expect(form.at_css("input[name='folder[name]']")).to be_present
       expect(form.at_css("textarea[name='folder[description]']")).to be_present
       expect(form.at_css("input[type='file'][name='folder[cover_image]']")).to be_present
@@ -71,7 +73,7 @@ RSpec.describe "Folders", type: :request do
 
         expect(video.reload.folder).to be_nil
         expect(Nokogiri::HTML(response.body).at_css("turbo-stream[action='refresh']")).to be_present
-        expect(flash[:notice]).to eq("Couldn't create the folder: Name has already been taken.")
+        expect(flash[:notice]).to eq("Couldn't create the collection: Name has already been taken.")
       end
     end
   end
@@ -110,7 +112,7 @@ RSpec.describe "Folders", type: :request do
       get folder_path(folder)
 
       empty = doc.at_css("[data-folder-empty]")
-      expect(empty.text).to include("This folder is empty")
+      expect(empty.text).to include("This collection is empty")
       expect(empty.at_css("a[href='#{new_folder_upload_path(folder)}']")["data-turbo-frame"]).to eq("modal")
       expect(empty.at_css("a[href='#{new_folder_video_path(folder)}']")["data-turbo-frame"]).to eq("modal")
     end
@@ -131,7 +133,7 @@ RSpec.describe "Folders", type: :request do
 
       get folder_path(folder)
 
-      expect(doc.text).to include("1 video in this folder failed to process.")
+      expect(doc.text).to include("1 video in this collection failed to process.")
       expect(doc.at_css("[data-folder-empty]")).to be_nil
     end
 

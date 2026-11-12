@@ -19,7 +19,7 @@ RSpec.describe FolderMenu::Component, type: :component do
     let(:video) { create(:video, user: user, title: "Pilot") }
 
     it "names the video in the trigger's label" do
-      expect(render_menu(video).at_css("button[data-action='dropdown#toggle']").text.strip).to eq("Move Pilot to a folder")
+      expect(render_menu(video).at_css("button[data-action='dropdown#toggle']").text.strip).to eq("Move Pilot to a collection")
     end
 
     it "offers a move into each folder, as a full-page Turbo submission" do

@@ -77,10 +77,10 @@ RSpec.describe "TV", type: :request do
       Nokogiri::HTML(response.body)
     end
 
-    it "offers New Folder in the modal instead of Upload Season" do
+    it "offers New Collection in the modal instead of Upload Season" do
       get tv_path(tab: "videos")
 
-      new_folder = doc.css("a").find { |a| a.text.strip == "New Folder" }
+      new_folder = doc.css("a").find { |a| a.text.strip == "New Collection" }
       expect(new_folder["href"]).to eq(new_folder_path)
       expect(new_folder["data-turbo-frame"]).to eq("modal")
       expect(response.body).not_to include("Upload Season")
@@ -96,6 +96,71 @@ RSpec.describe "TV", type: :request do
       expect(move.text).to include("The Wire")
       expect(move["data-turbo-frame"]).to eq("_top")
       expect(doc.at_css("form[action='#{folders_path}'] input[name='video_ids[]'][value='#{video.id}']")).to be_present
+    end
+
+    it "shows collections and loose videos in the one grid the view toggle switches" do
+      create(:folder, user: user, name: "South Park")
+      video = create(:video, user: user, title: "Heat")
+
+      get tv_path(tab: "videos")
+
+      grids = doc.css("[data-view-toggle-target='container']")
+      expect(grids.size).to eq(1)
+      expect(grids.first.at_css("a[href='#{folder_path(Folder.last)}']")).to be_present
+      expect(grids.first.at_css("a[href='#{video_path(video)}']")).to be_present
+    end
+
+    it "pages collections along with the videos instead of repeating them on every page" do
+      folder = create(:folder, user: user, name: "South Park", created_at: 1.year.ago)
+      create_list(:video, 24, user: user)
+      card = "a.collection-card[href='#{folder_path(folder)}']"
+
+      get tv_path(tab: "videos")
+      expect(doc.at_css(card)).to be_nil
+
+      get tv_path(tab: "videos", page: 2)
+      expect(doc.at_css(card)).to be_present
+    end
+
+    it "answers a page past the end with an empty grid instead of an error" do
+      create(:video, user: user, title: "Heat")
+
+      get tv_path(tab: "videos", page: 99)
+
+      expect(response).to have_http_status(:success)
+      expect(doc.at_css("a.collection-card")).to be_nil
+    end
+
+    it "sorts the grid by date added or by title" do
+      create(:video, user: user, title: "Zodiac", created_at: 1.day.ago)
+      create(:folder, user: user, name: "Arrival", created_at: 2.days.ago)
+
+      get tv_path(tab: "videos", sort: "title", direction: "asc")
+
+      titles = doc.css("[data-view-toggle-target='container'] h3").map { |h| h.text.strip }
+      expect(titles).to eq(%w[Arrival Zodiac])
+      expect(doc.css("select[name='sort'] option").map(&:text)).to eq(["Date Added", "Title"])
+    end
+
+    it "falls back to newest first for a sort or direction it doesn't know" do
+      create(:video, user: user, title: "Arrival", created_at: 2.days.ago)
+      create(:video, user: user, title: "Zodiac", created_at: 1.day.ago)
+
+      get tv_path(tab: "videos", sort: "bogus", direction: "sideways")
+
+      expect(response).to have_http_status(:success)
+      titles = doc.css("[data-view-toggle-target='container'] h3").map { |h| h.text.strip }
+      expect(titles).to eq(%w[Zodiac Arrival])
+    end
+
+    it "finds an episode inside a collection and names the collection on its card" do
+      folder = create(:folder, user: user, name: "South Park")
+      episode = create(:video, user: user, folder: folder, title: "Weight Gain 4000", season_number: 1, episode_number: 2)
+
+      get tv_path(tab: "videos", q: "weight")
+
+      card = doc.at_css("a.collection-card[href='#{video_path(episode)}']")
+      expect(card.at_css(".collection-card-body p").text.strip).to eq("South Park · S1E2")
     end
 
     it "offers both a video upload and a new folder when the library is empty" do

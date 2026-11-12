@@ -19,6 +19,14 @@ RSpec.describe "Favorites", type: :request do
 
       expect(Nokogiri::HTML(response.body).at_css("a[href='#{folder_path(folder)}']").text).to eq("The Wire")
     end
+
+    it "labels a favorite folder a Collection, as the rest of the web UI does" do
+      create(:favorite, user: user, favorable: create(:folder, user: user))
+
+      get favorites_path
+
+      expect(Nokogiri::HTML(response.body).at_css(".uppercase").text.strip).to eq("Collection")
+    end
   end
 
   describe "POST /favorites" do

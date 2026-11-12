@@ -11,9 +11,15 @@ class TvController < ApplicationController
 
   def load_videos
     @query = params[:q]
-    @folders = Current.user.folders.search(@query).order(:name)
-    scope = Current.user.videos.ready.standalone.search(@query).order(created_at: :desc)
-    @pagy, @videos = pagy(scope)
+    @sort = params[:sort].presence_in(VideoLibrary::SORTS.keys) || "added"
+    @direction = sort_direction(default: "desc")
+    load_library VideoLibrary.new(user: Current.user, query: @query, sort: @sort, direction: @direction)
+  end
+
+  # Pagy slices an array, which gives nil for a page past the end.
+  def load_library(library)
+    @pagy, entries = pagy(library.entries)
+    @items = library.records(entries.to_a)
   end
 
   def load_podcasts
