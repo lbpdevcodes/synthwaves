@@ -9,7 +9,10 @@ class Video < ApplicationRecord
 
   belongs_to :user
   belongs_to :folder, optional: true
-  has_one_attached :file
+  # Never analyzed: ActiveStorage's video analyzer downloads the whole file
+  # to read it, and the video's own columns hold what anything here reads
+  # (filled by VideoConversionJob, or by PreparedVideo from bin/import_video).
+  has_one_attached :file, analyze: :lazily
   has_one_attached :thumbnail
   has_many :favorites, as: :favorable, dependent: :destroy
   has_many :video_playback_positions, dependent: :destroy
