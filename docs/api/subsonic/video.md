@@ -236,7 +236,7 @@ Returns the saved playback position for a video. Returns `0` if no position has 
 
 ## `getFolders`
 
-Returns all video folders with their video counts.
+Returns the user's video folders, sorted by name.
 
 **Path:** `/rest/getFolders`
 
@@ -253,7 +253,9 @@ Returns all video folders with their video counts.
         {
           "id": "3",
           "name": "My Series",
-          "videoCount": 12
+          "description": "Two seasons",
+          "videoCount": 12,
+          "created": "2026-11-12T10:30:00Z"
         }
       ]
     }
@@ -264,8 +266,12 @@ Returns all video folders with their video counts.
 | Field | Type | Description |
 |-------|------|-------------|
 | `id` | string | Folder ID |
-| `name` | string | Folder name |
+| `name` | string | Folder name, unique among the user's folders |
+| `description` | string | Folder description. Left out when there is none. |
 | `videoCount` | integer | Number of ready videos in the folder |
+| `created` | string | When the folder was created (ISO 8601) |
+
+A folder's cover is served by [`getFolderCover`](#getfoldercover).
 
 ---
 
@@ -290,6 +296,9 @@ Returns a folder with its videos.
     "folder": {
       "id": "3",
       "name": "My Series",
+      "description": "Two seasons",
+      "videoCount": 2,
+      "created": "2026-11-12T10:30:00Z",
       "video": [
         {
           "id": "15",
@@ -303,10 +312,118 @@ Returns a folder with its videos.
 }
 ```
 
-Videos use the standard [video shape](README.md#video). Only videos with `ready` status are included.
+The [`getFolders`](#getfolders) fields, plus `video`: the folder's ready videos in season and episode order, in the standard [video shape](README.md#video).
 
 ### Errors
 
 | Code | Message | Cause |
 |------|---------|-------|
-| 70 | Folder not found | Invalid folder ID |
+| 70 | Folder not found | Invalid folder ID, or another user's folder |
+
+---
+
+## `createFolder`
+
+Creates a folder, optionally moving videos into it. A video can be in one folder at a time, so a video already in another folder moves.
+
+**Path:** `/rest/createFolder`
+
+### Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `name` | string | Yes | Folder name, unique among the user's folders |
+| `description` | string | No | Folder description |
+| `videoId` | string | No | A video to move into the new folder. Repeat it for several: `videoId=15&videoId=16` (`videoId[]=15` works too). |
+
+### Response
+
+The new folder, in the [`getFolder`](#getfolder) shape.
+
+### Errors
+
+| Code | Message | Cause |
+|------|---------|-------|
+| 10 | Required parameter is missing: name | `name` is missing or blank |
+| 0 | Name has already been taken | The user already has a folder with this name |
+| 70 | Video not found | A `videoId` isn't one of the user's videos. Nothing is created. |
+
+---
+
+## `updateFolder`
+
+Renames or re-describes a folder, and moves videos into and out of it. Every change in one call applies together, or none does.
+
+**Path:** `/rest/updateFolder`
+
+### Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `id` | string | Yes | Folder ID |
+| `name` | string | No | New name. Left unchanged when not sent. |
+| `description` | string | No | New description. Sent empty, it clears the description; not sent, it stays. |
+| `videoIdToAdd` | string | No | A video to move into the folder, out of any other. Repeatable. |
+| `videoIdToRemove` | string | No | A video to take out of the folder. Repeatable. A video that isn't in this folder is left where it is. |
+
+### Response
+
+The updated folder, in the [`getFolder`](#getfolder) shape.
+
+### Errors
+
+| Code | Message | Cause |
+|------|---------|-------|
+| 10 | Required parameter is missing: id | `id` is missing |
+| 70 | Folder not found | Invalid folder ID, or another user's folder |
+| 70 | Video not found | A `videoIdToAdd` or `videoIdToRemove` isn't one of the user's videos. Nothing changes. |
+| 0 | Name can't be blank | `name` was sent empty. Nothing changes. |
+| 0 | Name has already been taken | Another of the user's folders has this name. Nothing changes. |
+
+---
+
+## `deleteFolder`
+
+Deletes a folder. Its videos are kept; they just no longer belong to a folder.
+
+**Path:** `/rest/deleteFolder`
+
+### Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `id` | string | Yes | Folder ID |
+
+### Response
+
+Returns an empty success response.
+
+### Errors
+
+| Code | Message | Cause |
+|------|---------|-------|
+| 10 | Required parameter is missing: id | `id` is missing |
+| 70 | Folder not found | Invalid folder ID, or another user's folder |
+
+---
+
+## `getFolderCover`
+
+Returns a folder's cover image: the cover set on the web, or else the thumbnail of its first ready video in episode order. Optionally resize to a specific size.
+
+**Path:** `/rest/getFolderCover`
+
+### Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `id` | string | Yes | Folder ID |
+| `size` | integer | No | Resize to square dimensions (e.g., `200` for 200x200) |
+
+### Response
+
+Returns a `302` redirect to the image URL, or to a resized variant when `size` is given.
+
+### Errors
+
+Returns HTTP `404` (not a Subsonic error envelope) when the folder isn't found or has neither a cover nor a video thumbnail, the same as [`getVideoThumbnail`](#getvideothumbnail).

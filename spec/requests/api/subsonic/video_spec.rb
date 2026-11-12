@@ -203,6 +203,15 @@ RSpec.describe "Subsonic Video API", type: :request do
       expect(response.location).to include("thumb.jpg")
     end
 
+    it "redirects to a resized copy when the client asks for a size" do
+      video = create(:video, user: user)
+      video.thumbnail.attach(io: StringIO.new("thumb"), filename: "thumb.jpg", content_type: "image/jpeg")
+
+      get "/api/rest/getVideoThumbnail", params: auth_params.merge(id: video.id, size: 200)
+
+      expect(response.location).to include("/representations/")
+    end
+
     it "returns 404 when no thumbnail attached" do
       video = create(:video, user: user)
       video.thumbnail.purge if video.thumbnail.attached?
@@ -283,66 +292,6 @@ RSpec.describe "Subsonic Video API", type: :request do
 
     it "returns error for nonexistent video" do
       get "/api/rest/getPlaybackPosition", params: auth_params.merge(id: 999999)
-
-      json = JSON.parse(response.body)
-      expect(json["subsonic-response"]["error"]["code"]).to eq(70)
-    end
-  end
-
-  describe "getFolders" do
-    it "returns all folders with video counts" do
-      folder1 = create(:folder, user: user, name: "Series A")
-      folder2 = create(:folder, user: user, name: "Series B")
-      create(:video, user: user, folder: folder1)
-      create(:video, user: user, folder: folder1)
-      create(:video, user: user, folder: folder2)
-      create(:video, :processing, user: user, folder: folder2)
-
-      get "/api/rest/getFolders", params: auth_params
-
-      json = JSON.parse(response.body)
-      folders = json["subsonic-response"]["folders"]["folder"]
-      expect(folders.length).to eq(2)
-
-      a = folders.find { |f| f["name"] == "Series A" }
-      b = folders.find { |f| f["name"] == "Series B" }
-      expect(a["videoCount"]).to eq(2)
-      expect(b["videoCount"]).to eq(1)
-    end
-
-    it "does not return other users' folders" do
-      other_user = create(:user)
-      create(:folder, user: other_user, name: "Other folder")
-      create(:folder, user: user, name: "My folder")
-
-      get "/api/rest/getFolders", params: auth_params
-
-      json = JSON.parse(response.body)
-      folders = json["subsonic-response"]["folders"]["folder"]
-      expect(folders.length).to eq(1)
-      expect(folders.first["name"]).to eq("My folder")
-    end
-  end
-
-  describe "getFolder" do
-    it "returns folder with its videos" do
-      folder = create(:folder, user: user, name: "My Series")
-      create(:video, user: user, folder: folder, title: "Ep 1", season_number: 1, episode_number: 1)
-      create(:video, user: user, folder: folder, title: "Ep 2", season_number: 1, episode_number: 2)
-      create(:video, :processing, user: user, folder: folder, title: "Ep 3")
-
-      get "/api/rest/getFolder", params: auth_params.merge(id: folder.id)
-
-      json = JSON.parse(response.body)
-      f = json["subsonic-response"]["folder"]
-      expect(f["id"]).to eq(folder.id.to_s)
-      expect(f["name"]).to eq("My Series")
-      expect(f["video"].length).to eq(2)
-      expect(f["video"].map { |v| v["title"] }).to eq(["Ep 1", "Ep 2"])
-    end
-
-    it "returns error for nonexistent folder" do
-      get "/api/rest/getFolder", params: auth_params.merge(id: 999999)
 
       json = JSON.parse(response.body)
       expect(json["subsonic-response"]["error"]["code"]).to eq(70)

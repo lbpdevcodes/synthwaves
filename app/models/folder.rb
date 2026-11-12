@@ -14,6 +14,16 @@ class Folder < ApplicationRecord
     cover_image.attached? ? cover_image : first_thumbnail
   end
 
+  # Files every video in this folder, or none of them.
+  def add_videos(videos)
+    transaction { videos.each { |video| video.update!(folder: self) } }
+  end
+
+  # Takes this folder's own videos out. Videos in another folder stay put.
+  def remove_videos(videos)
+    transaction { videos.select { |video| video.folder_id == id }.each { |video| video.update!(folder: nil) } }
+  end
+
   private
 
   def first_thumbnail

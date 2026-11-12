@@ -44,11 +44,10 @@ Tracks, albums, artists, playlists, merging, and genre tags are listed under [Li
 | ------ | ----- | ------------------------------------------ | ------------------- |
 | POST   | `/mcp` | JSON-RPC 2.0 MCP endpoint for AI agents   | [mcp.md](mcp.md)    |
 
-### Subsonic API (30 endpoints)
+### Subsonic API (36 endpoints)
 
 | Endpoint               | Description                    | Doc                                       |
 | ---------------------- | ------------------------------ | ----------------------------------------- |
-| `ping`                 | Test connectivity              | [system.md](subsonic/system.md)           |
 | `ping`                 | Test connectivity              | [system.md](subsonic/system.md)           |
 | `getLicense`           | Get server license             | [system.md](subsonic/system.md)           |
 | `getMusicFolders`      | List music folders             | [browsing.md](subsonic/browsing.md)       |
@@ -80,3 +79,8 @@ Tracks, albums, artists, playlists, merging, and genre tags are listed under [Li
 | `getPlaybackPosition`  | Get video position             | [video.md](subsonic/video.md)             |
 | `getFolders`           | List video folders             | [video.md](subsonic/video.md)             |
 | `getFolder`            | Get folder with videos         | [video.md](subsonic/video.md)             |
+| `createFolder`         | Create a video folder          | [video.md](subsonic/video.md)             |
+| `updateFolder`         | Rename a folder, move videos   | [video.md](subsonic/video.md)             |
+| `deleteFolder`         | Delete a folder, keep videos   | [video.md](subsonic/video.md)             |
+| `getFolderCover`       | Get a folder's cover image     | [video.md](subsonic/video.md)             |
+| `getInternetRadioStations` | List internet radio stations | not documented yet                      |

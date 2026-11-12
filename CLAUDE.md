@@ -179,8 +179,9 @@ A `Folder` is a series of videos, ordered by `season_number` and `episode_number
 - **New Folder** (TV → Videos) opens `folders/new`. Creating one lands on its empty page, which offers **Upload videos**. Edit and Delete sit under the folder page's More menu and behind the pencil on `FolderCard`.
 - Deleting a folder keeps its videos (`dependent: :nullify`), which go back to the Videos grid. The confirmation (`folder_delete_confirmation`) and the flash both give the count.
 - **Upload videos** opens `folder_uploads/new`: `bulk_upload_controller.js` direct-uploads the files, then `FolderVideoUploadService` files one video per blob in that folder, reading the season, episode and title from each file name (`FilenameEpisodeParser`). The page under the modal refreshes. The grid lists ready videos only, so the header counts the new ones as processing until `VideoConversionJob` finishes.
-- A video's folder must belong to the video's owner (`Video#folder_in_same_library`), whichever path sets it: the web form or the import API.
+- A video's folder must belong to the video's owner (`Video#folder_in_same_library`), whichever path sets it: the web form, the import API or Subsonic.
 - `Folder#cover` is the folder's own cover image, else its first ready episode's thumbnail. The card and the folder page both use it.
+- **Native apps manage folders over Subsonic** (`API::Subsonic::FoldersController`, documented in `docs/api/subsonic/video.md`): `getFolders`, `getFolder`, `createFolder`, `updateFolder` (`videoIdToAdd` / `videoIdToRemove`), `deleteFolder` and `getFolderCover`. Moving goes through `Folder#add_videos` / `#remove_videos`, all or nothing. Subsonic clients repeat a parameter without brackets (`videoId=1&videoId=2`), which Rails collapses to the last value, so `param_values` in the Subsonic base controller reads the raw query string and form body. A missing parameter answers error 10 and a validation failure error 0.
 
 ### Video Subtitles
 
@@ -232,7 +233,7 @@ When adding a new job, assign it to the appropriate queue via `queue_as` in the 
 - `POST /albums/:id/create_playlist` - Create playlist from album
 - `GET /tracks/:id/stream` - Audio streaming endpoint
 - `GET /search`, `GET /search/dropdown` - Search
-- `/rest/*`, `/api/rest/*` - Subsonic-compatible API (32 endpoints)
+- `/rest/*`, `/api/rest/*` - Subsonic-compatible API (36 endpoints)
 - `/api/v1/*` - JWT-authenticated REST API
 - `POST /api/v1/youtube_imports` - Synchronous playlist import (metadata only, no audio downloads); replies with `playlist_id`, `track_ids` and `missing_audio`
 - `POST /api/v1/tracks/:id/audio` - Attach audio to an existing track (no-op if already attached)
