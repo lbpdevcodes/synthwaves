@@ -3,8 +3,8 @@ require "rails_helper"
 RSpec.describe VideoLibrary do
   let(:user) { create(:user) }
 
-  def listed(sort: "added", direction: "desc", query: nil)
-    library = described_class.new(user: user, filter: VideoFilter.new(query: query), sort: sort, direction: direction)
+  def listed(sort: "added", direction: "desc", **filter)
+    library = described_class.new(user: user, filter: VideoFilter.new(**filter), sort: sort, direction: direction)
     library.records(library.entries)
   end
 
@@ -114,5 +114,83 @@ RSpec.describe VideoLibrary do
     create(:video)
 
     expect(listed).to be_empty
+  end
+
+  describe "filtered by type" do
+    it "shows only the videos of that type" do
+      movie = create(:video, user: user, video_type: "movie")
+      create(:video, user: user, video_type: "tv")
+
+      expect(listed(type: "movie")).to eq([movie])
+    end
+
+    it "shows the videos with no type as Other" do
+      create(:video, user: user, video_type: "movie")
+      clip = create(:video, user: user, video_type: nil)
+
+      expect(listed(type: "other")).to eq([clip])
+    end
+
+    it "ignores a type it doesn't know" do
+      movie = create(:video, user: user, video_type: "movie")
+
+      expect(listed(type: "cartoon")).to eq([movie])
+    end
+
+    it "shows a collection only when a video inside it is of that type" do
+      star_wars = create(:folder, user: user, name: "Star Wars")
+      create(:video, user: user, folder: star_wars, video_type: "movie")
+      south_park = create(:folder, user: user, name: "South Park")
+      create(:video, user: user, folder: south_park, video_type: "tv")
+
+      expect(listed(type: "movie")).to eq([star_wars])
+    end
+
+    it "shows a top-level collection when the match sits two levels down" do
+      tv = create(:folder, user: user, name: "TV")
+      south_park = create(:folder, user: user, parent: tv, name: "South Park")
+      season = create(:folder, user: user, parent: south_park, name: "Season 1")
+      create(:video, user: user, folder: season, video_type: "tv")
+
+      expect(listed(type: "tv")).to eq([tv])
+    end
+  end
+
+  describe "filtered by genre" do
+    it "shows only the videos filed under it" do
+      comedy = create(:video, user: user, genre_names: "comedy")
+      create(:video, user: user, genre_names: "action")
+
+      expect(listed(genre: "comedy")).to eq([comedy])
+    end
+
+    it "shows a collection only when a video inside it has the genre" do
+      batman = create(:folder, user: user, name: "Batman")
+      create(:video, user: user, folder: batman, genre_names: "animated")
+      create(:folder, user: user, name: "Star Wars")
+
+      expect(listed(genre: "animated")).to eq([batman])
+    end
+  end
+
+  describe "sorted by year" do
+    it "puts the newest first, counting a collection by its newest video" do
+      heat = create(:video, user: user, year: 1995)
+      dune = create(:folder, user: user, name: "Dune")
+      create(:video, user: user, folder: dune, year: 2021)
+      create(:video, user: user, folder: dune, year: 2024)
+      matrix = create(:video, user: user, year: 1999)
+
+      expect(listed(sort: "year", direction: "desc")).to eq([dune, matrix, heat])
+    end
+
+    it "puts what has no year last, either way round" do
+      undated = create(:video, user: user, title: "Zombieland", year: nil)
+      heat = create(:video, user: user, year: 1995)
+      matrix = create(:video, user: user, year: 1999)
+
+      expect(listed(sort: "year", direction: "desc")).to eq([matrix, heat, undated])
+      expect(listed(sort: "year", direction: "asc")).to eq([heat, matrix, undated])
+    end
   end
 end

@@ -10,10 +10,11 @@ class TvController < ApplicationController
   private
 
   def load_videos
-    @query = params[:q]
+    @filter = VideoFilter.new(query: params[:q], type: params[:type], genre: params[:genre])
+    @genres = Current.user.videos.genre_names
     @sort = params[:sort].presence_in(VideoLibrary::SORTS.keys) || "added"
     @direction = sort_direction(default: "desc")
-    load_library VideoLibrary.new(user: Current.user, filter: VideoFilter.new(query: @query), sort: @sort, direction: @direction)
+    load_library VideoLibrary.new(user: Current.user, filter: @filter, sort: @sort, direction: @direction)
   end
 
   # Pagy slices an array, which gives nil for a page past the end.

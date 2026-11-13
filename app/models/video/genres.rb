@@ -7,8 +7,19 @@ module Video::Genres
     has_many :taggings, as: :taggable, dependent: :destroy, autosave: true
     has_many :tags, through: :taggings
 
+    scope :by_genre, ->(name) { joins(:tags).where(tags: {tag_type: "genre", name: name.downcase}).distinct }
+
     # Genres can be named before the owner is (Video.new(genre_names: ..., user: ...)).
     before_validation :give_new_taggings_the_owner
+  end
+
+  class_methods do
+    # The genres these videos are filed under, once each, by name.
+    def genre_names
+      Tag.where(tag_type: "genre").joins(:taggings)
+        .where(taggings: {taggable_type: "Video", taggable_id: select(:id)})
+        .distinct.order(:name).pluck(:name)
+    end
   end
 
   def genre_names
