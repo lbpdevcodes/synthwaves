@@ -1,0 +1,20 @@
+<div class="w-full">
+  <h1 class="text-2xl sm:text-3xl font-bold font-display text-white mb-6">Stats</h1>
+  <%= render "stats/switch", current: :video %>
+
+  <h2 class="text-lg font-semibold text-white mb-3">Your Video Library</h2>
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+    <%= render StatTile::Component.new(value: number_with_delimiter(@stats.video_count), label: "Videos") %>
+    <%= render StatTile::Component.new(value: number_with_delimiter(@stats.movie_count), label: "Movies", color: :pink) %>
+    <%= render StatTile::Component.new(value: number_with_delimiter(@stats.episode_count), label: "TV Episodes", color: :green) %>
+    <%= render StatTile::Component.new(value: number_with_delimiter(@stats.other_count), label: "Other", color: :purple) %>
+    <%= render StatTile::Component.new(value: number_with_delimiter(@stats.collection_count), label: "Collections") %>
+    <%= render StatTile::Component.new(value: format_library_duration(@stats.total_duration), label: "Total Runtime", color: :pink) %>
+    <%= render StatTile::Component.new(value: format_listening_time(@stats.average_duration), label: "Avg Length", color: :green) %>
+    <%= render StatTile::Component.new(value: number_to_human_size(@stats.total_file_size), label: "Library Size", color: :purple) %>
+  </div>
+
+  <%= render BarChart::Component.new(title: "Genres", counts: @stats.genres) %>
+  <%= render BarChart::Component.new(title: "By Decade", counts: @stats.decades, gradient: :plays) %>
+  <%= render BarChart::Component.new(title: "By Resolution", counts: @stats.resolutions) %>
+</div>

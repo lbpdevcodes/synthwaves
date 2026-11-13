@@ -265,6 +265,8 @@ When adding a new job, assign it to the appropriate queue via `queue_as` in the 
 - `POST /albums/:id/create_playlist` - Create playlist from album
 - `GET /tracks/:id/stream` - Audio streaming endpoint
 - `GET /search`, `GET /search/dropdown` - Search
+- `GET /stats` - Music stats: library figures, and listening stats by Week / Month / Year / All Time (`range`)
+- `GET /stats/videos` - Video library stats (`VideoLibraryStats`): ready videos by type, top-level collections, runtime, size, and charts by genre, decade and resolution (`VideoResolution`). A Music | Video switch (`stats/_switch`) sits at the top of both pages. Nothing records video watching yet, so there are no watching stats (card SYN-73)
 - `/rest/*`, `/api/rest/*` - Subsonic-compatible API (36 endpoints)
 - `/api/v1/*` - JWT-authenticated REST API
 - `POST /api/v1/youtube_imports` - Synchronous playlist import (metadata only, no audio downloads); replies with `playlist_id`, `track_ids` and `missing_audio`

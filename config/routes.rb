@@ -65,6 +65,7 @@ Rails.application.routes.draw do
   get "search/dropdown", to: "search#dropdown"
   get :search, to: "search#index"
   get :stats, to: "stats#show"
+  get "stats/videos", to: "video_stats#show", as: :video_stats
   get :library, to: "library#show"
   resources :smart_playlists, only: [:index, :show], path: "smart-playlists"
   get "turbo-native/path-configuration", to: "turbo_native#path_configuration"

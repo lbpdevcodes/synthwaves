@@ -1,52 +1,21 @@
 <div class="w-full">
   <h1 class="text-2xl sm:text-3xl font-bold font-display text-white mb-6">Stats</h1>
+  <%= render "stats/switch", current: :music %>
 
   <%# ── Library Stats (static, not time-range filtered) ── %>
   <% if @library_stats %>
     <div class="mb-10">
       <h2 class="text-lg font-semibold text-white mb-3">Your Library</h2>
       <div class="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
-        <div class="bg-gray-800 rounded-lg border border-gray-700 p-4 text-center">
-          <div class="text-2xl font-bold text-neon-cyan tabular-nums"><%= number_with_delimiter(@library_stats[:track_count]) %></div>
-          <div class="text-sm text-gray-400">Tracks</div>
-        </div>
-        <div class="bg-gray-800 rounded-lg border border-gray-700 p-4 text-center">
-          <div class="text-2xl font-bold text-neon-pink tabular-nums"><%= number_with_delimiter(@library_stats[:album_count]) %></div>
-          <div class="text-sm text-gray-400">Albums</div>
-        </div>
-        <div class="bg-gray-800 rounded-lg border border-gray-700 p-4 text-center">
-          <div class="text-2xl font-bold text-laser-green tabular-nums"><%= number_with_delimiter(@library_stats[:artist_count]) %></div>
-          <div class="text-sm text-gray-400">Artists</div>
-        </div>
-        <div class="bg-gray-800 rounded-lg border border-gray-700 p-4 text-center">
-          <div class="text-2xl font-bold text-neon-purple tabular-nums"><%= format_library_duration(@library_stats[:total_duration]) %></div>
-          <div class="text-sm text-gray-400">Total Duration</div>
-        </div>
-        <div class="bg-gray-800 rounded-lg border border-gray-700 p-4 text-center">
-          <div class="text-2xl font-bold text-neon-cyan tabular-nums"><%= format_listening_time(@library_stats[:avg_track_duration]) %></div>
-          <div class="text-sm text-gray-400">Avg Track Length</div>
-        </div>
-        <div class="bg-gray-800 rounded-lg border border-gray-700 p-4 text-center">
-          <div class="text-2xl font-bold text-neon-pink tabular-nums"><%= number_to_human_size(@library_stats[:total_file_size]) %></div>
-          <div class="text-sm text-gray-400">Library Size</div>
-        </div>
+        <%= render StatTile::Component.new(value: number_with_delimiter(@library_stats[:track_count]), label: "Tracks") %>
+        <%= render StatTile::Component.new(value: number_with_delimiter(@library_stats[:album_count]), label: "Albums", color: :pink) %>
+        <%= render StatTile::Component.new(value: number_with_delimiter(@library_stats[:artist_count]), label: "Artists", color: :green) %>
+        <%= render StatTile::Component.new(value: format_library_duration(@library_stats[:total_duration]), label: "Total Duration", color: :purple) %>
+        <%= render StatTile::Component.new(value: format_listening_time(@library_stats[:avg_track_duration]), label: "Avg Track Length") %>
+        <%= render StatTile::Component.new(value: number_to_human_size(@library_stats[:total_file_size]), label: "Library Size", color: :pink) %>
       </div>
 
-      <% if @library_stats[:top_genres].any? %>
-        <h3 class="text-base font-semibold text-white mb-2">Genres in Library</h3>
-        <div class="bg-gray-800 rounded-lg border border-gray-700 p-4">
-          <% max_genre_count = @library_stats[:top_genres].values.max.to_f %>
-          <% @library_stats[:top_genres].each do |genre, count| %>
-            <div class="flex items-center gap-3 mb-2 last:mb-0">
-              <span class="text-xs text-gray-400 w-20 truncate text-right"><%= genre %></span>
-              <div class="flex-1 bg-gray-700 rounded-full h-4 overflow-hidden">
-                <div class="h-full bg-gradient-to-r from-neon-purple to-laser-green rounded-full transition-all" style="width: <%= (count / max_genre_count * 100).round %>%"></div>
-              </div>
-              <span class="text-xs text-gray-400 tabular-nums w-10"><%= count %></span>
-            </div>
-          <% end %>
-        </div>
-      <% end %>
+      <%= render BarChart::Component.new(title: "Genres in Library", counts: @library_stats[:top_genres]) %>
     </div>
   <% end %>
 
@@ -68,22 +37,10 @@
   <%= turbo_frame_tag "stats-content" do %>
     <!-- Summary cards -->
     <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-      <div class="bg-gray-800 rounded-lg border border-gray-700 p-4 text-center">
-        <div class="text-2xl font-bold text-neon-cyan tabular-nums"><%= number_with_delimiter(@stats[:total_plays]) %></div>
-        <div class="text-sm text-gray-400">Total Plays</div>
-      </div>
-      <div class="bg-gray-800 rounded-lg border border-gray-700 p-4 text-center">
-        <div class="text-2xl font-bold text-neon-pink tabular-nums"><%= format_listening_time(@stats[:total_listening_time]) %></div>
-        <div class="text-sm text-gray-400">Listening Time</div>
-      </div>
-      <div class="bg-gray-800 rounded-lg border border-gray-700 p-4 text-center">
-        <div class="text-2xl font-bold text-laser-green tabular-nums"><%= @stats[:current_streak] %> days</div>
-        <div class="text-sm text-gray-400">Current Streak</div>
-      </div>
-      <div class="bg-gray-800 rounded-lg border border-gray-700 p-4 text-center">
-        <div class="text-2xl font-bold text-neon-purple tabular-nums"><%= @stats[:longest_streak] %> days</div>
-        <div class="text-sm text-gray-400">Longest Streak</div>
-      </div>
+      <%= render StatTile::Component.new(value: number_with_delimiter(@stats[:total_plays]), label: "Total Plays") %>
+      <%= render StatTile::Component.new(value: format_listening_time(@stats[:total_listening_time]), label: "Listening Time", color: :pink) %>
+      <%= render StatTile::Component.new(value: "#{@stats[:current_streak]} days", label: "Current Streak", color: :green) %>
+      <%= render StatTile::Component.new(value: "#{@stats[:longest_streak]} days", label: "Longest Streak", color: :purple) %>
     </div>
 
     <div class="grid md:grid-cols-2 gap-8 mb-8">
@@ -127,24 +84,8 @@
       </div>
     </div>
 
-    <!-- Top Genres (bar chart) -->
-    <% if @stats[:top_genres].any? %>
-      <div class="mb-8">
-        <h2 class="text-lg font-semibold text-white mb-3">Top Genres</h2>
-        <div class="bg-gray-800 rounded-lg border border-gray-700 p-4">
-          <% max_genre_count = @stats[:top_genres].map(&:play_count).max.to_f %>
-          <% @stats[:top_genres].each do |entry| %>
-            <div class="flex items-center gap-3 mb-2 last:mb-0">
-              <span class="text-xs text-gray-400 w-20 truncate text-right"><%= entry.genre %></span>
-              <div class="flex-1 bg-gray-700 rounded-full h-4 overflow-hidden">
-                <div class="h-full bg-gradient-to-r from-neon-pink to-neon-cyan rounded-full transition-all" style="width: <%= (entry.play_count / max_genre_count * 100).round %>%"></div>
-              </div>
-              <span class="text-xs text-gray-400 tabular-nums w-10"><%= entry.play_count %></span>
-            </div>
-          <% end %>
-        </div>
-      </div>
-    <% end %>
+    <%= render BarChart::Component.new(title: "Top Genres", heading: :h2, gradient: :plays,
+          counts: @stats[:top_genres].to_h { |entry| [entry.genre, entry.play_count] }) %>
 
     <!-- Listening Patterns -->
     <div class="grid md:grid-cols-2 gap-8">
