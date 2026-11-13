@@ -139,7 +139,7 @@ RSpec.describe "TV", type: :request do
 
       titles = doc.css("[data-view-toggle-target='container'] h3").map { |h| h.text.strip }
       expect(titles).to eq(%w[Arrival Zodiac])
-      expect(doc.css("select[name='sort'] option").map(&:text)).to eq(["Date Added", "Title"])
+      expect(doc.css("select[name='sort'] option").map(&:text)).to eq(["Date Added", "Title", "Year"])
     end
 
     it "falls back to newest first for a sort or direction it doesn't know" do
@@ -169,6 +169,57 @@ RSpec.describe "TV", type: :request do
       empty_state = doc.at_css("[data-empty-library]")
       expect(empty_state.at_css("a[href='#{new_video_path}']")["data-turbo-frame"]).to eq("_top")
       expect(empty_state.at_css("a[href='#{new_folder_path}']")["data-turbo-frame"]).to eq("modal")
+    end
+
+    def card_titles
+      doc.css("[data-view-toggle-target='container'] h3").map { |h| h.text.strip }
+    end
+
+    it "lists only the type picked" do
+      create(:video, user: user, title: "Heat", video_type: "movie")
+      create(:video, user: user, title: "Pilot", video_type: "tv")
+
+      get tv_path(tab: "videos", type: "movie")
+
+      expect(card_titles).to eq(%w[Heat])
+    end
+
+    it "offers All, Movies, TV and Other, marking the one picked" do
+      get tv_path(tab: "videos", type: "tv")
+
+      choices = doc.css("input[type='radio'][name='type']")
+      expect(choices.map { |choice| [choice.parent.text.strip, choice["value"]] }).to eq([["All", ""], ["Movies", "movie"], ["TV", "tv"], ["Other", "other"]])
+      expect(choices.select { |choice| choice["checked"] }.map { |choice| choice["value"] }).to eq(["tv"])
+    end
+
+    it "lists only the genre picked, from a list of the user's genres" do
+      create(:video, user: user, title: "Elf", genre_names: "comedy")
+      create(:video, user: user, title: "Heat", genre_names: "action, crime")
+
+      get tv_path(tab: "videos", genre: "comedy")
+
+      expect(card_titles).to eq(%w[Elf])
+      genre = doc.at_css("select[name='genre']")
+      expect(genre.css("option").map { |option| [option.text, option["value"]] }).to eq([["All Genres", ""], ["Action", "action"], ["Comedy", "comedy"], ["Crime", "crime"]])
+      expect(genre.at_css("option[selected]")["value"]).to eq("comedy")
+    end
+
+    it "keeps the type and genre on the page links" do
+      create_list(:video, 25, user: user, video_type: "movie", genre_names: "comedy")
+
+      get tv_path(tab: "videos", type: "movie", genre: "comedy")
+
+      page_two = doc.css("a[href]").map { |a| a["href"] }.find { |href| href.include?("page=2") }
+      expect(Rack::Utils.parse_query(URI(page_two).query)).to include("type" => "movie", "genre" => "comedy")
+    end
+
+    it "says nothing matched when the filters find nothing" do
+      create(:video, user: user, video_type: "tv")
+
+      get tv_path(tab: "videos", type: "movie")
+
+      expect(doc.text).to include("No videos found")
+      expect(doc.at_css("[data-empty-library] a[href='#{new_video_path}']")).to be_nil
     end
 
     context "with a folder inside another" do

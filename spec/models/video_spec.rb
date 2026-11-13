@@ -136,6 +136,26 @@ RSpec.describe Video, type: :model do
     end
   end
 
+  describe ".by_genre" do
+    it "finds the videos filed under a genre, whatever its case" do
+      comedy = create(:video, genre_names: "comedy, crime")
+      create(:video, genre_names: "action")
+
+      expect(Video.by_genre("Comedy")).to eq([comedy])
+    end
+  end
+
+  describe ".genre_names" do
+    it "lists the genres these videos are filed under, once each, by name" do
+      user = create(:user)
+      create(:video, user: user, genre_names: "crime, action")
+      create(:video, user: user, genre_names: "action")
+      create(:video, genre_names: "western")
+
+      expect(user.videos.genre_names).to eq(%w[action crime])
+    end
+  end
+
   describe "#subtitles" do
     it "lists a video's subtitles by label" do
       video = create(:video)

@@ -5,7 +5,7 @@
   turbo_frame: "tv-content",
   tab: "videos",
   placeholder: "Search videos...",
-  query: @query,
+  query: @filter.query,
   sort_options: VideoLibrary::SORTS,
   sort: @sort,
   direction: @direction,
@@ -13,14 +13,31 @@
   container_classes: "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 collection-grid",
   empty_label: "videos"
 ) do |c| %>
+  <% c.with_filters do %>
+    <fieldset class="flex rounded-lg border border-gray-600 overflow-hidden">
+      <legend class="sr-only">Type</legend>
+      <% VideosHelper::VIDEO_TYPE_FILTERS.each do |value, label| %>
+        <label class="cursor-pointer">
+          <%= radio_button_tag :type, value, @filter.type.to_s == value, class: "sr-only peer", data: { action: "change->search#submit" } %>
+          <span class="block px-3 py-2 text-sm text-gray-300 hover:text-white peer-checked:bg-neon-cyan peer-checked:text-gray-900 peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:-outline-offset-2 peer-focus-visible:outline-white"><%= label %></span>
+        </label>
+      <% end %>
+    </fieldset>
+    <% if @genres.any? %>
+      <%= select_tag :genre, options_for_select(@genres.map { |genre| [genre.titleize, genre] }, @filter.genre),
+            include_blank: "All Genres", "aria-label": "Genre", data: { action: "change->search#submit" },
+            class: "text-sm rounded-lg border border-gray-600 bg-gray-700 text-white px-3 py-2 focus:outline-neon-cyan" %>
+    <% end %>
+  <% end %>
+
   <% c.with_empty_state do %>
     <div class="text-center py-16 text-gray-400" data-empty-library>
       <svg class="w-16 h-16 mx-auto mb-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/>
       </svg>
-      <% if @query.present? %>
+      <% if @filter.active? %>
         <p class="text-lg mb-2">No videos found</p>
-        <p>Try a different search query.</p>
+        <p>Try a different search or filter.</p>
       <% else %>
         <p class="text-lg mb-2">No videos yet</p>
         <p>
