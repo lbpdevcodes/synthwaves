@@ -22,7 +22,7 @@
                     class: "rounded border-gray-600 bg-gray-900 text-neon-pink focus:ring-neon-cyan" %>
               <span class="flex-1 truncate text-sm text-white"><%= video.title %></span>
               <% if video.folder %>
-                <span class="shrink-0 text-xs text-gray-400">in <%= video.folder.name %></span>
+                <span class="shrink-0 text-xs text-gray-400">in <%= current_folder_tree.label(video.folder) %></span>
               <% end %>
             </label>
           </li>

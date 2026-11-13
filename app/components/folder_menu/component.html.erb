@@ -10,11 +10,11 @@
     <% folders.each do |folder| %>
       <% if current?(folder) %>
         <span class="flex items-center justify-between gap-2 px-4 py-2 text-sm text-neon-cyan" aria-current="true">
-          <span class="truncate"><%= folder.name %></span>
+          <span class="truncate"><%= folders.label(folder) %></span>
           <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
         </span>
       <% else %>
-        <%= button_to folder.name, helpers.video_folder_path(video), method: :patch, params: { folder_id: folder.id },
+        <%= button_to folders.label(folder), helpers.video_folder_path(video), method: :patch, params: { folder_id: folder.id },
               form: { data: { turbo_frame: "_top" } }, class: item_classes %>
       <% end %>
     <% end %>

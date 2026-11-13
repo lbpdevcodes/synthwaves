@@ -1,6 +1,7 @@
 <div class="w-full">
   <div class="mb-6">
-    <%= render Button::Component.new(label: "← Back", behavior: :navigation, link_url: tv_path(tab: "videos"), style: :link) %>
+    <%= render Button::Component.new(label: @folder.parent ? "← Back to #{@folder.parent.name}" : "← Back", behavior: :navigation,
+          link_url: folder_parent_path(@folder), style: :link) %>
   </div>
 
   <div class="flex flex-col sm:flex-row items-start gap-6 mb-8">
@@ -20,6 +21,9 @@
         <p class="text-gray-400 mt-1"><%= @folder.description %></p>
       <% end %>
       <div class="mt-2 text-sm text-gray-400 space-x-4">
+        <% if @subfolders.any? %>
+          <span><%= pluralize(@subfolders.size, "folder") %></span>
+        <% end %>
         <span><%= @folder.videos.count %> video(s)</span>
         <% if @processing_count > 0 %>
           <span class="text-neon-cyan"><%= @processing_count %> processing</span>
@@ -40,6 +44,7 @@
             </span>
           <% end %>
           <%= render Button::Component.new(label: "Edit", behavior: :navigation, link_url: edit_folder_path(@folder), style: :menu_item, turbo_frame: "modal") %>
+          <%= render Button::Component.new(label: "New subfolder", behavior: :navigation, link_url: new_folder_path(parent_id: @folder.id), style: :menu_item, turbo_frame: "modal") %>
           <%= button_to "Delete", folder_path(@folder), method: :delete,
                 form: { data: { turbo_frame: "_top", turbo_confirm: folder_delete_confirmation(@folder) } },
                 class: "block w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-gray-700" %>
@@ -48,74 +53,21 @@
     </div>
   </div>
 
-  <turbo-frame id="folder-videos" data-turbo-action="advance">
-    <form action="<%= folder_path(@folder) %>" method="get" data-controller="search" data-search-target="form" class="mb-4">
-      <div class="flex flex-col sm:flex-row gap-3">
-        <input type="text" name="q" value="<%= @query %>" placeholder="Search videos..."
-               class="flex-1 rounded-lg bg-gray-800 border-gray-700 text-white text-lg px-4 py-3 focus:outline-neon-cyan"
-               data-search-target="input" data-action="input->search#submit">
-
-        <div class="flex flex-wrap items-center gap-2">
-          <% if @available_seasons.any? %>
-            <select name="season" data-action="change->search#submit" class="text-sm rounded-lg border border-gray-600 bg-gray-700 text-white px-3 py-2 focus:outline-neon-cyan">
-              <option value="">All Seasons</option>
-              <% @available_seasons.each do |season| %>
-                <option value="<%= season %>" <%= "selected" if @season == season.to_s %>>Season <%= season %> (<%= @season_counts[season] %>)</option>
-              <% end %>
-            </select>
-          <% end %>
-
-          <select name="sort" data-action="change->search#submit" class="text-sm rounded-lg border border-gray-600 bg-gray-700 text-white px-3 py-2 focus:outline-neon-cyan">
-            <% Video::FOLDER_SORT_OPTIONS.each do |value, label| %>
-              <option value="<%= value %>" <%= "selected" if value == @sort %>><%= label %></option>
-            <% end %>
-          </select>
-
-          <select name="direction" data-action="change->search#submit" class="text-sm rounded-lg border border-gray-600 bg-gray-700 text-white px-3 py-2 focus:outline-neon-cyan">
-            <option value="asc" <%= "selected" if @direction == "asc" %>>Ascending</option>
-            <option value="desc" <%= "selected" if @direction == "desc" %>>Descending</option>
-          </select>
-        </div>
-      </div>
-    </form>
-
-    <% if @videos.any? %>
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-        <% @videos.each do |video| %>
-          <%= render VideoCard::Component.new(video: video, show_episode_number: true) do |card| %>
-            <% card.with_actions { render FolderMenu::Component.new(video: video, folders: current_user_folders) } %>
-          <% end %>
+  <% if @subfolders.any? %>
+    <section class="mb-8" data-subfolders>
+      <h2 class="text-lg font-bold font-display text-white mb-4">Folders</h2>
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 collection-grid">
+        <% @subfolders.each do |subfolder| %>
+          <%= render FolderCard::Component.new(folder: subfolder) %>
         <% end %>
       </div>
+    </section>
+  <% end %>
 
-      <% if @pagy.pages > 1 %>
-        <div class="mt-6 flex justify-center">
-          <%== @pagy.series_nav %>
-        </div>
-      <% end %>
-    <% else %>
-      <div class="text-center py-16 text-gray-400">
-        <% if @query.present? || @season.present? %>
-          <p class="text-lg mb-2">No matching videos</p>
-          <p>Try adjusting your search or filters.</p>
-        <% elsif @folder.videos.none? %>
-          <div data-folder-empty>
-            <p class="text-lg mb-2">This collection is empty</p>
-            <p class="mb-4">Upload video files into it, or add videos you already have.</p>
-            <div class="flex flex-wrap justify-center gap-3">
-              <%= render Button::Component.new(label: "Upload videos", behavior: :navigation, link_url: new_folder_upload_path(@folder), turbo_frame: "modal") %>
-              <%= render Button::Component.new(label: "Add videos you already have", behavior: :navigation, link_url: new_folder_video_path(@folder), style: :secondary, turbo_frame: "modal") %>
-            </div>
-          </div>
-        <% elsif @processing_count > 0 %>
-          <p class="text-lg mb-2">
-            <%= @processing_count == 1 ? "1 video is processing. It'll appear here when it's ready." : "#{@processing_count} videos are processing. They'll appear here when they're ready." %>
-          </p>
-        <% else %>
-          <p class="text-lg mb-2">No ready videos</p>
-          <p><%= pluralize(@failed_count, "video") %> in this collection failed to process.</p>
-        <% end %>
-      </div>
+  <% if @folder.videos.any? || @subfolders.none? %>
+    <% if @subfolders.any? %>
+      <h2 class="text-lg font-bold font-display text-white mb-4">Videos</h2>
     <% end %>
-  </turbo-frame>
+    <%= render "folders/videos" %>
+  <% end %>
 </div>

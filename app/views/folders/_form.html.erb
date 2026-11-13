@@ -16,6 +16,12 @@
   </div>
 
   <div>
+    <%= f.label :parent_id, "Inside", class: "block text-sm font-medium text-gray-400 mb-1" %>
+    <%= f.select :parent_id, folder_parent_options(folder), { include_blank: "(Top level, under Videos)" },
+          class: "w-full rounded-lg bg-gray-800 border border-gray-700 px-3 py-2 text-white focus:outline-neon-cyan" %>
+  </div>
+
+  <div>
     <%= f.label :description, class: "block text-sm font-medium text-gray-400 mb-1" %>
     <%= f.text_area :description, rows: 3,
           class: "w-full rounded-lg bg-gray-800 border border-gray-700 px-3 py-2 text-white focus:outline-neon-cyan" %>

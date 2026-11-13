@@ -22,6 +22,15 @@ RSpec.describe "Adding videos to a folder", type: :request do
       expect(form.at_css("input[data-list-filter-target='input']")).to be_present
     end
 
+    it "names a video's folder by its path" do
+      season_one = create(:folder, user: user, parent: create(:folder, user: user, name: "South Park"), name: "Season 1")
+      create(:video, user: user, folder: season_one, title: "Cartman")
+
+      get new_folder_video_path(folder), headers: modal
+
+      expect(Nokogiri::HTML(response.body).at_css("turbo-frame#modal dialog").text).to include("in South Park › Season 1")
+    end
+
     it "says so when there is nothing to add" do
       get new_folder_video_path(folder), headers: modal
 

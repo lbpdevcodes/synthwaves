@@ -23,11 +23,34 @@ module LibraryHelper
     "Delete \"#{playlist.name}\"? Its tracks stay in your library."
   end
 
+  # The page a folder sits on: its parent folder's, or the Videos grid.
+  def folder_parent_path(folder)
+    folder.parent ? folder_path(folder.parent) : tv_path(tab: "videos")
+  end
+
+  # [path label, id] for each of the folders, for a folder select.
+  def folder_select_options(folders = current_folder_tree)
+    folders.map { |folder| [current_folder_tree.label(folder), folder.id] }
+  end
+
+  # The select options for the folders this one could sit inside.
+  def folder_parent_options(folder)
+    folder_select_options(current_folder_tree.possible_parents_for(folder))
+  end
+
   def folder_delete_confirmation(folder)
     question = "Delete \"#{folder.name}\"?"
-    videos = folder.videos.size
-    return question if videos.zero?
+    contents = folder_contents(folder)
+    return question if contents.empty?
 
-    "#{question} #{pluralize(videos, "video")} in it will stay in your library, under Videos."
+    "#{question} #{contents} in it will #{folder.parent ? "move to #{folder.parent.name}" : "stay in your library, under Videos"}."
+  end
+
+  # What a folder holds, folders first: "1 folder and 2 videos". Blank when empty.
+  def folder_contents(folder)
+    {"folder" => folder.children.size, "video" => folder.videos.size}
+      .reject { |_noun, count| count.zero? }
+      .map { |noun, count| pluralize(count, noun) }
+      .to_sentence
   end
 end

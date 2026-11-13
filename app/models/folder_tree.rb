@@ -5,8 +5,9 @@ class FolderTree
 
   SEPARATOR = " › "
 
+  # Unsaved folders are left out: they can't hold anything yet.
   def initialize(folders)
-    @folders = folders
+    @folders = folders.select(&:persisted?)
   end
 
   def each(&)

@@ -142,6 +142,17 @@ RSpec.describe "Videos", type: :request do
       get edit_video_path(video)
       expect(response).to have_http_status(:ok)
     end
+
+    it "lists the folders by path, parents first" do
+      tv = create(:folder, user: user, name: "TV")
+      create(:folder, user: user, parent: tv, name: "South Park")
+      video = create(:video, user: user)
+
+      get edit_video_path(video)
+
+      options = Nokogiri::HTML(response.body).css("select[name='video[folder_id]'] option").map(&:text)
+      expect(options).to eq(["(No folder)", "TV", "TV › South Park"])
+    end
   end
 
   describe "PATCH /videos/:id" do

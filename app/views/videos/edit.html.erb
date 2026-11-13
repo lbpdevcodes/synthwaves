@@ -24,7 +24,7 @@
 
     <div>
       <%= f.label :folder_id, "Collection", class: "block text-sm font-medium text-gray-400 mb-1" %>
-      <%= f.collection_select :folder_id, @folders, :id, :name, { include_blank: "(No collection)" }, class: "w-full rounded-lg bg-gray-800 border-gray-700 text-white focus:outline-neon-cyan px-3 py-2 text-sm border" %>
+      <%= f.select :folder_id, folder_select_options, { include_blank: "(No collection)" }, class: "w-full rounded-lg bg-gray-800 border-gray-700 text-white focus:outline-neon-cyan px-3 py-2 text-sm border" %>
     </div>
 
     <div class="grid grid-cols-2 gap-3">

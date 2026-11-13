@@ -1,6 +1,7 @@
 module FolderMenu
   # A video's folder menu: move it into one of the owner's folders, into a
-  # folder named in place, or out of the folder it is in.
+  # folder named in place, or out of the folder it is in. folders is the
+  # owner's FolderTree, which lists them in order and labels each by path.
   class Component < ViewComponent::Base
     def initialize(video:, folders:)
       @video = video

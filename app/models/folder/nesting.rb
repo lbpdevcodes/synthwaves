@@ -8,6 +8,11 @@ module Folder::Nesting
     belongs_to :parent, class_name: "Folder", optional: true
     has_many :children, class_name: "Folder", foreign_key: :parent_id, inverse_of: :parent, dependent: :nullify
 
+    scope :top_level, -> { where(parent_id: nil) }
+    # What the Videos grid lists: the top-level folders, or, for a search,
+    # every folder whose name matches, however deep.
+    scope :browse, ->(query) { query.present? ? search(query) : top_level }
+
     validate :parent_in_same_library, :parent_outside_own_subtree, if: :will_save_change_to_parent_id?
 
     # Prepended to run before the nullify callbacks; skipped when the whole

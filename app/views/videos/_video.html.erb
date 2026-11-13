@@ -1,3 +1,3 @@
 <%= render VideoCard::Component.new(video: video, show_folder: true) do |card| %>
-  <% card.with_actions { render FolderMenu::Component.new(video: video, folders: current_user_folders) } %>
+  <% card.with_actions { render FolderMenu::Component.new(video: video, folders: current_folder_tree) } %>
 <% end %>

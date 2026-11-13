@@ -170,5 +170,24 @@ RSpec.describe "TV", type: :request do
       expect(empty_state.at_css("a[href='#{new_video_path}']")["data-turbo-frame"]).to eq("_top")
       expect(empty_state.at_css("a[href='#{new_folder_path}']")["data-turbo-frame"]).to eq("modal")
     end
+
+    context "with a folder inside another" do
+      let!(:tv) { create(:folder, user: user, name: "TV") }
+      let!(:south_park) { create(:folder, user: user, parent: tv, name: "South Park") }
+
+      it "lists only the top-level folder" do
+        get tv_path(tab: "videos")
+
+        expect(doc.at_css("a[href='#{folder_path(tv)}']")).to be_present
+        expect(doc.at_css("a[href='#{folder_path(south_park)}']")).to be_nil
+      end
+
+      it "finds the inner folder by search, saying where it sits" do
+        get tv_path(tab: "videos", q: "South")
+
+        card = doc.at_css("a[href='#{folder_path(south_park)}']")
+        expect(card.text).to include("in TV")
+      end
+    end
   end
 end

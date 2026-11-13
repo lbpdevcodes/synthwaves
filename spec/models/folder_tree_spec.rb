@@ -13,6 +13,12 @@ RSpec.describe FolderTree do
     expect(tree.to_a).to eq([movies, tv, south_park, season_one, the_wire])
   end
 
+  it "leaves out a folder not saved yet" do
+    user.folders.new(name: "Unsaved")
+
+    expect(tree.to_a).to eq([movies, tv, south_park, season_one, the_wire])
+  end
+
   it "labels a folder with its path" do
     expect(tree.label(season_one)).to eq("TV › South Park › Season 1")
   end

@@ -38,14 +38,12 @@ class VideosController < ApplicationController
   end
 
   def edit
-    @folders = Current.user.folders.order(:name)
   end
 
   def update
     if @video.update(video_params)
       redirect_to @video, notice: "Video updated."
     else
-      @folders = Current.user.folders.order(:name)
       render :edit, status: :unprocessable_content
     end
   end
