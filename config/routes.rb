@@ -78,6 +78,8 @@ Rails.application.routes.draw do
       post "auth/token", to: "auth#create"
       post "auth/native_token", to: "auth#native_token"
       get "native/credentials", to: "native#credentials"
+      resources :device_sign_ins, only: :create
+      resource :device_sign_in_claim, only: :create
 
       resource :me, controller: "profile", only: [:show, :update]
 
@@ -138,6 +140,8 @@ Rails.application.routes.draw do
   resources :api_keys, only: [:index, :new, :create, :destroy]
 
   resource :profile, only: [:show, :edit, :update]
+  # Where someone signed in on the web enters the code a TV shows.
+  resource :link, only: [:show, :create], controller: "device_links"
   resource :registration, only: [:new, :create, :destroy]
   resource :session
   resources :passwords, param: :token

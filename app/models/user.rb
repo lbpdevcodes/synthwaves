@@ -5,6 +5,7 @@ class User < ApplicationRecord
 
   has_secure_password
   has_many :sessions, dependent: :destroy
+  has_many :device_sign_ins, dependent: :delete_all
   has_many :artists, dependent: :destroy
   has_many :albums, dependent: :destroy
   has_many :tracks, dependent: :destroy

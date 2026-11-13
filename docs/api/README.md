@@ -26,6 +26,8 @@ API keys are managed through the web UI at `/api_keys`. Each key has a `client_i
 | POST   | `/api/v1/auth/token`          | Exchange API key for JWT            | [jwt-api.md](jwt-api.md#post-apiv1authtoken)         |
 | POST   | `/api/v1/auth/native_token`   | Exchange native app sign-in for JWT | [jwt-api.md](jwt-api.md#post-apiv1authnative_token)  |
 | GET    | `/api/v1/native/credentials`  | Get user credentials for native app | [jwt-api.md](jwt-api.md#get-apiv1nativecredentials)  |
+| POST   | `/api/v1/device_sign_ins`     | Start a TV's code sign-in           | [jwt-api.md](jwt-api.md#code-sign-in-for-tvs)        |
+| POST   | `/api/v1/device_sign_in_claim` | TV checks in for its credentials   | [jwt-api.md](jwt-api.md#code-sign-in-for-tvs)        |
 
 Tracks, albums, artists, playlists, merging, and genre tags are listed under [Library management](jwt-api.md#library-management).
 
