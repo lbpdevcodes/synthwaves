@@ -8,8 +8,12 @@
   <% end %>
   <%= link_to helpers.url_for(video), class: "group block h-full bg-gray-800/60 border border-gray-700 rounded-xl overflow-hidden hover:border-neon-cyan/50 hover:bg-gray-800 transition-all duration-200 collection-card", data: { turbo_frame: "_top" } do %>
     <div class="collection-card-inner">
-    <div class="relative aspect-video bg-gray-900 collection-card-image">
-      <% if video.thumbnail.attached? %>
+    <div class="relative aspect-video bg-gray-900 overflow-hidden collection-card-image">
+      <% if video.cover_image.attached? %>
+        <%# A portrait poster stands whole over a blurred copy of itself, so the wide box doesn't crop it. %>
+        <%= image_tag video.cover_image, alt: "", class: "absolute inset-0 w-full h-full object-cover blur-md scale-110 opacity-50", loading: "lazy" %>
+        <%= image_tag video.cover_image, alt: "", class: "relative w-full h-full object-contain", loading: "lazy" %>
+      <% elsif video.thumbnail.attached? %>
         <%= image_tag video.thumbnail, class: "w-full h-full object-cover", loading: "lazy" %>
       <% else %>
         <div class="w-full h-full flex items-center justify-center">

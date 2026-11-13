@@ -23,7 +23,7 @@ class FoldersController < ApplicationController
     @available_seasons = @folder.videos.ready.where.not(season_number: nil).distinct.pluck(:season_number).sort
     @season_counts = @folder.videos.ready.where.not(season_number: nil).group(:season_number).count
 
-    scope = @folder.videos.ready.search(@query)
+    scope = @folder.videos.ready.with_attached_thumbnail.with_attached_cover_image.search(@query)
     scope = scope.where(season_number: @season) if @season.present?
 
     scope = if @sort == "episode_number"

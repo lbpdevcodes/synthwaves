@@ -27,9 +27,10 @@ module VideoCard
     end
 
     # The line under the title: in a search that reaches into collections,
-    # the collection and episode ("South Park · S3E2"); otherwise the description.
+    # the collection and episode ("South Park · S3E2"); otherwise the year
+    # and description ("1999 · A description").
     def second_line
-      folder_label || video.description.presence
+      folder_label || [video.year, video.description.presence].compact.join(" · ").presence
     end
 
     def folder_label

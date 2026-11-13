@@ -22,6 +22,34 @@
       <%= f.text_area :description, rows: 3, class: "w-full rounded-lg bg-gray-800 border-gray-700 text-white focus:outline-neon-cyan px-3 py-2 text-sm border" %>
     </div>
 
+    <div class="grid grid-cols-2 gap-3">
+      <div>
+        <%= f.label :video_type, "Type", class: "block text-sm font-medium text-gray-400 mb-1" %>
+        <%= f.select :video_type, video_type_options, { include_blank: "Other" }, class: "w-full rounded-lg bg-gray-800 border-gray-700 text-white focus:outline-neon-cyan px-3 py-2 text-sm border" %>
+      </div>
+      <div>
+        <%= f.label :year, class: "block text-sm font-medium text-gray-400 mb-1" %>
+        <%= f.number_field :year, min: 1888, max: Date.current.year + 5, class: "w-full rounded-lg bg-gray-800 border-gray-700 text-white focus:outline-neon-cyan px-3 py-2 text-sm border" %>
+      </div>
+    </div>
+
+    <div>
+      <%= f.label :genre_names, "Genres", class: "block text-sm font-medium text-gray-400 mb-1" %>
+      <%= f.text_field :genre_names, value: @video.genre_names.join(", "), placeholder: "action, comedy", class: "w-full rounded-lg bg-gray-800 border-gray-700 text-white focus:outline-neon-cyan px-3 py-2 text-sm border" %>
+      <p class="mt-1 text-xs text-gray-500">Separate genres with commas.</p>
+    </div>
+
+    <div>
+      <%= f.label :cover_image, "Poster", class: "block text-sm font-medium text-gray-400 mb-1" %>
+      <% if @video.cover_image.attached? %>
+        <div class="mb-2">
+          <%= image_tag @video.cover_image, alt: "Current poster", class: "w-20 aspect-[2/3] rounded-lg object-cover" %>
+        </div>
+      <% end %>
+      <%= f.file_field :cover_image, accept: "image/*", class: "w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-gray-700 file:text-white hover:file:bg-gray-600 file:cursor-pointer" %>
+      <p class="mt-1 text-xs text-gray-500">Optional. Without one, the video shows a frame from itself.</p>
+    </div>
+
     <div>
       <%= f.label :folder_id, "Collection", class: "block text-sm font-medium text-gray-400 mb-1" %>
       <%= f.select :folder_id, folder_select_options, { include_blank: "(No collection)" }, class: "w-full rounded-lg bg-gray-800 border-gray-700 text-white focus:outline-neon-cyan px-3 py-2 text-sm border" %>

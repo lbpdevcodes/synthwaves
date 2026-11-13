@@ -56,6 +56,31 @@ RSpec.describe "Videos", type: :request do
       expect(response).to have_http_status(:ok)
     end
 
+    it "describes the video by its type, year and genres" do
+      video = create(:video, user: user, video_type: "movie", year: 1999, genre_names: "crime, comedy")
+
+      get video_path(video)
+
+      expect(Nokogiri::HTML(response.body).at_css("[data-video-details]").text.squish).to eq("Movie · 1999 · comedy, crime")
+    end
+
+    it "leaves out what the video lacks" do
+      video = create(:video, user: user, video_type: nil, year: 2004)
+
+      get video_path(video)
+
+      expect(Nokogiri::HTML(response.body).at_css("[data-video-details]").text.squish).to eq("2004")
+    end
+
+    it "shows the poster" do
+      video = create(:video, user: user, title: "Heat")
+      video.cover_image.attach(io: StringIO.new("image"), filename: "poster.jpg", content_type: "image/jpeg")
+
+      get video_path(video)
+
+      expect(Nokogiri::HTML(response.body).at_css("img[alt='Heat poster']")).to be_present
+    end
+
     it "offers the folder menu beside Edit" do
       folder = create(:folder, user: user, name: "The Wire")
       video = create(:video, user: user, folder: folder)
@@ -114,6 +139,30 @@ RSpec.describe "Videos", type: :request do
       doc = Nokogiri::HTML(response.body)
       expect(doc.at_css("input[name='video[season_number]']")["value"]).to eq("1")
       expect(doc.at_css("input[name='video[episode_number]']")["value"]).to eq("3")
+    end
+
+    it "has type, year and genre fields filled from the video" do
+      video = create(:video, user: user, video_type: "tv", year: 1997, genre_names: "comedy, animation")
+
+      get edit_video_path(video)
+
+      doc = Nokogiri::HTML(response.body)
+      type = doc.at_css("select[name='video[video_type]']")
+      expect(type.css("option").map { |option| [option.text, option["value"]] }).to eq([["Other", ""], ["Movie", "movie"], ["TV", "tv"]])
+      expect(type.at_css("option[selected]")["value"]).to eq("tv")
+      expect(doc.at_css("input[name='video[year]']")["value"]).to eq("1997")
+      expect(doc.at_css("input[name='video[genre_names]']")["value"]).to eq("animation, comedy")
+    end
+
+    it "offers a poster upload, showing the current poster" do
+      video = create(:video, user: user)
+      video.cover_image.attach(io: StringIO.new("image"), filename: "poster.jpg", content_type: "image/jpeg")
+
+      get edit_video_path(video)
+
+      doc = Nokogiri::HTML(response.body)
+      expect(doc.at_css("input[type='file'][name='video[cover_image]'][accept='image/*']")).to be_present
+      expect(doc.at_css("img[alt='Current poster']")).to be_present
     end
 
     it "lists the video's subtitles, each with a way to remove it" do
@@ -187,6 +236,32 @@ RSpec.describe "Videos", type: :request do
       patch video_path(video), params: {video: {season_number: "2", episode_number: "5"}}
 
       expect(video.reload).to have_attributes(season_number: 2, episode_number: 5)
+    end
+
+    it "saves the type, year and genres" do
+      video = create(:video, user: user)
+
+      patch video_path(video), params: {video: {video_type: "movie", year: "1999", genre_names: "Comedy, crime"}}
+
+      expect(video.reload).to have_attributes(video_type: "movie", year: 1999, genre_names: %w[comedy crime])
+    end
+
+    it "saves an uploaded poster" do
+      video = create(:video, user: user)
+
+      patch video_path(video), params: {video: {cover_image: fixture_file_upload("test.png", "image/png")}}
+
+      expect(video.reload.cover_image).to be_attached
+    end
+
+    it "refuses a year before film existed and says why" do
+      video = create(:video, user: user)
+
+      patch video_path(video), params: {video: {year: "1700"}}
+
+      expect(response).to have_http_status(:unprocessable_content)
+      expect(response.body).to include("Year must be greater than or equal to 1888")
+      expect(video.reload.year).to be_nil
     end
 
     it "refuses to move a video into another user's folder" do

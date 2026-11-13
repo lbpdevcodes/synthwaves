@@ -77,6 +77,45 @@ RSpec.describe VideoCard::Component, type: :component do
     end
   end
 
+  describe "image" do
+    def attach_image(attachment, name)
+      attachment.attach(io: StringIO.new("image"), filename: name, content_type: "image/jpeg")
+    end
+
+    def image_sources(video)
+      render_component(video: video).css(".collection-card-image img").map { |img| img["src"] }
+    end
+
+    it "draws the poster in place of the thumbnail" do
+      attach_image(video.thumbnail, "frame.jpg")
+      attach_image(video.cover_image, "poster.jpg")
+
+      expect(image_sources(video)).to all(end_with("poster.jpg"))
+      expect(image_sources(video)).not_to be_empty
+    end
+
+    it "draws the thumbnail when there is no poster" do
+      attach_image(video.thumbnail, "frame.jpg")
+
+      expect(image_sources(video)).to eq(image_sources(video).grep(/frame\.jpg\z/))
+      expect(image_sources(video).size).to eq(1)
+    end
+  end
+
+  describe "second line" do
+    def second_line(video)
+      render_component(video: video).at_css(".collection-card-body p")&.text&.strip
+    end
+
+    it "opens with the year" do
+      expect(second_line(create(:video, year: 1999, description: "A description"))).to eq("1999 · A description")
+    end
+
+    it "is the year alone when there is no description" do
+      expect(second_line(create(:video, year: 1999))).to eq("1999")
+    end
+  end
+
   context "with show_folder" do
     let(:user) { create(:user) }
 

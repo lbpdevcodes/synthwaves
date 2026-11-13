@@ -31,7 +31,7 @@ class VideoLibrary
   def loaded(entries)
     ids = entries.group_by(&:model).transform_values { |group| group.map(&:id) }
     user.folders.with_attached_cover_image.where(id: ids[Folder]) +
-      user.videos.with_attached_thumbnail.includes(:folder).where(id: ids[Video])
+      user.videos.with_attached_thumbnail.with_attached_cover_image.includes(:folder).where(id: ids[Video])
   end
 
   # Each order breaks its ties with the other, so a page boundary never

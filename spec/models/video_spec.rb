@@ -35,6 +35,98 @@ RSpec.describe Video, type: :model do
     end
   end
 
+  describe "#video_type" do
+    it "is a movie, a TV episode, or nothing" do
+      expect(build(:video, video_type: "movie")).to be_movie
+      expect(build(:video, video_type: "tv")).to be_tv
+      expect(build(:video, video_type: nil)).to be_valid
+    end
+
+    it "refuses any other kind" do
+      video = build(:video, video_type: "cartoon")
+
+      expect(video).not_to be_valid
+      expect(video.errors[:video_type]).to include("is not included in the list")
+    end
+  end
+
+  describe "#year" do
+    it "takes a release year, or none" do
+      expect(build(:video, year: 1999)).to be_valid
+      expect(build(:video, year: nil)).to be_valid
+    end
+
+    it "refuses a year before film existed" do
+      video = build(:video, year: 1700)
+
+      expect(video).not_to be_valid
+      expect(video.errors[:year]).to include("must be greater than or equal to 1888")
+    end
+
+    it "refuses a year more than five years out" do
+      video = build(:video, year: Date.current.year + 6)
+
+      expect(video).not_to be_valid
+      expect(video.errors[:year]).to include("must be less than or equal to #{Date.current.year + 5}")
+    end
+
+    it "refuses a year that is not a whole number" do
+      expect(build(:video, year: "1999.5")).not_to be_valid
+    end
+  end
+
+  describe "#cover" do
+    def attach_image(attachment, name)
+      attachment.attach(io: StringIO.new("image"), filename: name, content_type: "image/jpeg")
+    end
+
+    it "is the poster when one is attached" do
+      video = create(:video)
+      attach_image(video.thumbnail, "frame.jpg")
+      attach_image(video.cover_image, "poster.jpg")
+
+      expect(video.cover.filename.to_s).to eq("poster.jpg")
+    end
+
+    it "is the thumbnail when there is no poster" do
+      video = create(:video)
+      attach_image(video.thumbnail, "frame.jpg")
+
+      expect(video.cover.filename.to_s).to eq("frame.jpg")
+    end
+
+    it "is nothing when there is neither" do
+      expect(create(:video).cover).to be_nil
+    end
+  end
+
+  describe "#genre_names=" do
+    it "files the video under each genre named, once, in lower case" do
+      video = create(:video)
+
+      video.update!(genre_names: " Action, crime,ACTION, ")
+
+      expect(video.reload.genre_names).to eq(%w[action crime])
+    end
+
+    it "takes the video out of the genres left out" do
+      video = create(:video, genre_names: "action, crime")
+
+      video.update!(genre_names: ["crime"])
+
+      expect(video.reload.genre_names).to eq(%w[crime])
+    end
+
+    it "keeps a genre tag other videos still use" do
+      kept = create(:video, genre_names: "action")
+      video = create(:video, genre_names: "action")
+
+      video.update!(genre_names: "")
+
+      expect(kept.reload.genre_names).to eq(%w[action])
+    end
+  end
+
   describe "#subtitles" do
     it "lists a video's subtitles by label" do
       video = create(:video)

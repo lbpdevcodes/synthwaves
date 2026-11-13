@@ -195,6 +195,16 @@ A `Folder` is a series of videos, ordered by `season_number` and `episode_number
 - The video edit page sets `season_number` and `episode_number`, which order a folder's videos.
 - **Native apps manage folders over Subsonic** (`API::Subsonic::FoldersController`, documented in `docs/api/subsonic/video.md`): `getFolders`, `getFolder`, `createFolder`, `updateFolder` (`videoIdToAdd` / `videoIdToRemove`), `deleteFolder` and `getFolderCover`. `getFolders` stays one flat list; each nested folder carries `parentId`, and `createFolder` / `updateFolder` take one (sent empty on update, it moves the folder to the top level). A refused delete answers error 0. Moving goes through `Folder#add_videos` / `#remove_videos`, all or nothing. Subsonic clients repeat a parameter without brackets (`videoId=1&videoId=2`), which Rails collapses to the last value, so `param_values` in the Subsonic base controller reads the raw query string and form body. A missing parameter answers error 10 and a validation failure error 0.
 
+### Video Type, Year, Genres and Poster
+
+A video says what it is itself, so a folder only has to mean a collection (a franchise or a show), never a category:
+
+- `video_type` is `movie` or `tv` (an enum). A video with none is "Other", such as a YouTube clip.
+- `year` is the release year, from 1888 to five years out. It has the same name as `albums.year`.
+- Genres are genre `Tag`s shared with tracks (`Video::Genres`), and a video can have several. `genre_names=` takes "action, Crime" or a list, lower-cases it, and replaces the video's genres. The taggings belong to the video's owner. Dropping a genre never deletes the shared tag.
+- `cover_image` is a portrait poster. `Video#cover` is the poster, else the thumbnail. `VideoCard` draws a poster whole, over a blurred copy of itself, so its 16:9 box doesn't crop it. The line under the card's title opens with the year.
+- The edit page sets all four. The show page reads "Movie · 1999 · comedy, crime" (`VideosHelper#video_details`).
+
 ### Video Subtitles
 
 An uploaded video's subtitles are `VideoSubtitle` rows (`label`, `language`, `kind` subtitles/captions, `vtt` text). The video page renders one `<track>` per row, so the browser's own captions menu switches them.
