@@ -204,6 +204,8 @@ A video says what it is itself, so a folder only has to mean a collection (a fra
 - Genres are genre `Tag`s shared with tracks (`Video::Genres`), and a video can have several. `genre_names=` takes "action, Crime" or a list, lower-cases it, and replaces the video's genres. The taggings belong to the video's owner. Dropping a genre never deletes the shared tag.
 - `cover_image` is a portrait poster. `Video#cover` is the poster, else the thumbnail. `VideoCard` draws a poster whole, over a blurred copy of itself, so its 16:9 box doesn't crop it. The line under the card's title opens with the year.
 - The edit page sets all four. The show page reads "Movie · 1999 · comedy, crime" (`VideosHelper#video_details`).
+- `ReleaseYear.from(filename)` reads the year from a release file name: the last year ahead of the quality tags, never one that opens the name (`1917.2019` is 2019). It is the rule `VideoImport::VideoTitle` ends a title with, copied because `lib/cli` stays stdlib-only.
+- `Maintenance::VideoLibraryBackfillTask` (`user_id`, `genre_folders` such as "Action, Animated") filled these fields for videos filed before they existed (`VideoLibraryBackfill`). A video in a collection of numbered episodes is `tv`, a YouTube video gets no type, and any other video is a `movie`. The nearest folder at or above a video named in `genre_folders` gives its genre, and its file name gives its year. It only fills blanks and adds genres, so it is safe to re-run. `#changes` is the dry run.
 
 ### Video Subtitles
 
