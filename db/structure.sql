@@ -188,7 +188,16 @@ CREATE INDEX "index_folders_on_user_id" ON "folders" ("user_id") /*application='
 CREATE INDEX "index_folders_on_parent_id" ON "folders" ("parent_id") /*application='SynthWaves'*/;
 CREATE UNIQUE INDEX "index_folders_on_user_id_and_parent_id_and_name" ON "folders" ("user_id", "parent_id", "name") /*application='SynthWaves'*/;
 CREATE INDEX "index_videos_on_user_id_and_video_type" ON "videos" ("user_id", "video_type") /*application='SynthWaves'*/;
+CREATE TABLE IF NOT EXISTS "device_sign_ins" ("id" integer PRIMARY KEY AUTOINCREMENT NOT NULL, "code" varchar NOT NULL, "secret_digest" varchar NOT NULL, "device_name" varchar NOT NULL, "user_id" integer, "expires_at" datetime(6) NOT NULL, "created_at" datetime(6) NOT NULL, "updated_at" datetime(6) NOT NULL, CONSTRAINT "fk_rails_9eb443e018"
+FOREIGN KEY ("user_id")
+  REFERENCES "users" ("id")
+);
+CREATE UNIQUE INDEX "index_device_sign_ins_on_code" ON "device_sign_ins" ("code") /*application='SynthWaves'*/;
+CREATE UNIQUE INDEX "index_device_sign_ins_on_secret_digest" ON "device_sign_ins" ("secret_digest") /*application='SynthWaves'*/;
+CREATE INDEX "index_device_sign_ins_on_user_id" ON "device_sign_ins" ("user_id") /*application='SynthWaves'*/;
+CREATE INDEX "index_device_sign_ins_on_expires_at" ON "device_sign_ins" ("expires_at") /*application='SynthWaves'*/;
 INSERT INTO "schema_migrations" (version) VALUES
+('20261113220000'),
 ('20261113120000'),
 ('20261112235036'),
 ('20261112202404'),

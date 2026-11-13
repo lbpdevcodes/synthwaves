@@ -2,7 +2,7 @@
 
 Token exchange, native app bootstrap, and the library management endpoints the native apps use.
 
-Every endpoint except the two token exchanges and `/api/v1/native/credentials` needs an `Authorization: Bearer <token>` header. Records belong to one user, so another user's ID is a 404.
+Every endpoint except the two token exchanges, `/api/v1/native/credentials` and the two code sign-in endpoints needs an `Authorization: Bearer <token>` header. Records belong to one user, so another user's ID is a 404.
 
 ## POST `/api/v1/auth/token`
 
@@ -112,6 +112,72 @@ curl https://your-server/api/v1/native/credentials \
 | `email` | string | User's email address (used as Subsonic username) |
 | `subsonic_password` | string | Password for Subsonic API authentication |
 | `theme` | string | User's selected theme (`synthwave`, `reggae`, `punk`, or `jazz`) |
+
+---
+
+## Code sign-in for TVs
+
+A TV can't easily type a password, so it signs in with a code instead:
+
+1. The TV asks for a code with `POST /api/v1/device_sign_ins` and shows the `code`, with a QR code of `url_with_code`.
+2. Someone signed in on the web opens `/link` (the QR code fills the code in), enters the code and presses **Sign In**. The page names the TV that asked.
+3. The TV checks in with its `secret` every `interval` seconds at `POST /api/v1/device_sign_in_claim`. Once the code is entered, it gets the account's email and Subsonic password, exactly once.
+
+A code lasts 10 minutes and can be entered once. The server stores only a SHA-256 digest of the secret. Both endpoints answer with `Cache-Control: no-store` and read only the request body.
+
+### POST `/api/v1/device_sign_ins`
+
+**Auth:** None
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `device_name` | string | No | What the TV calls itself, shown on the `/link` button (squished to 40 characters; `TV` when blank) |
+
+```bash
+curl -X POST https://your-server/api/v1/device_sign_ins \
+  -H "Content-Type: application/json" \
+  -d '{"device_name": "Apple TV"}'
+```
+
+#### Response — 201 Created
+
+```json
+{
+  "code": "KQ7M-4TRH",
+  "secret": "a 43-character URL-safe secret",
+  "url": "https://your-server/link",
+  "url_with_code": "https://your-server/link?code=KQ7M-4TRH",
+  "expires_in": 600,
+  "interval": 5
+}
+```
+
+Codes use `BCDFGHJKLMNPQRSTVWXZ23456789`: no vowels, and no 0, O, 1 or I. `/link` takes them in any case, with or without the dash.
+
+| Status | Body | Cause |
+|--------|------|-------|
+| 429 | `{"error": "Too many attempts. Try again later."}` | More than 10 codes for one IP address in 10 minutes |
+
+### POST `/api/v1/device_sign_in_claim`
+
+**Auth:** None (the secret is the credential)
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `secret` | string | Yes | The `secret` from `POST /api/v1/device_sign_ins` |
+
+```bash
+curl -X POST https://your-server/api/v1/device_sign_in_claim \
+  -H "Content-Type: application/json" \
+  -d '{"secret": "..."}'
+```
+
+| Status | Body | Meaning |
+|--------|------|---------|
+| 202 | `{"status": "pending"}` | Nobody has entered the code yet. Check in again after `interval` seconds. |
+| 200 | `{"email": "user@example.com", "subsonic_password": "..."}` | Signed in. The sign-in is deleted as it answers, so this comes once. |
+| 404 | `{"error": "This code has expired. Get a new one on the TV."}` | The code expired, was already claimed, or the secret is wrong. Ask for a new code. |
+| 429 | `{"error": "Too many attempts. Try again later."}` | More than 30 check-ins from one IP address in a minute |
 
 ---
 
