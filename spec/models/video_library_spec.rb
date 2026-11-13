@@ -4,7 +4,7 @@ RSpec.describe VideoLibrary do
   let(:user) { create(:user) }
 
   def listed(sort: "added", direction: "desc", query: nil)
-    library = described_class.new(user: user, query: query, sort: sort, direction: direction)
+    library = described_class.new(user: user, filter: VideoFilter.new(query: query), sort: sort, direction: direction)
     library.records(library.entries)
   end
 

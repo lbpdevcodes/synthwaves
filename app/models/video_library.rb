@@ -6,9 +6,9 @@ class VideoLibrary
 
   Entry = Data.define(:model, :id, :title, :added_at)
 
-  def initialize(user:, query: nil, sort: "added", direction: "desc")
+  def initialize(user:, filter: VideoFilter.new, sort: "added", direction: "desc")
     @user = user
-    @query = query
+    @filter = filter
     @sort = sort
     @direction = direction
   end
@@ -25,7 +25,9 @@ class VideoLibrary
 
   private
 
-  attr_reader :user, :query, :sort, :direction
+  attr_reader :user, :filter, :sort, :direction
+
+  delegate :query, to: :filter
 
   # One query per kind, with what the cards draw.
   def loaded(entries)
