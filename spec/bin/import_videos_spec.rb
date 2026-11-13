@@ -34,6 +34,13 @@ RSpec.describe "bin/import_videos" do
     expect(status.exitstatus).to eq(1)
   end
 
+  it "names a type it doesn't know and fails" do
+    _out, err, status = run_script(@folder, "--type", "cartoon")
+
+    expect(err).to include("import_videos: invalid argument: --type cartoon")
+    expect(status.exitstatus).to eq(1)
+  end
+
   it "names a folder that does not exist and fails" do
     missing = File.join(@folder, "no-such-folder")
 
@@ -80,6 +87,20 @@ RSpec.describe "bin/import_videos" do
       expect(first).to include(%(Uploaded 1: "Shrek" (video 7)))
       expect(File.read(log)).to start_with("Shrek\tvideo 7\t")
       expect(again).to include(%(Skipping "Shrek" (Shrek.2001.1080p.BluRay.x264.YIFY.mp4): uploaded already as video 7))
+    end
+
+    it "files every video with the type and genres given" do
+      movie("Shrek.2001.1080p.BluRay.x264.YIFY.mp4")
+      movie("Toy.Story.1995.1080p.BluRay.x265.mp4")
+
+      _out, _err, status = run_script(@folder, "--host", server.url, "--type", "movie", "--genre", "animated", "--genre", "comedy")
+
+      filed = server.requests.select { |_, path, _| path == "/api/import/videos" }.map { |*, body| JSON.parse(body) }
+      expect(filed.map { |video| video.slice("title", "video_type", "genres") }).to eq([
+        {"title" => "Shrek", "video_type" => "movie", "genres" => %w[animated comedy]},
+        {"title" => "Toy Story", "video_type" => "movie", "genres" => %w[animated comedy]}
+      ])
+      expect(status.exitstatus).to eq(0)
     end
 
     it "reports a video it could not upload, logs nothing for it, and fails" do

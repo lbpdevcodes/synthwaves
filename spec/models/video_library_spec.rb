@@ -126,7 +126,7 @@ RSpec.describe VideoLibrary do
 
     it "shows the videos with no type as Other" do
       create(:video, user: user, video_type: "movie")
-      clip = create(:video, user: user, video_type: nil)
+      clip = create(:video, :untyped, user: user)
 
       expect(listed(type: "other")).to eq([clip])
     end

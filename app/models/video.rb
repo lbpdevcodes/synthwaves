@@ -1,6 +1,7 @@
 class Video < ApplicationRecord
   include Downloadable
   include Genres
+  include Defaults
 
   FOLDER_SORT_OPTIONS = {
     "episode_number" => "Episode Number",
@@ -24,9 +25,8 @@ class Video < ApplicationRecord
   enum :video_type, {movie: "movie", tv: "tv"}, validate: {allow_nil: true}
 
   validates :title, presence: true
-  # From the first films to a few years out, for a release announced early.
   validates :year, allow_nil: true, numericality: {
-    only_integer: true, greater_than_or_equal_to: 1888, less_than_or_equal_to: -> { Date.current.year + 5 }
+    only_integer: true, greater_than_or_equal_to: -> { release_years.begin }, less_than_or_equal_to: -> { release_years.end }
   }
   validate :folder_in_same_library, if: :folder_link_changing?
 
@@ -37,6 +37,9 @@ class Video < ApplicationRecord
   scope :ordered, -> { order(:season_number, :episode_number) }
 
   after_create_commit :convert_video
+
+  # From the first films to a few years out, for a release announced early.
+  def self.release_years = 1888..(Date.current.year + 5)
 
   # The image that stands for the video: its poster, else the frame the
   # conversion grabbed. Nil when it has neither.

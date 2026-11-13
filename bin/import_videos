@@ -11,10 +11,13 @@
 # - A video still downloading (a .part file, or a file still being written)
 #   is skipped; rerun once it has finished.
 # - Subtitles: the files beside a video, or else the text tracks inside it.
+# - --type movie|tv and --genre NAME (repeatable) go with every video in the
+#   run. The server reads each one's year from its file name.
 #
 # Usage:
 #   bin/import_videos ~/Movies --dry-run   # what it would upload, and why it skips the rest
 #   bin/import_videos ~/Movies
+#   bin/import_videos ~/Movies/Comedy --genre comedy
 #
 # Credentials come from an API key (create one at /api_keys):
 #   export SYNTHWAVES_CLIENT_ID=bc_...
@@ -26,9 +29,12 @@ require_relative "../lib/cli/video_import"
 def fail_with(message) = abort("import_videos: #{message}")
 
 options = {host: ENV.fetch("SYNTHWAVES_HOST", "https://synthwaves.fm"), dry_run: false}
+fields = {}
 parser = OptionParser.new do |opts|
   opts.banner = "Usage: bin/import_videos FOLDER [options]"
   opts.on("--dry-run", "Say what it would upload and skip, and upload nothing") { options[:dry_run] = true }
+  opts.on("--type TYPE", %w[movie tv], "File every video as a movie or as tv. Default: tv for an episode, else movie") { |v| fields[:video_type] = v }
+  opts.on("--genre NAME", "File every video under this genre (repeatable)") { |v| fields[:genres] = (fields[:genres] || []) << v }
   opts.on("--host URL", "Default: ENV[SYNTHWAVES_HOST] or https://synthwaves.fm") { |v| options[:host] = v }
 end
 
@@ -51,6 +57,7 @@ unless options[:dry_run]
 
   api = VideoImport::API.new(host: options[:host], client_id: client_id, secret_key: secret_key)
   importer = VideoImport::Importer.new(api: api, out: $stdout, encoder: VideoImport::Encoder.new(out: $stdout))
+  importer = VideoImport::FiledAs.new(importer, **fields) unless fields.empty?
   subtitle_upload = VideoImport::SubtitleUpload.new(api: api, out: $stdout)
 
   # Keep the Mac from sleeping through a long run (macOS only).

@@ -99,6 +99,32 @@ RSpec.describe "API Import Videos", type: :request do
         .to eq("Several folders are named Season 1: South Park › Season 1 and The Wire › Season 1")
     end
 
+    it "files the video with the type, year and genres sent" do
+      post api_import_videos_path,
+        params: {signed_blob_id: blob.signed_id, video_type: "tv", year: 1999, genres: ["Comedy", "crime"]},
+        headers: auth_headers
+
+      expect(response).to have_http_status(:created)
+      expect(Video.last).to have_attributes(video_type: "tv", year: 1999, genre_names: %w[comedy crime])
+    end
+
+    it "files a video sent without them as a movie of the year its file name gives" do
+      heat = ActiveStorage::Blob.create_and_upload!(io: StringIO.new("video"), filename: "Heat.1995.1080p.BluRay.mp4", content_type: "video/mp4")
+
+      post api_import_videos_path, params: {signed_blob_id: heat.signed_id}, headers: auth_headers
+
+      expect(Video.last).to have_attributes(video_type: "movie", year: 1995, genre_names: [])
+    end
+
+    it "refuses a type it doesn't know, saying why" do
+      post api_import_videos_path,
+        params: {signed_blob_id: blob.signed_id, video_type: "cartoon"},
+        headers: auth_headers
+
+      expect(response).to have_http_status(:unprocessable_content)
+      expect(JSON.parse(response.body)["error"]).to include("Video type is not included in the list")
+    end
+
     it "enqueues VideoConversionJob" do
       expect {
         post api_import_videos_path,

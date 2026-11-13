@@ -65,7 +65,7 @@ RSpec.describe "Videos", type: :request do
     end
 
     it "leaves out what the video lacks" do
-      video = create(:video, user: user, video_type: nil, year: 2004)
+      video = create(:video, :untyped, user: user, year: 2004)
 
       get video_path(video)
 

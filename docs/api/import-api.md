@@ -283,6 +283,9 @@ Import a video using a previously uploaded blob from the direct uploads endpoint
 | `folder_name` | string | No | The folder to file it in, found by name at any depth (folders can sit inside other folders). Created at the top level when no folder has the name. A name several folders share is refused. |
 | `season_number` | integer | No | Season number |
 | `episode_number` | integer | No | Episode number |
+| `video_type` | string | No | `movie` or `tv`. Default: `tv` when `episode_number` is sent, else `movie` |
+| `year` | integer | No | Release year, from 1888 to five years from now. Default: the year in the uploaded file's release name (`Heat.1995.1080p.mkv` is 1995), when it has one |
+| `genres` | array of strings | No | Genre names, such as `["action", "crime"]`. Lower-cased. |
 | `thumbnail_signed_blob_id` | string | No | Signed blob ID of a JPEG thumbnail, from a direct upload |
 | `details` | object | No | What ffprobe reads from the file: `duration` (seconds), `width`, `height`, `video_codec`, `audio_codec`, `audio_channels`, `bitrate` (kb/s), `container` (ffprobe's format name) |
 
@@ -299,7 +302,9 @@ curl -X POST https://your-server/api/import/videos \
     "title": "Episode 1",
     "folder_name": "My Series",
     "season_number": 1,
-    "episode_number": 1
+    "episode_number": 1,
+    "video_type": "tv",
+    "genres": ["comedy"]
   }'
 ```
 
@@ -327,7 +332,9 @@ curl -X POST https://your-server/api/import/videos \
 |--------|------|-------|
 | 422 | `{"error": "Invalid signed blob ID"}` | Bad or expired `signed_blob_id` or `thumbnail_signed_blob_id` |
 | 422 | `{"error": "Several folders are named Season 1: South Park › Season 1 and The Wire › Season 1"}` | `folder_name` names more than one folder. Nothing is filed. |
-| 422 | `{"error": "..."}` | Validation failure |
+| 422 | `{"error": "Validation failed: Video type is not included in the list"}` | `video_type` is neither `movie` nor `tv`. Nothing is filed. |
+| 422 | `{"error": "Validation failed: Year must be greater than or equal to 1888"}` | `year` is out of range. Nothing is filed. |
+| 422 | `{"error": "..."}` | Other validation failure |
 
 ---
 
