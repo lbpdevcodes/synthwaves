@@ -15,7 +15,7 @@ module Subsonic
 
     # One folder with its ready videos, in episode order.
     def self.to_detail(folder)
-      videos = folder.videos.ready.ordered.includes(:folder)
+      videos = folder.videos.ready.ordered.includes(:folder, taggings: :tag)
       to_entry(folder, video_count: videos.size).merge(video: videos.map { |video| VideoSerializer.to_entry(video) })
     end
   end

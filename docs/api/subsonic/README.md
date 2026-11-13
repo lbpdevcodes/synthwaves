@@ -149,9 +149,16 @@ Returned by `getVideos`, `getVideo`, and in a folder's `video` list (`getFolder`
   "folderName": "My Series",
   "episodeNumber": 1,
   "seasonNumber": 1,
+  "videoType": "tv",
+  "year": 2024,
+  "genres": ["comedy", "drama"],
   "created": "2024-01-15T10:30:00Z"
 }
 ```
+
+- `videoType` is `movie` or `tv`. It's left out for a video with no type, which the web shows as "Other".
+- `year` is the release year. It's left out when the video has none.
+- `genres` lists the genre names, lower case and sorted by name. It's left out when the video has none.
 
 ## Endpoint Documentation
 

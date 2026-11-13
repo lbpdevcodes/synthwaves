@@ -15,6 +15,9 @@ module Subsonic
         folderName: video.folder&.name,
         episodeNumber: video.episode_number,
         seasonNumber: video.season_number,
+        videoType: video.video_type,
+        year: video.year,
+        genres: video.genre_names.presence,
         created: video.created_at.iso8601
       }.compact
     end

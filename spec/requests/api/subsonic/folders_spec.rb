@@ -69,6 +69,16 @@ RSpec.describe "Subsonic Folders API", type: :request do
       expect(f["video"].map { |v| v["title"] }).to eq(["Ep 1", "Ep 2"])
     end
 
+    it "gives each video's type, year and genres" do
+      folder = create(:folder, user: user)
+      create(:video, user: user, folder: folder, video_type: "tv", year: 2019, genre_names: "drama", episode_number: 1)
+
+      get "/api/rest/getFolder", params: auth_params.merge(id: folder.id)
+
+      video = JSON.parse(response.body)["subsonic-response"]["folder"]["video"].first
+      expect(video.slice("videoType", "year", "genres")).to eq("videoType" => "tv", "year" => 2019, "genres" => ["drama"])
+    end
+
     it "includes the description, the ready video count and the creation time" do
       folder = create(:folder, user: user, name: "My Series", description: "Two seasons")
       create(:video, user: user, folder: folder)

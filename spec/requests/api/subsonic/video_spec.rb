@@ -57,6 +57,34 @@ RSpec.describe "Subsonic Video API", type: :request do
       expect(videos.first["title"]).to eq("My video")
     end
 
+    it "lists each video's type, year and genres, the genres by name" do
+      create(:video, user: user, video_type: "movie", year: 2005, genre_names: "crime, action")
+
+      get "/api/rest/getVideos", params: auth_params
+
+      video = JSON.parse(response.body)["subsonic-response"]["videos"]["video"].first
+      expect(video.slice("videoType", "year", "genres")).to eq("videoType" => "movie", "year" => 2005, "genres" => ["action", "crime"])
+    end
+
+    it "leaves out the type, year and genres of a video filed with none" do
+      create(:video, :untyped, user: user)
+
+      get "/api/rest/getVideos", params: auth_params
+
+      video = JSON.parse(response.body)["subsonic-response"]["videos"]["video"].first
+      expect(video.keys).not_to include("videoType", "year", "genres")
+    end
+
+    # The list is unpaged, so a query per video's genres would grow with the library.
+    it "reads every video's genres in the same number of queries however many videos there are" do
+      create(:video, user: user, genre_names: "drama")
+      one_video = queries_during { get "/api/rest/getVideos", params: auth_params }
+      create_list(:video, 2, user: user, genre_names: "comedy")
+      three_videos = queries_during { get "/api/rest/getVideos", params: auth_params }
+
+      expect(three_videos).to eq(one_video)
+    end
+
     it "rejects unauthenticated requests" do
       get "/api/rest/getVideos", params: {f: "json"}
 
@@ -89,6 +117,15 @@ RSpec.describe "Subsonic Video API", type: :request do
       expect(v["folderName"]).to eq("My Series")
       expect(v["episodeNumber"]).to eq(1)
       expect(v["seasonNumber"]).to eq(1)
+    end
+
+    it "returns the video's type, year and genres" do
+      video = create(:video, user: user, video_type: "tv", year: 1999, genre_names: "comedy")
+
+      get "/api/rest/getVideo", params: auth_params.merge(id: video.id)
+
+      v = JSON.parse(response.body)["subsonic-response"]["video"]
+      expect(v.slice("videoType", "year", "genres")).to eq("videoType" => "tv", "year" => 1999, "genres" => ["comedy"])
     end
 
     it "lists no subtitles for a video without any" do
@@ -309,5 +346,22 @@ RSpec.describe "Subsonic Video API", type: :request do
       expect(doc.at("subsonic-response")["status"]).to eq("ok")
       expect(doc.at("video")["title"]).to eq("XML Video")
     end
+
+    it "gives the type and year as attributes and each genre as an element" do
+      create(:video, user: user, video_type: "movie", year: 2005, genre_names: "crime, action")
+
+      get "/api/rest/getVideos", params: auth_params.except(:f)
+
+      video = Nokogiri::XML(response.body).at("video")
+      expect([video["videoType"], video["year"]]).to eq(["movie", "2005"])
+      expect(video.css("genres").map(&:text)).to eq(["action", "crime"])
+    end
+  end
+
+  def queries_during(&request)
+    queries = 0
+    counter = ->(*, payload) { queries += 1 unless payload[:cached] || payload[:name] == "SCHEMA" }
+    ActiveSupport::Notifications.subscribed(counter, "sql.active_record", &request)
+    queries
   end
 end
