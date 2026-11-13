@@ -13,6 +13,12 @@
     Enter the code your TV shows. The TV will be signed in as <%= Current.user.email_address %>.
   </p>
 
+  <p class="mt-3 text-yellow-400">Only continue if this code is on your own TV, in front of you.</p>
+
+  <% if @device_name %>
+    <p class="mt-3 text-sm text-gray-400">The device showing this code calls itself “<%= @device_name %>”.</p>
+  <% end %>
+
   <%= form_with url: link_path, class: "contents" do |form| %>
     <div class="my-5">
       <%= form.label :code, "Code", class: "text-sm text-gray-400" %>
@@ -21,6 +27,6 @@
             class: "block shadow-sm rounded-md border border-gray-700 bg-gray-800 text-white font-mono uppercase tracking-widest focus:outline-neon-cyan px-3 py-2 mt-2 w-full" %>
     </div>
 
-    <%= form.submit "Sign In #{@device_name || "TV"}", class: "w-full sm:w-auto text-center rounded-md px-3.5 py-2.5 bg-neon-pink hover:shadow-neon-pink text-white inline-block font-medium cursor-pointer" %>
+    <%= form.submit "Sign In TV", class: "w-full sm:w-auto text-center rounded-md px-3.5 py-2.5 bg-neon-pink hover:shadow-neon-pink text-white inline-block font-medium cursor-pointer" %>
   <% end %>
 </div>
