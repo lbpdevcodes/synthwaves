@@ -88,10 +88,11 @@ synthwaves.fm is a self-hosted music and video streaming server built with Rails
 - AirPlay support for compatible speakers and devices
 - Chromecast support
 
-### Listening Stats
+### Stats
 
-- Dashboard with play counts, listening time, and streaks
-- Filter by week, month, year, or all time
+- Music: library size and genres, plus play counts, listening time, and streaks
+- Filter listening by week, month, year, or all time
+- Video: videos by type, collections, runtime and size, charted by genre, decade, and resolution
 
 ### Progressive Web App
 

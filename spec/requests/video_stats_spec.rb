@@ -47,6 +47,12 @@ RSpec.describe "Video stats", type: :request do
       expect(stats_page.css("a").find { |link| link.text.strip == "Music" }&.[]("href")).to eq(stats_path)
     end
 
+    it "switches in place, so going back and forth stacks no history" do
+      get video_stats_path
+      switch = stats_page.css("a").select { |link| %w[Music Video].include?(link.text.strip) }
+      expect(switch.map { |link| link["data-turbo-action"] }).to eq(%w[replace replace])
+    end
+
     it "marks Video as the stats being shown" do
       get video_stats_path
       expect(stats_page.at_css("a[aria-current=page]").text.strip).to eq("Video")
