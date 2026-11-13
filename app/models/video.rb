@@ -1,5 +1,6 @@
 class Video < ApplicationRecord
   include Downloadable
+  include Genres
 
   FOLDER_SORT_OPTIONS = {
     "episode_number" => "Episode Number",
@@ -14,11 +15,19 @@ class Video < ApplicationRecord
   # (filled by VideoConversionJob, or by PreparedVideo from bin/import_video).
   has_one_attached :file, analyze: :lazily
   has_one_attached :thumbnail
+  has_one_attached :cover_image
   has_many :favorites, as: :favorable, dependent: :destroy
   has_many :video_playback_positions, dependent: :destroy
   has_many :subtitles, -> { order(:label) }, class_name: "VideoSubtitle", dependent: :destroy
 
+  # No type is "Other": a clip that is neither a film nor an episode.
+  enum :video_type, {movie: "movie", tv: "tv"}, validate: {allow_nil: true}
+
   validates :title, presence: true
+  # From the first films to a few years out, for a release announced early.
+  validates :year, allow_nil: true, numericality: {
+    only_integer: true, greater_than_or_equal_to: 1888, less_than_or_equal_to: -> { Date.current.year + 5 }
+  }
   validate :folder_in_same_library, if: :folder_link_changing?
 
   scope :ready, -> { where(status: "ready") }
@@ -28,6 +37,12 @@ class Video < ApplicationRecord
   scope :ordered, -> { order(:season_number, :episode_number) }
 
   after_create_commit :convert_video
+
+  # The image that stands for the video: its poster, else the frame the
+  # conversion grabbed. Nil when it has neither.
+  def cover
+    cover_image.attached? ? cover_image : thumbnail.presence
+  end
 
   private
 
