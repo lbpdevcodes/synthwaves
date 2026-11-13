@@ -1,0 +1,8 @@
+<%# Music | Video, under the Stats heading. current: :music or :video %>
+<div class="flex gap-1 mb-6 border-b border-gray-700">
+  <% {music: ["Music", stats_path], video: ["Video", video_stats_path]}.each do |key, (label, path)| %>
+    <%= link_to label, path,
+          class: "px-4 py-2.5 text-sm font-medium transition-colors -mb-px whitespace-nowrap #{current == key ? 'text-neon-cyan border-b-2 border-neon-cyan' : 'text-gray-400 hover:text-white'}",
+          aria: {current: (current == key ? "page" : nil)} %>
+  <% end %>
+</div>

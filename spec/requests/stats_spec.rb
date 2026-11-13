@@ -5,22 +5,17 @@ RSpec.describe "Stats", type: :request do
 
   before { login_user(user) }
 
-  # The figure drawn above a tile's label.
-  def tile_value(label)
-    page.css("div").find { |node| node.text.strip == label && node.element_children.empty? }
-      &.previous_element&.text&.strip
-  end
-
-  # The [count, bar width] a bar chart under a heading draws for a label.
-  def bar(heading, label)
-    rows = page.css("h2, h3").find { |node| node.text.strip == heading }.next_element
-    row = rows.css("span").find { |span| span.text.strip == label }.parent
-    [row.css("span").last.text.strip, row.at_css("[style]")["style"]]
-  end
-
-  def page = Nokogiri::HTML(response.body)
-
   describe "GET /stats" do
+    it "links to the video stats" do
+      get stats_path
+      expect(stats_page.css("a").find { |link| link.text.strip == "Video" }&.[]("href")).to eq(video_stats_path)
+    end
+
+    it "marks Music as the stats being shown" do
+      get stats_path
+      expect(stats_page.at_css("a[aria-current=page]")&.text&.strip).to eq("Music")
+    end
+
     context "with a music library" do
       let(:artist) { create(:artist, user: user) }
 
