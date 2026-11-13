@@ -73,6 +73,32 @@ RSpec.describe "API Import Videos", type: :request do
       expect(Video.last.folder).to eq(folder)
     end
 
+    it "files the video in the one folder with that name, however deep it sits" do
+      the_wire = create(:folder, user: user, parent: create(:folder, user: user, name: "TV"), name: "The Wire")
+
+      post api_import_videos_path,
+        params: {signed_blob_id: blob.signed_id, title: "EP1", folder_name: "The Wire"},
+        headers: auth_headers
+
+      expect(Video.last.folder).to eq(the_wire)
+    end
+
+    it "refuses a folder name several folders share, naming each by its path" do
+      %w[South\ Park The\ Wire].each do |show|
+        create(:folder, user: user, parent: create(:folder, user: user, name: show), name: "Season 1")
+      end
+
+      expect {
+        post api_import_videos_path,
+          params: {signed_blob_id: blob.signed_id, title: "EP1", folder_name: "Season 1"},
+          headers: auth_headers
+      }.not_to change(Video, :count)
+
+      expect(response).to have_http_status(:unprocessable_content)
+      expect(JSON.parse(response.body)["error"])
+        .to eq("Several folders are named Season 1: South Park › Season 1 and The Wire › Season 1")
+    end
+
     it "enqueues VideoConversionJob" do
       expect {
         post api_import_videos_path,

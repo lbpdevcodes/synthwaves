@@ -314,4 +314,97 @@ RSpec.describe "Subsonic Folders API", type: :request do
       expect(response).to have_http_status(:not_found)
     end
   end
+
+  describe "nesting" do
+    let!(:tv) { create(:folder, user: user, name: "TV") }
+    let!(:south_park) { create(:folder, user: user, parent: tv, name: "South Park") }
+
+    def subsonic_response
+      JSON.parse(response.body)["subsonic-response"]
+    end
+
+    def subsonic_error
+      subsonic_response["error"]
+    end
+
+    it "gives each folder inside another its parentId in getFolders, and none to a top-level one" do
+      get "/api/rest/getFolders", params: auth_params
+
+      entries = subsonic_response.dig("folders", "folder").index_by { |entry| entry["name"] }
+      expect(entries["South Park"]["parentId"]).to eq(tv.id.to_s)
+      expect(entries["TV"]).not_to have_key("parentId")
+    end
+
+    it "gives parentId as an XML attribute" do
+      get "/api/rest/getFolder", params: auth_params.except(:f).merge(id: south_park.id)
+
+      expect(Nokogiri::XML(response.body).at("folder")["parentId"]).to eq(tv.id.to_s)
+    end
+
+    it "creates a folder inside the one parentId names" do
+      get "/api/rest/createFolder", params: auth_params.merge(name: "Season 1", parentId: south_park.id)
+
+      expect(user.folders.find_by!(name: "Season 1").parent).to eq(south_park)
+      expect(subsonic_response["folder"]["parentId"]).to eq(south_park.id.to_s)
+    end
+
+    it "creates nothing when parentId names another user's folder" do
+      someone_elses = create(:folder)
+
+      expect {
+        get "/api/rest/createFolder", params: auth_params.merge(name: "Season 1", parentId: someone_elses.id)
+      }.not_to change(Folder, :count)
+
+      expect(subsonic_error).to eq("code" => 70, "message" => "Folder not found")
+    end
+
+    it "moves a folder inside the one parentId names" do
+      movies = create(:folder, user: user, name: "Movies")
+
+      get "/api/rest/updateFolder", params: auth_params.merge(id: south_park.id, parentId: movies.id)
+
+      expect(south_park.reload.parent).to eq(movies)
+    end
+
+    it "moves a folder to the top level when parentId is sent empty" do
+      get "/api/rest/updateFolder", params: auth_params.merge(id: south_park.id, parentId: "")
+
+      expect(south_park.reload.parent).to be_nil
+      expect(subsonic_response["folder"]).not_to have_key("parentId")
+    end
+
+    it "leaves the folder where it is when parentId isn't sent" do
+      get "/api/rest/updateFolder", params: auth_params.merge(id: south_park.id, name: "South Park (Comedy Central)")
+
+      expect(south_park.reload.parent).to eq(tv)
+    end
+
+    it "refuses to move a folder inside one of its own subfolders" do
+      get "/api/rest/updateFolder", params: auth_params.merge(id: tv.id, parentId: south_park.id)
+
+      expect(subsonic_error).to eq("code" => 0, "message" => "A folder can't go inside itself or one of its own subfolders")
+      expect(tv.reload.parent).to be_nil
+    end
+
+    it "moves a deleted folder's videos and subfolders up into its parent" do
+      season_one = create(:folder, user: user, parent: south_park, name: "Season 1")
+      episode = create(:video, user: user, folder: south_park)
+
+      get "/api/rest/deleteFolder", params: auth_params.merge(id: south_park.id)
+
+      expect(subsonic_response["status"]).to eq("ok")
+      expect(season_one.reload.parent).to eq(tv)
+      expect(episode.reload.folder).to eq(tv)
+    end
+
+    it "refuses a delete that would put two folders of the same name side by side" do
+      create(:folder, user: user, parent: tv, name: "Season 1")
+      create(:folder, user: user, parent: south_park, name: "Season 1")
+
+      get "/api/rest/deleteFolder", params: auth_params.merge(id: south_park.id)
+
+      expect(subsonic_error).to eq("code" => 0, "message" => "Can't delete South Park: TV already has a folder named Season 1.")
+      expect(Folder.exists?(south_park.id)).to be(true)
+    end
+  end
 end

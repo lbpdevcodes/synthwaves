@@ -3,7 +3,7 @@ class API::Subsonic::FoldersController < API::Subsonic::BaseController
     render_subsonic_error(70, "#{error.model} not found")
   end
 
-  rescue_from ActiveRecord::RecordInvalid do |error|
+  rescue_from ActiveRecord::RecordInvalid, ActiveRecord::RecordNotDestroyed do |error|
     render_subsonic_error(0, error.record.errors.full_messages.to_sentence)
   end
 
@@ -24,7 +24,7 @@ class API::Subsonic::FoldersController < API::Subsonic::BaseController
     return render_missing_param(:name) if params[:name].blank?
 
     folder = Folder.transaction do
-      current_user.folders.create!(name: params[:name], description: params[:description]).tap do |created|
+      current_user.folders.create!(name: params[:name], description: params[:description], parent: requested_parent).tap do |created|
         created.add_videos(find_videos(:videoId))
       end
     end
@@ -36,7 +36,7 @@ class API::Subsonic::FoldersController < API::Subsonic::BaseController
 
     folder = current_user.folders.find(params[:id])
     Folder.transaction do
-      folder.update!(params.slice(:name, :description).permit(:name, :description))
+      folder.update!(folder_changes)
       folder.add_videos(find_videos(:videoIdToAdd))
       folder.remove_videos(find_videos(:videoIdToRemove))
     end
@@ -59,6 +59,17 @@ class API::Subsonic::FoldersController < API::Subsonic::BaseController
 
   def find_videos(param)
     current_user.videos.find(param_values(param))
+  end
+
+  # The folder parentId names, or nil, for the top level, when it is blank.
+  def requested_parent
+    current_user.folders.find(params[:parentId]) if params[:parentId].present?
+  end
+
+  # What updateFolder changes: only the fields the client sent.
+  def folder_changes
+    changes = params.slice(:name, :description).permit(:name, :description).to_h
+    params.key?(:parentId) ? changes.merge(parent: requested_parent) : changes
   end
 
   def render_folder(folder)

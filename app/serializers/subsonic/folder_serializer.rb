@@ -7,6 +7,7 @@ module Subsonic
         id: folder.id.to_s,
         name: folder.name,
         description: folder.description.presence,
+        parentId: folder.parent_id&.to_s,
         videoCount: video_count,
         created: folder.created_at.iso8601
       }.compact

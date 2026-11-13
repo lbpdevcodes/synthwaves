@@ -3,7 +3,7 @@ class API::Import::VideosController < API::Import::BaseController
     blob = ActiveStorage::Blob.find_signed!(params[:signed_blob_id])
     thumbnail = ActiveStorage::Blob.find_signed!(params[:thumbnail_signed_blob_id]) if params[:thumbnail_signed_blob_id].present?
 
-    folder = find_or_create_folder(params[:folder_name]) if params[:folder_name].present?
+    folder = Folder.find_or_create_named!(current_user, params[:folder_name]) if params[:folder_name].present?
 
     video = Video.new(
       user: current_user,
@@ -27,15 +27,11 @@ class API::Import::VideosController < API::Import::BaseController
     }, status: :created
   rescue ActiveSupport::MessageVerifier::InvalidSignature
     render json: {error: "Invalid signed blob ID"}, status: :unprocessable_content
-  rescue ActiveRecord::RecordInvalid => e
+  rescue ActiveRecord::RecordInvalid, Folder::AmbiguousName => e
     render json: {error: e.message}, status: :unprocessable_content
   end
 
   private
 
   def details_params = params.fetch(:details, {}).permit(*PreparedVideo::DETAILS)
-
-  def find_or_create_folder(name)
-    current_user.folders.find_or_create_by!(name: name)
-  end
 end

@@ -236,7 +236,7 @@ Returns the saved playback position for a video. Returns `0` if no position has 
 
 ## `getFolders`
 
-Returns the user's video folders, sorted by name.
+Returns every one of the user's video folders, sorted by name, as one flat list. A folder can sit inside another; `parentId` says which, so a client can rebuild the tree.
 
 **Path:** `/rest/getFolders`
 
@@ -254,6 +254,7 @@ Returns the user's video folders, sorted by name.
           "id": "3",
           "name": "My Series",
           "description": "Two seasons",
+          "parentId": "1",
           "videoCount": 12,
           "created": "2026-11-12T10:30:00Z"
         }
@@ -266,9 +267,10 @@ Returns the user's video folders, sorted by name.
 | Field | Type | Description |
 |-------|------|-------------|
 | `id` | string | Folder ID |
-| `name` | string | Folder name, unique among the user's folders |
+| `name` | string | Folder name, unique among the folders in the same parent |
 | `description` | string | Folder description. Left out when there is none. |
-| `videoCount` | integer | Number of ready videos in the folder |
+| `parentId` | string | The folder this one sits inside. Left out for a top-level folder. |
+| `videoCount` | integer | Number of ready videos in the folder itself, not counting its subfolders |
 | `created` | string | When the folder was created (ISO 8601) |
 
 A folder's cover is served by [`getFolderCover`](#getfoldercover).
@@ -332,8 +334,9 @@ Creates a folder, optionally moving videos into it. A video can be in one folder
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| `name` | string | Yes | Folder name, unique among the user's folders |
+| `name` | string | Yes | Folder name, unique among the folders in the same parent |
 | `description` | string | No | Folder description |
+| `parentId` | string | No | A folder to create it inside. Left out, the folder is top-level. |
 | `videoId` | string | No | A video to move into the new folder. Repeat it for several: `videoId=15&videoId=16` (`videoId[]=15` works too). |
 
 ### Response
@@ -345,14 +348,15 @@ The new folder, in the [`getFolder`](#getfolder) shape.
 | Code | Message | Cause |
 |------|---------|-------|
 | 10 | Required parameter is missing: name | `name` is missing or blank |
-| 0 | Name has already been taken | The user already has a folder with this name |
+| 0 | Name has already been taken | The parent already holds a folder with this name |
+| 70 | Folder not found | `parentId` isn't one of the user's folders. Nothing is created. |
 | 70 | Video not found | A `videoId` isn't one of the user's videos. Nothing is created. |
 
 ---
 
 ## `updateFolder`
 
-Renames or re-describes a folder, and moves videos into and out of it. Every change in one call applies together, or none does.
+Renames or re-describes a folder, moves it inside another, and moves videos into and out of it. Every change in one call applies together, or none does.
 
 **Path:** `/rest/updateFolder`
 
@@ -363,6 +367,7 @@ Renames or re-describes a folder, and moves videos into and out of it. Every cha
 | `id` | string | Yes | Folder ID |
 | `name` | string | No | New name. Left unchanged when not sent. |
 | `description` | string | No | New description. Sent empty, it clears the description; not sent, it stays. |
+| `parentId` | string | No | The folder to move it inside. Sent empty, the folder moves to the top level; not sent, it stays where it is. |
 | `videoIdToAdd` | string | No | A video to move into the folder, out of any other. Repeatable. |
 | `videoIdToRemove` | string | No | A video to take out of the folder. Repeatable. A video that isn't in this folder is left where it is. |
 
@@ -375,16 +380,17 @@ The updated folder, in the [`getFolder`](#getfolder) shape.
 | Code | Message | Cause |
 |------|---------|-------|
 | 10 | Required parameter is missing: id | `id` is missing |
-| 70 | Folder not found | Invalid folder ID, or another user's folder |
+| 70 | Folder not found | Invalid folder ID or `parentId`, or another user's folder |
 | 70 | Video not found | A `videoIdToAdd` or `videoIdToRemove` isn't one of the user's videos. Nothing changes. |
 | 0 | Name can't be blank | `name` was sent empty. Nothing changes. |
-| 0 | Name has already been taken | Another of the user's folders has this name. Nothing changes. |
+| 0 | Name has already been taken | Another folder in the same parent has this name. Nothing changes. |
+| 0 | A folder can't go inside itself or one of its own subfolders | `parentId` is the folder itself or a folder inside it. Nothing changes. |
 
 ---
 
 ## `deleteFolder`
 
-Deletes a folder. Its videos are kept; they just no longer belong to a folder.
+Deletes a folder. What it holds moves up one level: its videos and subfolders go into the folder it sat inside, or, for a top-level folder, its videos leave every folder and its subfolders become top-level.
 
 **Path:** `/rest/deleteFolder`
 
@@ -404,12 +410,13 @@ Returns an empty success response.
 |------|---------|-------|
 | 10 | Required parameter is missing: id | `id` is missing |
 | 70 | Folder not found | Invalid folder ID, or another user's folder |
+| 0 | Can't delete South Park: TV already has a folder named Season 1. | A subfolder would land beside a folder of the same name. Nothing is deleted. |
 
 ---
 
 ## `getFolderCover`
 
-Returns a folder's cover image: the cover set on the web, or else the thumbnail of its first ready video in episode order. Optionally resize to a specific size.
+Returns a folder's cover image: the cover set on the web, or else the thumbnail of its first ready video in episode order, or else the first cover among its subfolders, by name. Optionally resize to a specific size.
 
 **Path:** `/rest/getFolderCover`
 
