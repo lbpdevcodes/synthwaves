@@ -11,13 +11,13 @@ RSpec.describe VideoLibraryBackfill do
 
   describe "the type" do
     it "files a film as a movie" do
-      film = create(:video, user: user)
+      film = create(:video, :untyped, user: user)
 
       expect(fills(film)).to include(video_type: "movie")
     end
 
     it "files a numbered episode as TV" do
-      episode = create(:video, user: user, season_number: 1, episode_number: 2)
+      episode = create(:video, :untyped, user: user, season_number: 1, episode_number: 2)
 
       expect(fills(episode)).to include(video_type: "tv")
     end
@@ -25,14 +25,14 @@ RSpec.describe VideoLibraryBackfill do
     it "files an unnumbered special as TV when its collection holds numbered episodes" do
       south_park = create(:folder, user: user, name: "South Park")
       create(:video, user: user, folder: south_park, season_number: 1, episode_number: 1)
-      special = create(:video, user: user, folder: south_park, title: "X1 South Park Post Covid")
+      special = create(:video, :untyped, user: user, folder: south_park, title: "X1 South Park Post Covid")
 
       expect(fills(special)).to include(video_type: "tv")
     end
 
     it "keeps a loose film a movie when a loose numbered episode sits beside it" do
       create(:video, user: user, episode_number: 1)
-      film = create(:video, user: user)
+      film = create(:video, :untyped, user: user)
 
       expect(fills(film)).to include(video_type: "movie")
     end

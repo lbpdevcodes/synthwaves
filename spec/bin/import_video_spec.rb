@@ -61,6 +61,13 @@ RSpec.describe "bin/import_video" do
     end
   end
 
+  it "names a type it doesn't know and fails" do
+    _out, err, status = run_script("Heat.mkv", "--type", "cartoon")
+
+    expect(err).to include("import_video: invalid argument: --type cartoon")
+    expect(status.exitstatus).to eq(1)
+  end
+
   it "names an option it cannot read and fails" do
     _out, err, status = run_script("Heat.mkv", "--season", "one")
 
@@ -148,6 +155,22 @@ RSpec.describe "bin/import_video" do
       expect(filed).to include("thumbnail_signed_blob_id" => "blob")
       expect(filed["details"]).to include("video_codec" => "h264", "audio_codec" => "aac", "audio_channels" => 2, "width" => 320, "height" => 240)
       expect([err, status.exitstatus]).to eq(["", 0])
+    end
+
+    it "files the video with the type, year and genres given" do
+      _out, err, status = run_script(movie, "--no-encode", "--no-subtitles", "--host", server.url,
+        "--type", "tv", "--year", "1999", "--genre", "comedy", "--genre", "crime")
+
+      filed = JSON.parse(server.requests.find { |_, path, _| path == "/api/import/videos" }.last)
+      expect(filed).to include("video_type" => "tv", "year" => 1999, "genres" => %w[comedy crime])
+      expect([err, status.exitstatus]).to eq(["", 0])
+    end
+
+    it "leaves the type, year and genres to the server when none are given" do
+      run_script(movie, "--no-encode", "--no-subtitles", "--host", server.url)
+
+      filed = JSON.parse(server.requests.find { |_, path, _| path == "/api/import/videos" }.last)
+      expect(filed.keys).not_to include("video_type", "year", "genres")
     end
 
     it "sends each subtitle file once the video is filed" do

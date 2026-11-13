@@ -22,6 +22,12 @@ FactoryBot.define do
       error_message { "Conversion failed" }
     end
 
+    # Filed before videos had a type, or made "Other" since. A new video is
+    # given a type on create (Video::Defaults), so this takes it away again.
+    trait :untyped do
+      after(:create) { |video| video.update_column(:video_type, nil) }
+    end
+
     trait :in_folder do
       folder { association :folder, user: user }
       season_number { 1 }

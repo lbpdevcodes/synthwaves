@@ -204,6 +204,11 @@ A video says what it is itself, so a folder only has to mean a collection (a fra
 - Genres are genre `Tag`s shared with tracks (`Video::Genres`), and a video can have several. `genre_names=` takes "action, Crime" or a list, lower-cases it, and replaces the video's genres. The taggings belong to the video's owner. Dropping a genre never deletes the shared tag.
 - `cover_image` is a portrait poster. `Video#cover` is the poster, else the thumbnail. `VideoCard` draws a poster whole, over a blurred copy of itself, so its 16:9 box doesn't crop it. The line under the card's title opens with the year.
 - The edit page sets all four. The show page reads "Movie · 1999 · comedy, crime" (`VideosHelper#video_details`).
+- **A new video gets a type and a year unless whoever files it gives one** (`Video::Defaults`, on create only). The rules:
+  - A numbered episode is `tv`, a YouTube video gets no type, and anything else is a `movie`.
+  - The year is the one in the file's release name (`ReleaseYear`), unless that is a year a video can't have (`Video.release_years`).
+  - These cover every path: browser upload, folder upload, the import API (which also takes `video_type`, `year` and `genres`), S3 recovery and YouTube imports.
+  - Specs that need a video without a type use the factory's `:untyped` trait.
 - `Video.by_genre(name)` finds the videos under a genre. On a relation, `Video.genre_names` lists the genres those videos use (`user.videos.genre_names` fills the grid's genre select).
 - `ReleaseYear.from(filename)` reads the year from a release file name: the last year ahead of the quality tags, never one that opens the name (`1917.2019` is 2019). It is the rule `VideoImport::VideoTitle` ends a title with, copied because `lib/cli` stays stdlib-only.
 - `Maintenance::VideoLibraryBackfillTask` (`user_id`, `genre_folders` such as "Action, Animated") filled these fields for videos filed before they existed (`VideoLibraryBackfill`). A video in a collection of numbered episodes is `tv`, a YouTube video gets no type, and any other video is a `movie`. The nearest folder at or above a video named in `genre_folders` gives its genre, and its file name gives its year. It only fills blanks and adds genres, so it is safe to re-run. `#changes` is the dry run.
@@ -290,6 +295,7 @@ The browser upload at `/videos/new` posts the whole file through Rails in one re
 ```bash
 bin/import_video ~/Movies/Heat.mkv [--title T]
 bin/import_video s01e02.mkv --folder "The Wire" --season 1 --episode 2
+bin/import_video Heat.mkv --type movie --year 1995 --genre action --genre crime
 bin/import_video clip.webm --no-encode   # skip the local encode; the server converts
 bin/import_video Heat.mkv --subtitle Heat.English.srt   # send these subtitles, not the ones found
 bin/import_video Heat.mkv --no-subtitles
@@ -316,10 +322,13 @@ Then it asks `POST /api/import/direct_uploads` for a presigned URL, PUTs the fil
 ```bash
 bin/import_videos ~/Movies --dry-run   # what it would upload, and why it skips the rest
 bin/import_videos ~/Movies
+bin/import_videos ~/Movies/Comedy --genre comedy   # every video in the run gets the genre
+bin/import_videos ~/TV/South\ Park --type tv
 ```
 
 It runs the same upload as `bin/import_video`, in-process, once per video file under the folder (mkv, mp4, m4v, mov, avi, webm; `VideoImport::FolderScan`), sorted by path, and carries on past a failure. It ends with an Uploaded / Skipped / Failed summary and exits 1 when anything failed. `VideoImport::FolderImport` is the loop.
 
+- **Type and genre for the whole run:** `--type movie|tv` and `--genre NAME` (repeatable) go with every video it files (`VideoImport::FiledAs`). Without `--type`, the server files each as a movie, since a file in a folder run carries no episode number. The server reads each video's year from its file name.
 - **Titles come from file names** (`VideoImport::VideoTitle`). The title is the words before the release year, or before the first quality tag when there is no year (`Dazed.and.Confused.1993.1080p.BluRay.x264-GalaxyRG.mkv` → "Dazed and Confused"). The last year before the tags counts, so `Blade.Runner.2049.2017` keeps 2049. Trailing edition words (EXTENDED, UNRATED, REMASTERED…) are dropped and the words title-cased. A file name cannot carry an apostrophe or a colon, so fixes go in `FOLDER/synthwaves-titles.txt`, one `Theres Something About Mary = There's Something About Mary` per line (`VideoImport::TitleFixes`). A line without `=` stops the run and names the line.
 - **A rerun never uploads a title twice.** Each video the server files goes into `FOLDER/synthwaves-uploaded.log` (`title<TAB>video N<TAB>time`, `VideoImport::UploadLog`) before its subtitles are sent, and titles in the log are skipped. The log knows only what this tool filed. A video uploaded another way needs a line added by hand, or it goes up again.
 - **Unfinished downloads are skipped** (`VideoImport::UnfinishedDownload`): a `.part` file beside the video, or a file another program has open to write (`lsof`). Rerun once they finish.

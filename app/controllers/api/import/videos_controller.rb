@@ -11,6 +11,9 @@ class API::Import::VideosController < API::Import::BaseController
       title: params[:title] || blob.filename.base,
       season_number: params[:season_number],
       episode_number: params[:episode_number],
+      video_type: params[:video_type],
+      year: params[:year],
+      genre_names: params[:genres],
       file_format: blob.filename.extension,
       file_size: blob.byte_size,
       status: "processing"

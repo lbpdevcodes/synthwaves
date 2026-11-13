@@ -75,6 +75,53 @@ RSpec.describe Video, type: :model do
     end
   end
 
+  describe "a new video's type" do
+    it "is TV for a numbered episode" do
+      expect(create(:video, episode_number: 2)).to be_tv
+    end
+
+    it "is a movie for anything else" do
+      expect(create(:video)).to be_movie
+    end
+
+    it "is none for a YouTube video" do
+      expect(create(:video, youtube_video_id: "dQw4w9WgXcQ").video_type).to be_nil
+    end
+
+    it "is the one given, when one is" do
+      expect(create(:video, video_type: "tv")).to be_tv
+    end
+
+    it "is never assigned when an existing video is saved" do
+      video = create(:video)
+      video.update_column(:video_type, nil)
+
+      video.update!(title: "Renamed")
+
+      expect(video.reload.video_type).to be_nil
+    end
+  end
+
+  describe "a new video's year" do
+    def filed_as(filename, **attributes)
+      video = build(:video, **attributes)
+      video.file.attach(io: StringIO.new("video"), filename: filename, content_type: "video/mp4")
+      video.tap(&:save!)
+    end
+
+    it "is the one in its file's release name" do
+      expect(filed_as("Heat.1995.1080p.BluRay.x264.mp4").year).to eq(1995)
+    end
+
+    it "is the one given, when one is" do
+      expect(filed_as("Heat.1995.1080p.mp4", year: 1996).year).to eq(1996)
+    end
+
+    it "is left blank when the file name's year is one a video can't have" do
+      expect(filed_as("Blade.Runner.2099.1080p.mp4").year).to be_nil
+    end
+  end
+
   describe "#cover" do
     def attach_image(attachment, name)
       attachment.attach(io: StringIO.new("image"), filename: name, content_type: "image/jpeg")
