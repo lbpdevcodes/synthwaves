@@ -1,0 +1,14 @@
+<div class="mb-8 last:mb-0">
+  <%= title_tag %>
+  <div class="bg-gray-800 rounded-lg border border-gray-700 p-4">
+    <% counts.each do |label, count| %>
+      <div class="flex items-center gap-3 mb-2 last:mb-0">
+        <span class="text-xs text-gray-400 w-20 truncate text-right"><%= label %></span>
+        <div class="flex-1 bg-gray-700 rounded-full h-4 overflow-hidden">
+          <div class="<%= bar_classes %>" style="<%= bar_style(count) %>"></div>
+        </div>
+        <span class="text-xs text-gray-400 tabular-nums w-10"><%= count %></span>
+      </div>
+    <% end %>
+  </div>
+</div>
