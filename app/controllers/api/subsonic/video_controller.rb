@@ -1,6 +1,6 @@
 class API::Subsonic::VideoController < API::Subsonic::BaseController
   def get_videos
-    videos = current_user.videos.ready.includes(:folder)
+    videos = current_user.videos.ready.includes(:folder, taggings: :tag)
     videos = videos.where(folder_id: params[:folderId]) if params[:folderId].present?
     videos = videos.search(params[:query]) if params[:query].present?
 

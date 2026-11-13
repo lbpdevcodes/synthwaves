@@ -38,6 +38,9 @@ Only videos with `ready` status are returned.
           "folderName": "My Series",
           "episodeNumber": 1,
           "seasonNumber": 1,
+          "videoType": "tv",
+          "year": 2024,
+          "genres": ["comedy"],
           "created": "2024-01-15T10:30:00Z"
         }
       ]
