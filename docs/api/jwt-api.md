@@ -120,7 +120,7 @@ curl https://your-server/api/v1/native/credentials \
 A TV can't easily type a password, so it signs in with a code instead:
 
 1. The TV asks for a code with `POST /api/v1/device_sign_ins` and shows the `code`, with a QR code of `url_with_code`.
-2. Someone signed in on the web opens `/link` (the QR code fills the code in), enters the code and presses **Sign In**. The page names the TV that asked.
+2. Someone signed in on the web opens `/link` (the QR code fills the code in), enters the code and presses **Sign In TV**. The page shows the name the device gave itself as plain text, never on the button, so a stranger's device can't word the confirmation.
 3. The TV checks in with its `secret` every `interval` seconds at `POST /api/v1/device_sign_in_claim`. Once the code is entered, it gets the account's email and Subsonic password, exactly once.
 
 A code lasts 10 minutes and can be entered once. The server stores only a SHA-256 digest of the secret. Both endpoints answer with `Cache-Control: no-store` and read only the request body.
@@ -131,7 +131,7 @@ A code lasts 10 minutes and can be entered once. The server stores only a SHA-25
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
-| `device_name` | string | No | What the TV calls itself, shown on the `/link` button (squished to 40 characters; `TV` when blank) |
+| `device_name` | string | No | What the TV calls itself, shown on `/link` as the device's own name and in the notice after approval (squished to 40 characters; `TV` when blank) |
 
 ```bash
 curl -X POST https://your-server/api/v1/device_sign_ins \

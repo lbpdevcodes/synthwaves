@@ -18,14 +18,25 @@ RSpec.describe "Device links", type: :request do
       expect(response).to redirect_to("http://www.example.com/link?code=#{sign_in.display_code}")
     end
 
-    it "fills in the code from the link and names the TV it signs in" do
+    it "fills in the code from the link and says what the device calls itself" do
       login_user(user)
 
       get "/link", params: {code: sign_in.display_code}
 
       expect(response).to have_http_status(:ok)
       expect(response.body).to include(%(value="#{sign_in.display_code}"))
-      expect(response.body).to include(%(value="Sign In Apple TV"))
+      expect(response.body).to include("The device showing this code calls itself “Apple TV”.")
+    end
+
+    it "keeps the name a device gives itself off the button, so it can't word the confirmation" do
+      lure = DeviceSignIn.start(device_name: "to synthwaves.fm")
+      login_user(user)
+
+      get "/link", params: {code: lure.display_code}
+
+      expect(response.body).to include(%(value="Sign In TV"))
+      expect(response.body).not_to include(%(value="Sign In to synthwaves.fm"))
+      expect(response.body).to include("Only continue if this code is on your own TV, in front of you.")
     end
   end
 
