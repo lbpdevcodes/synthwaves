@@ -6,6 +6,9 @@ module Video::Genres
   included do
     has_many :taggings, as: :taggable, dependent: :destroy, autosave: true
     has_many :tags, through: :taggings
+
+    # Genres can be named before the owner is (Video.new(genre_names: ..., user: ...)).
+    before_validation :give_new_taggings_the_owner
   end
 
   def genre_names
@@ -16,12 +19,17 @@ module Video::Genres
   def genre_names=(names)
     wanted = normalized(names)
     genre_taggings.reject { |tagging| wanted.include?(tagging.tag.name) }.each(&:mark_for_destruction)
-    (wanted - genre_names).each { |name| taggings.build(tag: genre_tag(name), user: user) }
+    (wanted - genre_names).each { |name| taggings.build(tag: genre_tag(name)) }
   end
 
   private
 
   def genre_tag(name) = Tag.find_or_initialize_by(name: name, tag_type: "genre")
+
+  # Reads only what's in memory, so a save that names no genres loads none.
+  def give_new_taggings_the_owner
+    taggings.target.select(&:new_record?).each { |tagging| tagging.user ||= user }
+  end
 
   def genre_taggings
     taggings.select { |tagging| tagging.tag.tag_type == "genre" && !tagging.marked_for_destruction? }

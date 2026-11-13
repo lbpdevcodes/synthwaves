@@ -246,6 +246,15 @@ RSpec.describe "Videos", type: :request do
       expect(video.reload).to have_attributes(video_type: "movie", year: 1999, genre_names: %w[comedy crime])
     end
 
+    it "clears the type and year when the form sends them blank" do
+      video = create(:video, user: user, video_type: "movie", year: 1999)
+
+      patch video_path(video), params: {video: {title: video.title, video_type: "", year: "", genre_names: ""}}
+
+      expect(response).to redirect_to(video_path(video))
+      expect(video.reload).to have_attributes(video_type: nil, year: nil, genre_names: [])
+    end
+
     it "saves an uploaded poster" do
       video = create(:video, user: user)
 

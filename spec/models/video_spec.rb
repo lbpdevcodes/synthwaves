@@ -109,6 +109,15 @@ RSpec.describe Video, type: :model do
       expect(video.reload.genre_names).to eq(%w[action crime])
     end
 
+    it "files a new video under its genres whatever order its attributes come in" do
+      user = create(:user)
+
+      video = Video.create!(genre_names: "action", title: "Heat", user: user)
+
+      expect(video.reload.genre_names).to eq(%w[action])
+      expect(video.taggings.map(&:user)).to eq([user])
+    end
+
     it "takes the video out of the genres left out" do
       video = create(:video, genre_names: "action, crime")
 
