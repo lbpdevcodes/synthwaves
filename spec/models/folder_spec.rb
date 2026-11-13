@@ -12,7 +12,105 @@ RSpec.describe Folder, type: :model do
     subject { create(:folder) }
 
     it { should validate_presence_of(:name) }
-    it { should validate_uniqueness_of(:name).scoped_to(:user_id) }
+    it { should validate_uniqueness_of(:name).scoped_to(:user_id, :parent_id) }
+  end
+
+  describe "nesting" do
+    it "holds subfolders" do
+      tv = create(:folder, name: "TV")
+      south_park = create(:folder, user: tv.user, parent: tv, name: "South Park")
+
+      expect(tv.children).to eq([south_park])
+    end
+
+    it "lets two folders share a name under different parents" do
+      user = create(:user)
+      south_park = create(:folder, user: user, name: "South Park")
+      the_wire = create(:folder, user: user, name: "The Wire")
+      create(:folder, user: user, parent: south_park, name: "Season 1")
+
+      expect(build(:folder, user: user, parent: the_wire, name: "Season 1")).to be_valid
+    end
+
+    it "refuses a second top-level folder with the same name" do
+      tv = create(:folder, name: "TV")
+
+      expect(build(:folder, user: tv.user, name: "TV")).not_to be_valid
+    end
+
+    it "refuses a parent from another user's library" do
+      folder = build(:folder, parent: create(:folder))
+
+      expect(folder).not_to be_valid
+      expect(folder.errors[:parent]).to eq(["must be one of your folders"])
+    end
+
+    it "refuses to put a folder inside itself" do
+      tv = create(:folder, name: "TV")
+
+      expect(tv.update(parent: tv)).to be(false)
+      expect(tv.errors[:base]).to eq(["TV can't go inside itself or anything inside it"])
+    end
+
+    it "refuses to put a folder inside one of its own subfolders" do
+      tv = create(:folder, name: "TV")
+      south_park = create(:folder, user: tv.user, parent: tv, name: "South Park")
+      season_one = create(:folder, user: tv.user, parent: south_park, name: "Season 1")
+
+      expect(tv.update(parent: season_one)).to be(false)
+      expect(tv.reload.parent).to be_nil
+    end
+  end
+
+  describe "#destroy" do
+    let(:user) { create(:user) }
+    let(:tv) { create(:folder, user: user, name: "TV") }
+    let(:south_park) { create(:folder, user: user, parent: tv, name: "South Park") }
+
+    it "moves the folder's videos up into its parent" do
+      episode = create(:video, user: user, folder: south_park)
+
+      south_park.destroy
+
+      expect(episode.reload.folder).to eq(tv)
+    end
+
+    it "moves the folder's subfolders up into its parent" do
+      season_one = create(:folder, user: user, parent: south_park, name: "Season 1")
+
+      south_park.destroy
+
+      expect(season_one.reload.parent).to eq(tv)
+    end
+
+    context "when a subfolder's name is already taken in the parent" do
+      let!(:taken) { create(:folder, user: user, parent: tv, name: "Season 1") }
+      let!(:season_one) { create(:folder, user: user, parent: south_park, name: "Season 1") }
+
+      it "refuses, naming the clash" do
+        expect(south_park.destroy).to be(false)
+        expect(south_park.errors[:base]).to eq(["Can't delete South Park: TV already has one named Season 1."])
+      end
+
+      it "changes nothing" do
+        episode = create(:video, user: user, folder: south_park)
+
+        south_park.destroy
+
+        expect(Folder.exists?(south_park.id)).to be(true)
+        expect(season_one.reload.parent).to eq(south_park)
+        expect(episode.reload.folder).to eq(south_park)
+      end
+    end
+
+    it "names Videos when the clash is at the top level" do
+      create(:folder, user: user, name: "Season 1")
+      create(:folder, user: user, parent: tv, name: "Season 1")
+
+      tv.destroy
+
+      expect(tv.errors[:base]).to eq(["Can't delete TV: Videos already has one named Season 1."])
+    end
   end
 
   describe "#cover" do
@@ -44,6 +142,16 @@ RSpec.describe Folder, type: :model do
       create(:video, user: folder.user, folder: folder)
 
       expect(folder.cover).to be_nil
+    end
+
+    it "falls back to the first subfolder cover by name when it has no thumbnail of its own" do
+      tv = create(:folder, name: "TV")
+      the_wire = create(:folder, user: tv.user, parent: tv, name: "The Wire")
+      south_park = create(:folder, user: tv.user, parent: tv, name: "South Park")
+      attach_image(the_wire.cover_image, "wire.jpg")
+      attach_image(south_park.cover_image, "south_park.jpg")
+
+      expect(tv.cover.filename.to_s).to eq("south_park.jpg")
     end
   end
 
@@ -92,6 +200,33 @@ RSpec.describe Folder, type: :model do
 
       expect(inside.reload.folder).to be_nil
       expect(elsewhere.reload.folder).to eq(other_folder)
+    end
+  end
+
+  describe ".find_or_create_named!" do
+    let(:user) { create(:user) }
+    let(:tv) { create(:folder, user: user, name: "TV") }
+
+    it "reuses the one folder with that name, wherever it sits" do
+      the_wire = create(:folder, user: user, parent: tv, name: "The Wire")
+
+      expect(Folder.find_or_create_named!(user, "The Wire")).to eq(the_wire)
+    end
+
+    it "creates a top-level folder when none has that name" do
+      folder = Folder.find_or_create_named!(user, "The Wire")
+
+      expect(folder).to have_attributes(user: user, name: "The Wire", parent: nil, persisted?: true)
+    end
+
+    it "refuses a name several folders share, naming each by its path" do
+      %w[South\ Park The\ Wire].each do |show|
+        create(:folder, user: user, parent: create(:folder, user: user, parent: tv, name: show), name: "Season 1")
+      end
+
+      expect { Folder.find_or_create_named!(user, "Season 1") }.to raise_error(
+        Folder::AmbiguousName, "Several folders are named Season 1: TV › South Park › Season 1 and TV › The Wire › Season 1"
+      )
     end
   end
 

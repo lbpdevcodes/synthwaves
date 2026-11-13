@@ -22,6 +22,27 @@ RSpec.describe "Folders", type: :request do
       expect(form.at_css("textarea[name='folder[description]']")).to be_present
       expect(form.at_css("input[type='file'][name='folder[cover_image]']")).to be_present
     end
+
+    it "cancels back to the folder it would go inside, on a full page" do
+      tv = create(:folder, user: user, name: "TV")
+
+      get new_folder_path(parent_id: tv.id)
+
+      cancel = Nokogiri::HTML(response.body).css("a").find { |link| link.text.strip == "Cancel" }
+      expect(cancel["href"]).to eq(folder_path(tv))
+    end
+
+    it "offers the user's folders to put it inside, labelled by path, with the one asked for picked" do
+      tv = create(:folder, user: user, name: "TV")
+      south_park = create(:folder, user: user, parent: tv, name: "South Park")
+      create(:folder, name: "Someone else's")
+
+      get new_folder_path(parent_id: south_park.id), headers: modal
+
+      options = Nokogiri::HTML(response.body).css("select[name='folder[parent_id]'] option")
+      expect(options.map(&:text)).to eq(["(Top level, under Videos)", "TV", "TV › South Park"])
+      expect(options.find { |option| option["selected"] }["value"]).to eq(south_park.id.to_s)
+    end
   end
 
   describe "POST /folders" do
@@ -33,6 +54,14 @@ RSpec.describe "Folders", type: :request do
       expect(folder.videos).to be_empty
       expect(Nokogiri::HTML(response.body).at_css("turbo-stream[action='visit']")["location"]).to eq(folder_path(folder))
       expect(flash[:notice]).to eq("Created The Wire.")
+    end
+
+    it "creates a folder inside another" do
+      tv = create(:folder, user: user, name: "TV")
+
+      post folders_path, params: {folder: {name: "South Park", parent_id: tv.id}}, headers: modal
+
+      expect(user.folders.find_by!(name: "South Park").parent).to eq(tv)
     end
 
     it "keeps the modal open with the error when the name is taken" do
@@ -115,6 +144,38 @@ RSpec.describe "Folders", type: :request do
       expect(empty.text).to include("This collection is empty")
       expect(empty.at_css("a[href='#{new_folder_upload_path(folder)}']")["data-turbo-frame"]).to eq("modal")
       expect(empty.at_css("a[href='#{new_folder_video_path(folder)}']")["data-turbo-frame"]).to eq("modal")
+    end
+
+    context "with subfolders" do
+      let!(:tv) { create(:folder, user: user, name: "TV") }
+      let!(:south_park) { create(:folder, user: user, parent: tv, name: "South Park") }
+
+      it "lists them, and counts them in the header" do
+        get folder_path(tv)
+
+        expect(doc.at_css("[data-subfolders] a[href='#{folder_path(south_park)}']")).to be_present
+        expect(doc.text).to include("1 collection")
+      end
+
+      it "is not called empty when it holds only folders" do
+        get folder_path(tv)
+
+        expect(doc.at_css("[data-folder-empty]")).to be_nil
+      end
+
+      it "goes back to its parent folder" do
+        get folder_path(south_park)
+
+        expect(doc.at_css("a[href='#{folder_path(tv)}']").text).to include("Back to TV")
+      end
+    end
+
+    it "offers New collection under More, opening it inside this one in the modal" do
+      folder = create(:folder, user: user)
+
+      get folder_path(folder)
+
+      expect(doc.at_css("a[href='#{new_folder_path(parent_id: folder.id)}']")["data-turbo-frame"]).to eq("modal")
     end
 
     it "says the videos are processing when none is ready yet" do
@@ -229,6 +290,18 @@ RSpec.describe "Folders", type: :request do
       delete_form = dialog.at_css("form[action='#{folder_path(folder)}'][data-turbo-frame='_top']:has(input[value='delete'])")
       expect(delete_form["data-turbo-confirm"]).to eq('Delete "The Wire"? 2 videos in it will stay in your library, under Videos.')
     end
+
+    it "says the contents of a folder inside another move to that folder" do
+      tv = create(:folder, user: user, name: "TV")
+      south_park = create(:folder, user: user, parent: tv, name: "South Park")
+      create(:folder, user: user, parent: south_park, name: "Season 1")
+      create_list(:video, 2, user: user, folder: south_park)
+
+      get edit_folder_path(south_park), headers: modal
+
+      delete_form = Nokogiri::HTML(response.body).at_css("form[action='#{folder_path(south_park)}']:has(input[value='delete'])")
+      expect(delete_form["data-turbo-confirm"]).to eq('Delete "South Park"? 1 collection and 2 videos in it will move to TV.')
+    end
   end
 
   describe "PATCH /folders/:id" do
@@ -255,6 +328,27 @@ RSpec.describe "Folders", type: :request do
 
       expect(Nokogiri::HTML(response.body).at_css("turbo-stream[action='refresh']:not([request-id])")).to be_present
       expect(folder.reload.name).to eq("Renamed")
+    end
+
+    it "moves the folder inside another" do
+      tv = create(:folder, user: user, name: "TV")
+      south_park = create(:folder, user: user, name: "South Park")
+
+      patch folder_path(south_park), params: {folder: {parent_id: tv.id}}, headers: modal
+
+      expect(south_park.reload.parent).to eq(tv)
+    end
+
+    it "keeps the modal open and says why when the move would put the folder inside itself" do
+      tv = create(:folder, user: user, name: "TV")
+      south_park = create(:folder, user: user, parent: tv, name: "South Park")
+
+      patch folder_path(tv), params: {folder: {parent_id: south_park.id}}, headers: modal
+
+      expect(response).to have_http_status(:unprocessable_content)
+      expect(Nokogiri::HTML(response.body).at_css("turbo-frame#modal dialog").text)
+        .to include("TV can't go inside itself or anything inside it")
+      expect(tv.reload.parent).to be_nil
     end
   end
 
@@ -285,6 +379,40 @@ RSpec.describe "Folders", type: :request do
       delete folder_path(folder)
 
       expect(flash[:notice]).to eq("Deleted The Wire.")
+    end
+
+    context "inside another folder" do
+      let!(:tv) { create(:folder, user: user, name: "TV") }
+      let!(:south_park) { create(:folder, user: user, parent: tv, name: "South Park") }
+
+      it "moves its contents up, says where, and returns to the parent from its own page" do
+        create(:folder, user: user, parent: south_park, name: "Season 1")
+        create_list(:video, 2, user: user, folder: south_park)
+
+        delete folder_path(south_park), headers: {"Referer" => folder_url(south_park)}
+
+        expect(response).to redirect_to(folder_path(tv))
+        expect(flash[:notice]).to eq("Deleted South Park. 1 collection and 2 videos moved to TV.")
+      end
+
+      it "stays put and says why when a subfolder's name is taken in the parent" do
+        create(:folder, user: user, parent: tv, name: "Season 1")
+        create(:folder, user: user, parent: south_park, name: "Season 1")
+
+        expect { delete folder_path(south_park) }.not_to change(Folder, :count)
+
+        expect(response).to redirect_to(folder_path(south_park))
+        expect(flash[:alert]).to eq("Can't delete South Park: TV already has one named Season 1.")
+      end
+    end
+
+    it "counts the collections that went back to Videos" do
+      tv = create(:folder, user: user, name: "TV")
+      create(:folder, user: user, parent: tv, name: "South Park")
+
+      delete folder_path(tv)
+
+      expect(flash[:notice]).to eq("Deleted TV. 1 collection moved back to Videos.")
     end
   end
 end

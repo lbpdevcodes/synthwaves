@@ -8,7 +8,7 @@ RSpec.describe FolderMenu::Component, type: :component do
   let(:deadwood) { create(:folder, user: user, name: "Deadwood") }
 
   def render_menu(video)
-    render_inline(described_class.new(video: video, folders: [deadwood, the_wire]))
+    render_inline(described_class.new(video: video, folders: FolderTree.new([deadwood, the_wire])))
   end
 
   def move_form(html, folder)
@@ -30,6 +30,14 @@ RSpec.describe FolderMenu::Component, type: :component do
         expect(form.at_css("input[name='_method'][value='patch']")).to be_present
         expect(form["data-turbo-frame"]).to eq("_top")
       end
+    end
+
+    it "names a folder inside another by its path" do
+      season_one = create(:folder, user: user, parent: the_wire, name: "Season 1")
+
+      html = render_inline(described_class.new(video: video, folders: FolderTree.new([deadwood, the_wire, season_one])))
+
+      expect(move_form(html, season_one).text.strip).to eq("The Wire › Season 1")
     end
 
     it "offers a new folder named in place, carrying the video" do

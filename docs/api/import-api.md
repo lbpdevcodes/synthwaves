@@ -280,7 +280,7 @@ Import a video using a previously uploaded blob from the direct uploads endpoint
 |-----------|------|----------|-------------|
 | `signed_blob_id` | string | Yes | Signed blob ID from direct upload |
 | `title` | string | No | Video title (falls back to filename) |
-| `folder_name` | string | No | Folder name (created if it doesn't exist) |
+| `folder_name` | string | No | The folder to file it in, found by name at any depth (folders can sit inside other folders). Created at the top level when no folder has the name. A name several folders share is refused. |
 | `season_number` | integer | No | Season number |
 | `episode_number` | integer | No | Episode number |
 | `thumbnail_signed_blob_id` | string | No | Signed blob ID of a JPEG thumbnail, from a direct upload |
@@ -326,6 +326,7 @@ curl -X POST https://your-server/api/import/videos \
 | Status | Body | Cause |
 |--------|------|-------|
 | 422 | `{"error": "Invalid signed blob ID"}` | Bad or expired `signed_blob_id` or `thumbnail_signed_blob_id` |
+| 422 | `{"error": "Several folders are named Season 1: South Park › Season 1 and The Wire › Season 1"}` | `folder_name` names more than one folder. Nothing is filed. |
 | 422 | `{"error": "..."}` | Validation failure |
 
 ---

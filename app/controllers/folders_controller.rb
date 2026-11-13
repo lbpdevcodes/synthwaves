@@ -5,7 +5,7 @@ class FoldersController < ApplicationController
   before_action :set_folder, only: [:show, :edit, :update, :destroy]
 
   def new
-    @folder = Folder.new
+    @folder = Current.user.folders.new(parent: Current.user.folders.find_by(id: params[:parent_id]))
   end
 
   def create
@@ -33,6 +33,7 @@ class FoldersController < ApplicationController
     end
 
     @pagy, @videos = pagy(:offset, scope, limit: 24)
+    @subfolders = @folder.children.order(:name)
     @processing_count = @folder.videos.where(status: "processing").count
     @failed_count = @folder.videos.where(status: "failed").count
   end
@@ -49,9 +50,10 @@ class FoldersController < ApplicationController
   end
 
   def destroy
-    notice = deleted_notice
-    @folder.destroy
-    redirect_after_destroy folder_path(@folder), parent: tv_path(tab: "videos"), notice: notice
+    notice, home = deleted_notice, helpers.folder_parent_path(@folder)
+    return redirect_to(@folder, alert: @folder.errors.full_messages.to_sentence) unless @folder.destroy
+
+    redirect_after_destroy folder_path(@folder), parent: home, notice: notice
   end
 
   private
@@ -79,10 +81,10 @@ class FoldersController < ApplicationController
   end
 
   def deleted_notice
-    moved = @folder.videos.count
-    return "Deleted #{@folder.name}." if moved.zero?
+    contents = helpers.folder_contents(@folder)
+    return "Deleted #{@folder.name}." if contents.empty?
 
-    "Deleted #{@folder.name}. #{helpers.pluralize(moved, "video")} moved back to Videos."
+    "Deleted #{@folder.name}. #{contents} moved #{@folder.parent ? "to #{@folder.parent.name}" : "back to Videos"}."
   end
 
   def set_folder
@@ -90,6 +92,6 @@ class FoldersController < ApplicationController
   end
 
   def folder_params
-    params.require(:folder).permit(:name, :description, :cover_image)
+    params.require(:folder).permit(:name, :description, :cover_image, :parent_id)
   end
 end

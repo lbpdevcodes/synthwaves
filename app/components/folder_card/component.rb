@@ -1,19 +1,34 @@
 module FolderCard
   class Component < ViewComponent::Base
-    def initialize(folder:)
+    # show_parent names the collection it sits in, for a card seen away
+    # from it (a search on the Videos grid).
+    def initialize(folder:, show_parent: false)
       @folder = folder
+      @show_parent = show_parent
     end
 
     private
 
-    attr_reader :folder
+    attr_reader :folder, :show_parent
 
-    # "2 seasons · 24 videos", "3 videos" or "Empty". It sits on the card
-    # body, not over the image, so list mode keeps it.
+    # "in TV · 1 collection · 2 seasons · 24 videos", leaving out what
+    # doesn't apply, or "Empty". It sits on the card body, not over the
+    # image, so list mode keeps it.
     def count_line
-      return "Empty" if video_count.zero?
+      [parent_label, collections, seasons, videos].compact.join(" · ").presence || "Empty"
+    end
 
-      [seasons, helpers.pluralize(video_count, "video")].compact.join(" · ")
+    def parent_label
+      "in #{folder.parent.name}" if show_parent && folder.parent
+    end
+
+    def collections
+      count = folder.children.size
+      helpers.pluralize(count, "collection") if count.positive?
+    end
+
+    def videos
+      helpers.pluralize(video_count, "video") if video_count.positive?
     end
 
     def seasons

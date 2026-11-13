@@ -22,6 +22,20 @@ RSpec.describe VideoLibrary do
     expect(listed).to eq([folder])
   end
 
+  it "leaves a collection inside another out of the grid" do
+    tv = create(:folder, user: user, name: "TV")
+    create(:folder, user: user, parent: tv, name: "South Park")
+
+    expect(listed).to eq([tv])
+  end
+
+  it "finds a collection inside another by search" do
+    tv = create(:folder, user: user, name: "TV")
+    south_park = create(:folder, user: user, parent: tv, name: "South Park")
+
+    expect(listed(query: "South")).to eq([south_park])
+  end
+
   it "leaves out videos that are processing or failed" do
     create(:video, :processing, user: user)
     create(:video, :failed, user: user)
