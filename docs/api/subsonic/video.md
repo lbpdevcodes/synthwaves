@@ -384,7 +384,7 @@ The updated folder, in the [`getFolder`](#getfolder) shape.
 | 70 | Video not found | A `videoIdToAdd` or `videoIdToRemove` isn't one of the user's videos. Nothing changes. |
 | 0 | Name can't be blank | `name` was sent empty. Nothing changes. |
 | 0 | Name has already been taken | Another folder in the same parent has this name. Nothing changes. |
-| 0 | A folder can't go inside itself or one of its own subfolders | `parentId` is the folder itself or a folder inside it. Nothing changes. |
+| 0 | TV can't go inside itself or anything inside it | `parentId` is the folder itself or a folder inside it. Nothing changes. |
 
 ---
 
@@ -410,7 +410,7 @@ Returns an empty success response.
 |------|---------|-------|
 | 10 | Required parameter is missing: id | `id` is missing |
 | 70 | Folder not found | Invalid folder ID, or another user's folder |
-| 0 | Can't delete South Park: TV already has a folder named Season 1. | A subfolder would land beside a folder of the same name. Nothing is deleted. |
+| 0 | Can't delete South Park: TV already has one named Season 1. | A subfolder would land beside a folder of the same name. Nothing is deleted. |
 
 ---
 

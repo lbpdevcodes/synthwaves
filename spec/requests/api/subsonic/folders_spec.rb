@@ -382,7 +382,7 @@ RSpec.describe "Subsonic Folders API", type: :request do
     it "refuses to move a folder inside one of its own subfolders" do
       get "/api/rest/updateFolder", params: auth_params.merge(id: tv.id, parentId: south_park.id)
 
-      expect(subsonic_error).to eq("code" => 0, "message" => "A folder can't go inside itself or one of its own subfolders")
+      expect(subsonic_error).to eq("code" => 0, "message" => "TV can't go inside itself or anything inside it")
       expect(tv.reload.parent).to be_nil
     end
 
@@ -403,7 +403,7 @@ RSpec.describe "Subsonic Folders API", type: :request do
 
       get "/api/rest/deleteFolder", params: auth_params.merge(id: south_park.id)
 
-      expect(subsonic_error).to eq("code" => 0, "message" => "Can't delete South Park: TV already has a folder named Season 1.")
+      expect(subsonic_error).to eq("code" => 0, "message" => "Can't delete South Park: TV already has one named Season 1.")
       expect(Folder.exists?(south_park.id)).to be(true)
     end
   end

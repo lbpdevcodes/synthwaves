@@ -46,9 +46,10 @@ module LibraryHelper
     "#{question} #{contents} in it will #{folder.parent ? "move to #{folder.parent.name}" : "stay in your library, under Videos"}."
   end
 
-  # What a folder holds, folders first: "1 folder and 2 videos". Blank when empty.
+  # What a collection holds, collections first: "1 collection and 2 videos".
+  # Blank when empty.
   def folder_contents(folder)
-    {"folder" => folder.children.size, "video" => folder.videos.size}
+    {"collection" => folder.children.size, "video" => folder.videos.size}
       .reject { |_noun, count| count.zero? }
       .map { |noun, count| pluralize(count, noun) }
       .to_sentence

@@ -22,7 +22,7 @@
       <% end %>
       <div class="mt-2 text-sm text-gray-400 space-x-4">
         <% if @subfolders.any? %>
-          <span><%= pluralize(@subfolders.size, "folder") %></span>
+          <span><%= pluralize(@subfolders.size, "collection") %></span>
         <% end %>
         <span><%= @folder.videos.count %> video(s)</span>
         <% if @processing_count > 0 %>
@@ -44,7 +44,7 @@
             </span>
           <% end %>
           <%= render Button::Component.new(label: "Edit", behavior: :navigation, link_url: edit_folder_path(@folder), style: :menu_item, turbo_frame: "modal") %>
-          <%= render Button::Component.new(label: "New subfolder", behavior: :navigation, link_url: new_folder_path(parent_id: @folder.id), style: :menu_item, turbo_frame: "modal") %>
+          <%= render Button::Component.new(label: "New collection", behavior: :navigation, link_url: new_folder_path(parent_id: @folder.id), style: :menu_item, turbo_frame: "modal") %>
           <%= button_to "Delete", folder_path(@folder), method: :delete,
                 form: { data: { turbo_frame: "_top", turbo_confirm: folder_delete_confirmation(@folder) } },
                 class: "block w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-gray-700" %>
@@ -55,7 +55,7 @@
 
   <% if @subfolders.any? %>
     <section class="mb-8" data-subfolders>
-      <h2 class="text-lg font-bold font-display text-white mb-4">Folders</h2>
+      <h2 class="text-lg font-bold font-display text-white mb-4">Collections</h2>
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 collection-grid">
         <% @subfolders.each do |subfolder| %>
           <%= render FolderCard::Component.new(folder: subfolder) %>

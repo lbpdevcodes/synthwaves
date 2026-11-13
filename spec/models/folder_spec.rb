@@ -49,7 +49,7 @@ RSpec.describe Folder, type: :model do
       tv = create(:folder, name: "TV")
 
       expect(tv.update(parent: tv)).to be(false)
-      expect(tv.errors[:base]).to eq(["A folder can't go inside itself or one of its own subfolders"])
+      expect(tv.errors[:base]).to eq(["TV can't go inside itself or anything inside it"])
     end
 
     it "refuses to put a folder inside one of its own subfolders" do
@@ -89,7 +89,7 @@ RSpec.describe Folder, type: :model do
 
       it "refuses, naming the clash" do
         expect(south_park.destroy).to be(false)
-        expect(south_park.errors[:base]).to eq(["Can't delete South Park: TV already has a folder named Season 1."])
+        expect(south_park.errors[:base]).to eq(["Can't delete South Park: TV already has one named Season 1."])
       end
 
       it "changes nothing" do
@@ -109,7 +109,7 @@ RSpec.describe Folder, type: :model do
 
       tv.destroy
 
-      expect(tv.errors[:base]).to eq(["Can't delete TV: Videos already has a folder named Season 1."])
+      expect(tv.errors[:base]).to eq(["Can't delete TV: Videos already has one named Season 1."])
     end
   end
 

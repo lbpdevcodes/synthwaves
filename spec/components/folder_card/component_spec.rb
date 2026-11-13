@@ -42,6 +42,29 @@ RSpec.describe FolderCard::Component, type: :component do
     expect(count_line(render_component(folder: folder))).to eq("Empty")
   end
 
+  it "counts the collections inside, so a collection of collections isn't empty" do
+    create(:folder, user: user, parent: folder, name: "Season 1")
+
+    expect(count_line(render_component(folder: folder))).to eq("1 collection")
+  end
+
+  it "counts collections before seasons and videos" do
+    create(:folder, user: user, parent: folder, name: "Specials")
+    create(:video, user: user, folder: folder, season_number: 1)
+    create(:video, user: user, folder: folder, season_number: 2)
+
+    expect(count_line(render_component(folder: folder))).to eq("1 collection · 2 seasons · 2 videos")
+  end
+
+  it "names the collection it sits in, when asked" do
+    south_park = create(:folder, user: user, parent: folder, name: "South Park")
+    create_list(:video, 3, user: user, folder: south_park)
+
+    html = render_inline(described_class.new(folder: south_park, show_parent: true))
+
+    expect(count_line(html)).to eq("in My Show · 3 videos")
+  end
+
   it "draws a stacked edge behind the card so it reads as a collection" do
     html = render_component(folder: folder)
 

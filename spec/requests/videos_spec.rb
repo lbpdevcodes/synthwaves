@@ -151,7 +151,7 @@ RSpec.describe "Videos", type: :request do
       get edit_video_path(video)
 
       options = Nokogiri::HTML(response.body).css("select[name='video[folder_id]'] option").map(&:text)
-      expect(options).to eq(["(No folder)", "TV", "TV › South Park"])
+      expect(options).to eq(["(No collection)", "TV", "TV › South Park"])
     end
   end
 

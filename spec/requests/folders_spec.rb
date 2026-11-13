@@ -154,7 +154,7 @@ RSpec.describe "Folders", type: :request do
         get folder_path(tv)
 
         expect(doc.at_css("[data-subfolders] a[href='#{folder_path(south_park)}']")).to be_present
-        expect(doc.text).to include("1 folder")
+        expect(doc.text).to include("1 collection")
       end
 
       it "is not called empty when it holds only folders" do
@@ -170,7 +170,7 @@ RSpec.describe "Folders", type: :request do
       end
     end
 
-    it "offers New subfolder under More, opening in the modal" do
+    it "offers New collection under More, opening it inside this one in the modal" do
       folder = create(:folder, user: user)
 
       get folder_path(folder)
@@ -300,7 +300,7 @@ RSpec.describe "Folders", type: :request do
       get edit_folder_path(south_park), headers: modal
 
       delete_form = Nokogiri::HTML(response.body).at_css("form[action='#{folder_path(south_park)}']:has(input[value='delete'])")
-      expect(delete_form["data-turbo-confirm"]).to eq('Delete "South Park"? 1 folder and 2 videos in it will move to TV.')
+      expect(delete_form["data-turbo-confirm"]).to eq('Delete "South Park"? 1 collection and 2 videos in it will move to TV.')
     end
   end
 
@@ -347,7 +347,7 @@ RSpec.describe "Folders", type: :request do
 
       expect(response).to have_http_status(:unprocessable_content)
       expect(Nokogiri::HTML(response.body).at_css("turbo-frame#modal dialog").text)
-        .to include("A folder can't go inside itself or one of its own subfolders")
+        .to include("TV can't go inside itself or anything inside it")
       expect(tv.reload.parent).to be_nil
     end
   end
@@ -392,7 +392,7 @@ RSpec.describe "Folders", type: :request do
         delete folder_path(south_park), headers: {"Referer" => folder_url(south_park)}
 
         expect(response).to redirect_to(folder_path(tv))
-        expect(flash[:notice]).to eq("Deleted South Park. 1 folder and 2 videos moved to TV.")
+        expect(flash[:notice]).to eq("Deleted South Park. 1 collection and 2 videos moved to TV.")
       end
 
       it "stays put and says why when a subfolder's name is taken in the parent" do
@@ -402,17 +402,17 @@ RSpec.describe "Folders", type: :request do
         expect { delete folder_path(south_park) }.not_to change(Folder, :count)
 
         expect(response).to redirect_to(folder_path(south_park))
-        expect(flash[:alert]).to eq("Can't delete South Park: TV already has a folder named Season 1.")
+        expect(flash[:alert]).to eq("Can't delete South Park: TV already has one named Season 1.")
       end
     end
 
-    it "counts the subfolders that went back to Videos" do
+    it "counts the collections that went back to Videos" do
       tv = create(:folder, user: user, name: "TV")
       create(:folder, user: user, parent: tv, name: "South Park")
 
       delete folder_path(tv)
 
-      expect(flash[:notice]).to eq("Deleted TV. 1 folder moved back to Videos.")
+      expect(flash[:notice]).to eq("Deleted TV. 1 collection moved back to Videos.")
     end
   end
 end

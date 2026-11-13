@@ -43,7 +43,7 @@ class VideoLibrary
 
   def collection_entries
     newest = user.videos.in_folder.group(:folder_id).maximum(:created_at)
-    user.folders.search(query).pluck(:id, :name, :created_at).map do |id, name, created_at|
+    user.folders.browse(query).pluck(:id, :name, :created_at).map do |id, name, created_at|
       Entry.new(Folder, id, name, [created_at, newest[id]].compact.max)
     end
   end

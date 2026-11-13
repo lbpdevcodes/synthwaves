@@ -37,7 +37,7 @@ module Folder::Nesting
   def parent_outside_own_subtree
     return unless persisted? && parent_id && subtree_ids.include?(parent_id)
 
-    errors.add(:base, "A folder can't go inside itself or one of its own subfolders")
+    errors.add(:base, "#{name} can't go inside itself or anything inside it")
   end
 
   def move_contents_up
@@ -57,7 +57,7 @@ module Folder::Nesting
   end
 
   def refuse_deletion(name)
-    errors.add(:base, "Can't delete #{self.name}: #{parent&.name || "Videos"} already has a folder named #{name}.")
+    errors.add(:base, "Can't delete #{self.name}: #{parent&.name || "Videos"} already has one named #{name}.")
     throw :abort
   end
 end
