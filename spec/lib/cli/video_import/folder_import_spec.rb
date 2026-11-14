@@ -6,15 +6,17 @@ require_relative "../../../../lib/cli/video_import"
 module FolderImportFakes
   # Files a video as the server would, failing for the titles it is told to.
   class Importer
-    attr_reader :calls
+    attr_reader :calls, :fields
 
     def initialize(failing: [])
       @failing = failing
       @calls = []
+      @fields = {}
     end
 
-    def call(path, title:)
+    def call(path, title:, **fields)
       @calls << [File.basename(path), title]
+      @fields[File.basename(path)] = fields
       raise VideoImport::Error, "connection to synthwaves.fm failed: Connection reset by peer" if @failing.include?(title)
 
       {"id" => 1320 + @calls.size, "title" => title, "status" => "processing"}
@@ -77,6 +79,18 @@ RSpec.describe VideoImport::FolderImport do
     folder_import.call
 
     expect(importer.calls).to eq([["Dazed.and.Confused.1993.1080p.BluRay.x264-GalaxyRG.mkv", "Dazed and Confused"], ["Shrek.2001.1080p.BluRay.x264.YIFY.mp4", "Shrek"]])
+  end
+
+  it "sends the season and episode an episode's file name gives, and none for a movie" do
+    place("SVU S1/law.and.order.svu.s01.e02.a.single.life.dvdrip.xvid.ac3.mp4")
+    place("Shrek.2001.1080p.BluRay.x264.YIFY.mp4")
+
+    folder_import.call
+
+    expect(importer.fields).to eq(
+      "law.and.order.svu.s01.e02.a.single.life.dvdrip.xvid.ac3.mp4" => {season_number: 1, episode_number: 2},
+      "Shrek.2001.1080p.BluRay.x264.YIFY.mp4" => {}
+    )
   end
 
   it "remembers each filed video, so the next run skips it" do
@@ -158,6 +172,14 @@ RSpec.describe VideoImport::FolderImport do
     place("Shrek.2001.1080p.mp4")
 
     expect(folder_import.call).to be(true)
+  end
+
+  it "names the season and episode it would send in a dry run" do
+    place("law.and.order.svu.s01.e02.a.single.life.dvdrip.xvid.ac3.mp4")
+
+    folder_import.call(dry_run: true)
+
+    expect(out.string).to eq(%(Would upload "Law and Order Svu S01 E02 a Single Life" (law.and.order.svu.s01.e02.a.single.life.dvdrip.xvid.ac3.mp4) as season 1, episode 2, with no subtitles\n))
   end
 
   it "leaves out hidden files, like the ._ copies macOS writes on other drives" do
