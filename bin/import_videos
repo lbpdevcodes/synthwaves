@@ -10,6 +10,8 @@
 #   and a title in that log is never uploaded again, so a rerun is safe.
 # - A video still downloading (a .part file, or a file still being written)
 #   is skipped; rerun once it has finished.
+# - A release's sample clip (a name ending in "sample", like Heat-GRP-Sample.mkv)
+#   is skipped.
 # - Subtitles: the files beside a video, or else the text tracks inside it.
 # - --type movie|tv and --genre NAME (repeatable) go with every video in the
 #   run. The server reads each one's year from its file name.
