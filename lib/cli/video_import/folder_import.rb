@@ -35,9 +35,13 @@ module VideoImport
 
     def log = @log ||= UploadLog.in(@folder)
 
-    def skip_reason(item)
+    # A sample is named first: it shares the release's title, so the log
+    # would otherwise call it uploaded already.
+    def skip_reason(item) = SampleClip.reason(item.path) || uploaded_already(item) || UnfinishedDownload.reason(item.path)
+
+    def uploaded_already(item)
       video_id = log.filed(item.title)
-      video_id ? "uploaded already as video #{video_id}" : UnfinishedDownload.reason(item.path)
+      "uploaded already as video #{video_id}" if video_id
     end
 
     def skipping(item, reason) = %(Skipping "#{item.title}" (#{item.file}): #{reason})

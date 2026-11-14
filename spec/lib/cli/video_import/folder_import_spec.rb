@@ -98,6 +98,16 @@ RSpec.describe VideoImport::FolderImport do
     expect(out.string).to include(%(Skipping "Anchorman" (Anchorman.2004.1080p.BrRip.x264.YIFY.mp4): still downloading))
   end
 
+  it "uploads a release and skips the sample clip that came with it, which takes the same title" do
+    place("Sword of the Stranger 2007 BRRip XvidHD 720p-NPW/Sword of the Stranger 2007 BRRip XvidHD 720p-NPW-Sample.avi")
+    place("Sword of the Stranger 2007 BRRip XvidHD 720p-NPW/Sword of the Stranger 2007 BRRip XvidHD 720p-NPW.avi")
+
+    folder_import.call
+
+    expect(importer.calls).to eq([["Sword of the Stranger 2007 BRRip XvidHD 720p-NPW.avi", "Sword of the Stranger"]])
+    expect(out.string).to include(%(Skipping "Sword of the Stranger" (Sword of the Stranger 2007 BRRip XvidHD 720p-NPW-Sample.avi): a sample clip))
+  end
+
   it "sends the subtitle files beside a video once the server has filed it" do
     place("Shrek.2001.1080p.BluRay.x264.YIFY.mp4")
     place("Shrek.2001.1080p.BluRay.x264.YIFY.srt", "1\n")
