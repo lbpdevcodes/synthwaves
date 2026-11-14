@@ -22,4 +22,8 @@ RSpec.describe VideoImport::EpisodeNumber do
   it "reads no episode from a picture size" do
     expect(episode("Heat.1995.1920x1080.x264.mkv")).to eq({})
   end
+
+  it "reads no episode from an aspect ratio" do
+    expect([episode("Heat.1995.DVDRip.16x9.XviD.avi"), episode("Heat.1995.4x3.DVDRip.avi")]).to all(eq({}))
+  end
 end
