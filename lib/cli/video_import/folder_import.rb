@@ -1,10 +1,13 @@
 module VideoImport
   # Uploads every finished video under a folder, one at a time, each under
-  # the title its file name gives (VideoTitle, corrected by TitleFixes), and
-  # skips the titles the folder's UploadLog says are up already.
+  # the title its file name gives (VideoTitle, corrected by TitleFixes) with
+  # the season and episode it numbers (EpisodeNumber), and skips the titles
+  # the folder's UploadLog says are up already.
   class FolderImport
     Item = Data.define(:path, :title) do
       def file = File.basename(path)
+
+      def episode = EpisodeNumber.from(path)
     end
 
     def initialize(folder:, out:, importer:, subtitle_upload:, embedded: EmbeddedSubtitles.new)
@@ -48,9 +51,14 @@ module VideoImport
 
     def plan(item)
       reason = skip_reason(item)
-      @out.puts(reason ? skipping(item, reason) : %(Would upload "#{item.title}" (#{item.file}) with #{subtitles_described(item)}))
+      @out.puts(reason ? skipping(item, reason) : %(Would upload "#{item.title}" (#{item.file})#{episode_described(item)} with #{subtitles_described(item)}))
     rescue Error => e
       @out.puts(skipping(item, e.message))
+    end
+
+    def episode_described(item)
+      episode = item.episode
+      " as season #{episode[:season_number]}, episode #{episode[:episode_number]}," unless episode.empty?
     end
 
     def subtitles_described(item)
@@ -92,7 +100,7 @@ module VideoImport
     # The log records a filed video before its subtitles go, so a refused
     # subtitle can never lead to the video being uploaded twice.
     def upload(item, subtitles, report)
-      filed = @importer.call(item.path, title: item.title)
+      filed = @importer.call(item.path, title: item.title, **item.episode)
       log.record(item.title, filed["id"])
       @out.puts(%(Filed "#{filed["title"]}" as video #{filed["id"]} (#{filed["status"]}).))
       @subtitle_upload.call(filed["id"], subtitles).each { |problem| report.check(item.title, filed["id"], problem) }

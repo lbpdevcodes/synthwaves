@@ -13,6 +13,8 @@
 # - A release's sample clip (a name ending in "sample", like Heat-GRP-Sample.mkv)
 #   is skipped.
 # - Subtitles: the files beside a video, or else the text tracks inside it.
+# - A file name that numbers an episode (Show.S01E02.mkv, show.s01.e02.mkv,
+#   Show.1x02.mkv) goes up as that season and episode, so it is filed as tv.
 # - --type movie|tv and --genre NAME (repeatable) go with every video in the
 #   run. The server reads each one's year from its file name.
 #
