@@ -15,8 +15,8 @@
 # - Subtitles: the files beside a video, or else the text tracks inside it.
 # - A file name that numbers an episode (Show.S01E02.mkv, show.s01.e02.mkv,
 #   Show.1x02.mkv) goes up as that season and episode, so it is filed as tv.
-# - --type movie|tv and --genre NAME (repeatable) go with every video in the
-#   run. The server reads each one's year from its file name.
+# - --type movie|tv, --genre NAME (repeatable) and --animated go with every
+#   video in the run. The server reads each one's year from its file name.
 #
 # Usage:
 #   bin/import_videos ~/Movies --dry-run   # what it would upload, and why it skips the rest
@@ -39,6 +39,7 @@ parser = OptionParser.new do |opts|
   opts.on("--dry-run", "Say what it would upload and skip, and upload nothing") { options[:dry_run] = true }
   opts.on("--type TYPE", %w[movie tv], "File every video as a movie or as tv. Default: tv for an episode, else movie") { |v| fields[:video_type] = v }
   opts.on("--genre NAME", "File every video under this genre (repeatable)") { |v| fields[:genres] = (fields[:genres] || []) << v }
+  opts.on("--animated", "File every video as animated") { fields[:animated] = true }
   opts.on("--host URL", "Default: ENV[SYNTHWAVES_HOST] or https://synthwaves.fm") { |v| options[:host] = v }
 end
 

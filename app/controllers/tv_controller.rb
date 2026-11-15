@@ -10,7 +10,7 @@ class TvController < ApplicationController
   private
 
   def load_videos
-    @filter = VideoFilter.new(query: params[:q], type: params[:type], genre: params[:genre])
+    @filter = VideoFilter.new(query: params[:q], type: params[:type], genre: params[:genre], animated: params[:animated])
     @genres = Current.user.videos.genre_names
     @sort = params[:sort].presence_in(VideoLibrary::SORTS.keys) || "added"
     @direction = sort_direction(default: "desc")

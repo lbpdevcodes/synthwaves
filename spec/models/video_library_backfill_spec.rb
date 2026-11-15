@@ -125,13 +125,22 @@ RSpec.describe VideoLibraryBackfill do
 
   describe "#apply" do
     it "saves what it fills" do
-      animated = create(:folder, user: user, name: "Animated")
-      film = create(:video, user: user, folder: animated)
-      film.file.attach(io: StringIO.new("video"), filename: "Shrek.2001.1080p.BluRay.mp4", content_type: "video/mp4")
+      action = create(:folder, user: user, name: "Action")
+      film = create(:video, user: user, folder: action)
+      film.file.attach(io: StringIO.new("video"), filename: "Heat.1995.1080p.BluRay.mp4", content_type: "video/mp4")
 
       backfill.apply
 
-      expect(film.reload).to have_attributes(video_type: "movie", year: 2001, genre_names: %w[animated])
+      expect(film.reload).to have_attributes(video_type: "movie", year: 1995, genre_names: %w[action])
+    end
+
+    it "marks a video in the Animated folder animated, since animated is no genre" do
+      animated = create(:folder, user: user, name: "Animated")
+      film = create(:video, user: user, folder: animated)
+
+      backfill.apply
+
+      expect(film.reload).to have_attributes(animated: true, genre_names: [])
     end
 
     it "leaves nothing for a second run to change" do

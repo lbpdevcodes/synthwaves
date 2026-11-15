@@ -24,6 +24,7 @@
 #   bin/import_video ~/Movies/Heat.mkv --title "Heat (1995)"
 #   bin/import_video s01e02.mkv --folder "The Wire" --season 1 --episode 2
 #   bin/import_video Heat.mkv --type movie --year 1995 --genre action --genre crime
+#   bin/import_video Shrek.mkv --animated --genre comedy
 #   bin/import_video Heat.mkv --subtitle Heat.English.srt --subtitle Heat.French.srt
 #
 # Credentials come from an API key (create one at /api_keys):
@@ -46,6 +47,7 @@ parser = OptionParser.new do |opts|
   opts.on("--type TYPE", %w[movie tv], "movie or tv. Default: tv with --episode, else movie") { |v| video[:video_type] = v }
   opts.on("--year N", Integer, "Release year. Default: the one in the file name") { |v| video[:year] = v }
   opts.on("--genre NAME", "File it under this genre (repeatable)") { |v| video[:genres] = (video[:genres] || []) << v }
+  opts.on("--animated", "File it as animated (Shrek is animated, and a comedy)") { video[:animated] = true }
   opts.on("--no-encode", "Upload as-is; the server converts it") { |v| options[:encode] = v }
   opts.on("--subtitle PATH", "Send this subtitle file (repeatable); default: the ones found beside the video") do |v|
     options[:subtitles] = (options[:subtitles] || []) << File.expand_path(v)

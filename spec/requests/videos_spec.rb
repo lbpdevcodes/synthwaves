@@ -64,6 +64,14 @@ RSpec.describe "Videos", type: :request do
       expect(Nokogiri::HTML(response.body).at_css("[data-video-details]").text.squish).to eq("Movie · 1999 · comedy, crime")
     end
 
+    it "says the video is animated ahead of its genres" do
+      video = create(:video, user: user, video_type: "movie", year: 2001, animated: true, genre_names: "comedy")
+
+      get video_path(video)
+
+      expect(Nokogiri::HTML(response.body).at_css("[data-video-details]").text.squish).to eq("Movie · 2001 · Animated · comedy")
+    end
+
     it "leaves out what the video lacks" do
       video = create(:video, :untyped, user: user, year: 2004)
 
@@ -152,6 +160,15 @@ RSpec.describe "Videos", type: :request do
       expect(type.at_css("option[selected]")["value"]).to eq("tv")
       expect(doc.at_css("input[name='video[year]']")["value"]).to eq("1997")
       expect(doc.at_css("input[name='video[genre_names]']")["value"]).to eq("animation, comedy")
+    end
+
+    it "has an Animated box, ticked when the video is animated" do
+      video = create(:video, user: user, animated: true)
+
+      get edit_video_path(video)
+
+      box = Nokogiri::HTML(response.body).at_css("input[type='checkbox'][name='video[animated]']")
+      expect([box["value"], box["checked"]]).to eq(["1", "checked"])
     end
 
     it "offers a poster upload, showing the current poster" do
@@ -244,6 +261,16 @@ RSpec.describe "Videos", type: :request do
       patch video_path(video), params: {video: {video_type: "movie", year: "1999", genre_names: "Comedy, crime"}}
 
       expect(video.reload).to have_attributes(video_type: "movie", year: 1999, genre_names: %w[comedy crime])
+    end
+
+    it "saves the Animated box, ticked and unticked" do
+      ticked = create(:video, user: user)
+      unticked = create(:video, user: user, animated: true)
+
+      patch video_path(ticked), params: {video: {animated: "1"}}
+      patch video_path(unticked), params: {video: {animated: "0"}}
+
+      expect([ticked.reload.animated, unticked.reload.animated]).to eq([true, false])
     end
 
     it "clears the type and year when the form sends them blank" do

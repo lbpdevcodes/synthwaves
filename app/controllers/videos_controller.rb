@@ -69,6 +69,6 @@ class VideosController < ApplicationController
 
   def video_params
     params.require(:video).permit(:title, :description, :folder_id, :season_number, :episode_number,
-      :video_type, :year, :genre_names, :cover_image)
+      :video_type, :year, :animated, :genre_names, :cover_image)
   end
 end

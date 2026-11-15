@@ -23,6 +23,10 @@
         </label>
       <% end %>
     </fieldset>
+    <label class="cursor-pointer rounded-lg border border-gray-600 overflow-hidden">
+      <%= check_box_tag :animated, "1", @filter.animated?, class: "sr-only peer", data: { action: "change->search#submit" } %>
+      <span class="block px-3 py-2 text-sm text-gray-300 hover:text-white peer-checked:bg-neon-cyan peer-checked:text-gray-900 peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:-outline-offset-2 peer-focus-visible:outline-white">Animated</span>
+    </label>
     <% if @genres.any? %>
       <%= select_tag :genre, options_for_select(@genres.map { |genre| [genre.titleize, genre] }, @filter.genre),
             include_blank: "All Genres", "aria-label": "Genre", data: { action: "change->search#submit" },

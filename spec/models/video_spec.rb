@@ -50,6 +50,13 @@ RSpec.describe Video, type: :model do
     end
   end
 
+  describe "#animated" do
+    it "is not animated until somebody marks it" do
+      expect(create(:video)).not_to be_animated
+      expect(create(:video, animated: true)).to be_animated
+    end
+  end
+
   describe "#year" do
     it "takes a release year, or none" do
       expect(build(:video, year: 1999)).to be_valid
@@ -163,6 +170,16 @@ RSpec.describe Video, type: :model do
 
       expect(video.reload.genre_names).to eq(%w[action])
       expect(video.taggings.map(&:user)).to eq([user])
+    end
+
+    it "marks the video animated when animated is named as a genre, whatever order the fields come in" do
+      genre_last = create(:video)
+      genre_first = create(:video)
+
+      genre_last.update!(animated: false, genre_names: "Animated, comedy")
+      genre_first.update!(genre_names: "Animated, comedy", animated: false)
+
+      expect([genre_last.reload, genre_first.reload]).to all(have_attributes(animated: true, genre_names: %w[comedy]))
     end
 
     it "takes the video out of the genres left out" do

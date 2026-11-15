@@ -90,7 +90,7 @@ CREATE INDEX "index_internet_radio_stations_on_internet_radio_category_id" ON "i
 CREATE UNIQUE INDEX "index_internet_radio_stations_on_uuid" ON "internet_radio_stations" ("uuid") /*application='SynthWaves'*/;
 CREATE INDEX "index_internet_radio_stations_on_country_code" ON "internet_radio_stations" ("country_code") /*application='SynthWaves'*/;
 CREATE INDEX "index_internet_radio_stations_on_active" ON "internet_radio_stations" ("active") /*application='SynthWaves'*/;
-CREATE TABLE IF NOT EXISTS "videos" ("id" integer PRIMARY KEY AUTOINCREMENT NOT NULL, "user_id" integer NOT NULL, "title" varchar NOT NULL, "description" text, "duration" float, "width" integer, "height" integer, "file_format" varchar, "file_size" bigint, "video_codec" varchar, "audio_codec" varchar, "bitrate" integer, "status" varchar DEFAULT 'processing' NOT NULL, "error_message" varchar, "created_at" datetime(6) NOT NULL, "updated_at" datetime(6) NOT NULL, "folder_id" integer, "season_number" integer /*application='SynthWaves'*/, "episode_number" integer /*application='SynthWaves'*/, "download_status" varchar /*application='SynthWaves'*/, "download_error" varchar /*application='SynthWaves'*/, "youtube_video_id" varchar /*application='SynthWaves'*/, "audio_channels" integer /*application='SynthWaves'*/, "video_type" varchar /*application='SynthWaves'*/, "year" integer /*application='SynthWaves'*/, CONSTRAINT "fk_rails_ba925d1105"
+CREATE TABLE IF NOT EXISTS "videos" ("id" integer PRIMARY KEY AUTOINCREMENT NOT NULL, "user_id" integer NOT NULL, "title" varchar NOT NULL, "description" text, "duration" float, "width" integer, "height" integer, "file_format" varchar, "file_size" bigint, "video_codec" varchar, "audio_codec" varchar, "bitrate" integer, "status" varchar DEFAULT 'processing' NOT NULL, "error_message" varchar, "created_at" datetime(6) NOT NULL, "updated_at" datetime(6) NOT NULL, "folder_id" integer, "season_number" integer /*application='SynthWaves'*/, "episode_number" integer /*application='SynthWaves'*/, "download_status" varchar /*application='SynthWaves'*/, "download_error" varchar /*application='SynthWaves'*/, "youtube_video_id" varchar /*application='SynthWaves'*/, "audio_channels" integer /*application='SynthWaves'*/, "video_type" varchar /*application='SynthWaves'*/, "year" integer /*application='SynthWaves'*/, "animated" boolean DEFAULT FALSE NOT NULL, CONSTRAINT "fk_rails_ba925d1105"
 FOREIGN KEY ("user_id")
   REFERENCES "users" ("id")
 , CONSTRAINT "fk_rails_e1fd47dbfa"
@@ -197,6 +197,7 @@ CREATE UNIQUE INDEX "index_device_sign_ins_on_secret_digest" ON "device_sign_ins
 CREATE INDEX "index_device_sign_ins_on_user_id" ON "device_sign_ins" ("user_id") /*application='SynthWaves'*/;
 CREATE INDEX "index_device_sign_ins_on_expires_at" ON "device_sign_ins" ("expires_at") /*application='SynthWaves'*/;
 INSERT INTO "schema_migrations" (version) VALUES
+('20261115130000'),
 ('20261113220000'),
 ('20261113120000'),
 ('20261112235036'),

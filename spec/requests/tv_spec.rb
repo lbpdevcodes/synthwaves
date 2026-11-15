@@ -204,6 +204,22 @@ RSpec.describe "TV", type: :request do
       expect(genre.at_css("option[selected]")["value"]).to eq("comedy")
     end
 
+    it "lists only the animated videos when Animated is on" do
+      create(:video, user: user, title: "Shrek", animated: true)
+      create(:video, user: user, title: "Heat")
+
+      get tv_path(tab: "videos", animated: "1")
+
+      expect(card_titles).to eq(%w[Shrek])
+    end
+
+    it "offers an Animated toggle beside the types, ticked when on" do
+      get tv_path(tab: "videos", animated: "1")
+
+      toggle = doc.at_css("input[type='checkbox'][name='animated']")
+      expect([toggle.parent.text.strip, toggle["value"], toggle["checked"]]).to eq(["Animated", "1", "checked"])
+    end
+
     it "keeps the type and genre on the page links" do
       create_list(:video, 25, user: user, video_type: "movie", genre_names: "comedy")
 
