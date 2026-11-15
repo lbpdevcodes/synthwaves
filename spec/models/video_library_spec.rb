@@ -166,10 +166,21 @@ RSpec.describe VideoLibrary do
 
     it "shows a collection only when a video inside it has the genre" do
       batman = create(:folder, user: user, name: "Batman")
-      create(:video, user: user, folder: batman, genre_names: "animated")
+      create(:video, user: user, folder: batman, genre_names: "action")
       create(:folder, user: user, name: "Star Wars")
 
-      expect(listed(genre: "animated")).to eq([batman])
+      expect(listed(genre: "action")).to eq([batman])
+    end
+  end
+
+  describe "animated only" do
+    it "shows a collection only when a video inside it is animated" do
+      clone_wars = create(:folder, user: user, name: "Clone Wars")
+      create(:video, user: user, folder: clone_wars, animated: true)
+      star_wars = create(:folder, user: user, name: "Star Wars")
+      create(:video, user: user, folder: star_wars)
+
+      expect(listed(animated: true)).to eq([clone_wars])
     end
   end
 

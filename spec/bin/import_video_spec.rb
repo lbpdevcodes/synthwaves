@@ -166,6 +166,13 @@ RSpec.describe "bin/import_video" do
       expect([err, status.exitstatus]).to eq(["", 0])
     end
 
+    it "files the video as animated with --animated" do
+      run_script(movie, "--no-encode", "--no-subtitles", "--host", server.url, "--animated")
+
+      filed = JSON.parse(server.requests.find { |_, path, _| path == "/api/import/videos" }.last)
+      expect(filed).to include("animated" => true)
+    end
+
     it "leaves the type, year and genres to the server when none are given" do
       run_script(movie, "--no-encode", "--no-subtitles", "--host", server.url)
 

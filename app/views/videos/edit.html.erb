@@ -39,6 +39,11 @@
       <p class="mt-1 text-xs text-gray-500">Separate genres with commas.</p>
     </div>
 
+    <label class="flex items-center gap-3 cursor-pointer">
+      <%= f.check_box :animated, class: "rounded border-gray-600 bg-gray-900 text-neon-pink focus:ring-neon-cyan" %>
+      <span class="text-sm text-white">Animated</span>
+    </label>
+
     <div>
       <%= f.label :cover_image, "Poster", class: "block text-sm font-medium text-gray-400 mb-1" %>
       <% if @video.cover_image.attached? %>

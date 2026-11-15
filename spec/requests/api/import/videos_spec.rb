@@ -108,6 +108,19 @@ RSpec.describe "API Import Videos", type: :request do
       expect(Video.last).to have_attributes(video_type: "tv", year: 1999, genre_names: %w[comedy crime])
     end
 
+    it "files the video as animated when it says so" do
+      post api_import_videos_path, params: {signed_blob_id: blob.signed_id, animated: true}, headers: auth_headers, as: :json
+
+      expect(response).to have_http_status(:created)
+      expect(Video.last).to be_animated
+    end
+
+    it "files a video sent under the genre animated as animated, without that genre" do
+      post api_import_videos_path, params: {signed_blob_id: blob.signed_id, genres: %w[animated comedy]}, headers: auth_headers, as: :json
+
+      expect(Video.last).to have_attributes(animated: true, genre_names: %w[comedy])
+    end
+
     it "files a video sent without them as a movie of the year its file name gives" do
       heat = ActiveStorage::Blob.create_and_upload!(io: StringIO.new("video"), filename: "Heat.1995.1080p.BluRay.mp4", content_type: "video/mp4")
 

@@ -6,8 +6,9 @@ module VideosHelper
   # The type select's choices; a blank type is "Other".
   def video_type_options = VIDEO_TYPE_LABELS.invert.to_a
 
-  # "Movie · 1999 · comedy, crime", leaving out what the video lacks.
+  # "Movie · 2001 · Animated · comedy", leaving out what the video lacks.
   def video_details(video)
-    [VIDEO_TYPE_LABELS[video.video_type], video.year, video.genre_names.join(", ").presence].compact.join(" · ")
+    genres = video.genre_names.join(", ").presence
+    [VIDEO_TYPE_LABELS[video.video_type], video.year, ("Animated" if video.animated?), genres].compact.join(" · ")
   end
 end

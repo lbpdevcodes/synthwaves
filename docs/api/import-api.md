@@ -285,7 +285,8 @@ Import a video using a previously uploaded blob from the direct uploads endpoint
 | `episode_number` | integer | No | Episode number |
 | `video_type` | string | No | `movie` or `tv`. Default: `tv` when `episode_number` is sent, else `movie` |
 | `year` | integer | No | Release year, from 1888 to five years from now. Default: the year in the uploaded file's release name (`Heat.1995.1080p.mkv` is 1995), when it has one |
-| `genres` | array of strings | No | Genre names, such as `["action", "crime"]`. Lower-cased. |
+| `animated` | boolean | No | Whether it is animated. Default: `false` |
+| `genres` | array of strings | No | Genre names, such as `["action", "crime"]`. Lower-cased. `animated` is no genre: naming it marks the video animated instead. |
 | `thumbnail_signed_blob_id` | string | No | Signed blob ID of a JPEG thumbnail, from a direct upload |
 | `details` | object | No | What ffprobe reads from the file: `duration` (seconds), `width`, `height`, `video_codec`, `audio_codec`, `audio_channels`, `bitrate` (kb/s), `container` (ffprobe's format name) |
 

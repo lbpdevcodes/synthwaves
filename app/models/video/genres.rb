@@ -3,6 +3,10 @@
 module Video::Genres
   extend ActiveSupport::Concern
 
+  # How a video was made, not what it is about: named as a genre, it marks the
+  # video animated instead (Shrek is animated, and a comedy).
+  ANIMATED = "animated"
+
   included do
     has_many :taggings, as: :taggable, dependent: :destroy, autosave: true
     has_many :tags, through: :taggings
@@ -11,6 +15,9 @@ module Video::Genres
 
     # Genres can be named before the owner is (Video.new(genre_names: ..., user: ...)).
     before_validation :give_new_taggings_the_owner
+    # At validation, so no field assigned after the genres (the edit form's
+    # unticked Animated box) can undo it.
+    before_validation :mark_animated_when_named
   end
 
   class_methods do
@@ -29,11 +36,16 @@ module Video::Genres
   # Takes "action, Crime" or a list of names: the video's genres from now on.
   def genre_names=(names)
     wanted = normalized(names)
+    @animated_named = wanted.delete(ANIMATED).present?
     genre_taggings.reject { |tagging| wanted.include?(tagging.tag.name) }.each(&:mark_for_destruction)
     (wanted - genre_names).each { |name| taggings.build(tag: genre_tag(name)) }
   end
 
   private
+
+  def mark_animated_when_named
+    self.animated = true if @animated_named
+  end
 
   def genre_tag(name) = Tag.find_or_initialize_by(name: name, tag_type: "genre")
 

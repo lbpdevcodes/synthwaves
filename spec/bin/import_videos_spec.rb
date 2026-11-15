@@ -93,14 +93,24 @@ RSpec.describe "bin/import_videos" do
       movie("Shrek.2001.1080p.BluRay.x264.YIFY.mp4")
       movie("Toy.Story.1995.1080p.BluRay.x265.mp4")
 
-      _out, _err, status = run_script(@folder, "--host", server.url, "--type", "movie", "--genre", "animated", "--genre", "comedy")
+      _out, _err, status = run_script(@folder, "--host", server.url, "--type", "movie", "--genre", "comedy", "--genre", "family")
 
       filed = server.requests.select { |_, path, _| path == "/api/import/videos" }.map { |*, body| JSON.parse(body) }
       expect(filed.map { |video| video.slice("title", "video_type", "genres") }).to eq([
-        {"title" => "Shrek", "video_type" => "movie", "genres" => %w[animated comedy]},
-        {"title" => "Toy Story", "video_type" => "movie", "genres" => %w[animated comedy]}
+        {"title" => "Shrek", "video_type" => "movie", "genres" => %w[comedy family]},
+        {"title" => "Toy Story", "video_type" => "movie", "genres" => %w[comedy family]}
       ])
       expect(status.exitstatus).to eq(0)
+    end
+
+    it "files every video as animated with --animated" do
+      movie("Shrek.2001.1080p.BluRay.x264.YIFY.mp4")
+      movie("Toy.Story.1995.1080p.BluRay.x265.mp4")
+
+      run_script(@folder, "--host", server.url, "--animated")
+
+      filed = server.requests.select { |_, path, _| path == "/api/import/videos" }.map { |*, body| JSON.parse(body) }
+      expect(filed.map { |video| video["animated"] }).to eq([true, true])
     end
 
     it "reports a video it could not upload, logs nothing for it, and fails" do
