@@ -101,7 +101,7 @@ synthwaves.fm is a self-hosted music and video streaming server built with Rails
 
 ## Getting Started
 
-**Requirements:** Ruby 4.0.1+, SQLite3, ffmpeg
+**Requirements:** Ruby 4.0.10+, SQLite3, ffmpeg
 
 **Optional:** yt-dlp (for YouTube downloads)
 

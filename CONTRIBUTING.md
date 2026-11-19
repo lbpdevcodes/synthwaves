@@ -4,7 +4,7 @@ Thanks for your interest in contributing to synthwaves.fm!
 
 ## Setup
 
-**Requirements:** Ruby 4.0.1+, SQLite3, ffmpeg
+**Requirements:** Ruby 4.0.10+, SQLite3, ffmpeg
 
 ```bash
 bin/setup
